@@ -19,15 +19,18 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
-const services = ['Consultation', 'Wig install', 'Wig styling', 'Other'];
+const services = ['Lace wig consultation', 'Skin top wig consultation', 'Custom color', 'Styling', 'Repair'];
 const serviceDescriptions: Record<string, string> = {
-  Consultation: 'Tell Rikki what you are looking for',
-  'Wig install': 'Request an installation appointment',
-  'Wig styling': 'Request styling or a refresh',
-  Other: 'Ask about another service',
+  'Lace wig consultation': 'Ask about lace wig options',
+  'Skin top wig consultation': 'Ask about skin top wig options',
+  'Custom color': 'Request a custom color appointment',
+  Styling: 'Request wig styling',
+  Repair: 'Request a wig repair',
 };
 const statuses = ['pending', 'confirmed', 'completed', 'cancelled'] as const;
 const instagramUrl = 'https://www.instagram.com/rikki_wigs/';
+const phoneDisplay = '732-742-4559';
+const phoneUrl = 'tel:+17327424559';
 
 function toDayKey(value: string | Date): string {
   if (value instanceof Date) return value.toISOString().slice(0, 10);
@@ -43,13 +46,13 @@ function SiteNav({ manage = false }: { manage?: boolean }) {
   return (
     <header className={`relative z-20 ${manage ? 'bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))]' : ''}`}>
       <div className="container-rikki flex items-center justify-between py-5">
-        <Link href="/" className="flex items-center gap-3" data-testid="link-home-logo">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--primary))] text-sm font-semibold text-[hsl(var(--primary-foreground))]">R</span>
-          <span className="leading-none"><span className="block font-editorial text-xl">rikki</span><span className="eyebrow opacity-60">wigs & hair</span></span>
+        <Link href="/" className="leading-none" data-testid="link-home-logo">
+          <span className="block font-editorial text-2xl">Rikki Wigs</span>
+          <span className="eyebrow mt-1 block opacity-60">Luxury wig salon</span>
         </Link>
         <nav className="hidden items-center gap-8 md:flex" aria-label="Primary navigation">
           {manage ? <Link href="/" className="editorial-link text-sm opacity-80 hover:opacity-100" data-testid="link-public-site">View public site</Link> : <>
-            <a href="#services" className="editorial-link text-sm" data-testid="link-services">Appointments</a>
+            <a href="#services" className="editorial-link text-sm" data-testid="link-services">Services</a>
             <a href="#story" className="editorial-link text-sm" data-testid="link-story">Instagram</a>
             <Link href="/book" className="editorial-link text-sm" data-testid="link-nav-book">Book</Link>
           </>}
@@ -76,12 +79,12 @@ function Home() {
     <main>
       <section className="container-rikki relative grid min-h-[640px] items-center gap-10 pb-16 pt-10 md:grid-cols-[.9fr_1.1fr] md:pb-24 md:pt-16">
         <div className="relative z-10 reveal">
-          <p className="eyebrow mb-6 text-[hsl(var(--primary))]">Wigs & hair / Rikki Wigs</p>
-          <h1 className="display-title max-w-[620px] text-[clamp(3.7rem,8vw,7.7rem)]">Wigs and hair<br /><em className="text-[hsl(var(--primary))]">by Rikki.</em></h1>
-          <p className="mt-7 max-w-[390px] text-base leading-7 text-[hsl(var(--muted-foreground))]">See the latest work on Instagram or request an appointment. Details and availability are confirmed directly with Rikki.</p>
+          <p className="eyebrow mb-6 text-[hsl(var(--primary))]">Luxury wig salon / New Jersey</p>
+          <h1 className="display-title max-w-[620px] text-[clamp(3.7rem,8vw,7.7rem)]">Rikki<br /><em className="text-[hsl(var(--primary))]">Wigs.</em></h1>
+          <p className="mt-7 max-w-[430px] text-base leading-7 text-[hsl(var(--muted-foreground))]">Lace and skin top wigs, custom color, styling, and repairs. Available in New Jersey by appointment.</p>
           <div className="mt-9 flex flex-wrap items-center gap-4">
             <Link href="/book" className="btn-primary" data-testid="button-hero-book">Request an appointment <ArrowDownRight size={16} /></Link>
-            <a href={instagramUrl} target="_blank" rel="noreferrer" className="editorial-link text-sm font-semibold" data-testid="link-hero-instagram">View Instagram</a>
+            <a href={phoneUrl} className="editorial-link text-sm font-semibold" data-testid="link-hero-phone">Call {phoneDisplay}</a>
           </div>
         </div>
         <div className="relative reveal reveal-delay-1">
@@ -89,7 +92,7 @@ function Home() {
             <div>
               <p className="eyebrow mb-5 text-[hsl(var(--accent))]">@rikki_wigs</p>
               <p className="font-editorial text-6xl leading-[.9] md:text-8xl">Rikki<br /><em>Wigs</em></p>
-              <p className="mt-8 max-w-xs text-sm leading-6 opacity-70">Current work, updates, and visual references live on Instagram.</p>
+              <p className="mt-8 max-w-xs text-sm leading-6 opacity-70">See current wigs, color work, styling, repairs, and salon updates on Instagram.</p>
               <a href={instagramUrl} target="_blank" rel="noreferrer" className="btn-primary mt-8 !bg-[hsl(var(--accent))] !text-[hsl(var(--foreground))]" data-testid="button-hero-instagram"><Instagram size={16} /> Open Instagram</a>
             </div>
           </div>
@@ -114,13 +117,13 @@ function Home() {
 
       <section id="services" className="bg-[hsl(var(--sidebar))] py-24 text-[hsl(var(--sidebar-foreground))] md:py-32">
         <div className="container-rikki">
-          <div className="flex flex-wrap items-end justify-between gap-6"><div><p className="eyebrow text-[hsl(var(--accent))]">02 / appointments</p><h2 className="display-title mt-5 text-5xl md:text-7xl">Start with a<br /><em>conversation.</em></h2></div><p className="max-w-[260px] text-sm leading-6 opacity-65">Choose the closest option in the request form. Rikki can confirm the exact service and timing with you.</p></div>
+          <div className="flex flex-wrap items-end justify-between gap-6"><div><p className="eyebrow text-[hsl(var(--accent))]">02 / services</p><h2 className="display-title mt-5 text-5xl md:text-7xl">Wigs, color,<br /><em>styling & care.</em></h2></div><p className="max-w-[260px] text-sm leading-6 opacity-65">Choose the closest service in the request form. Rikki will confirm the appointment details with you.</p></div>
           <div className="mt-16 divide-y divide-[hsl(var(--sidebar-border))] border-y border-[hsl(var(--sidebar-border))]">
             {[
-              ['01', 'Consultation', 'Tell us what you are looking for.'],
-              ['02', 'Wig install', 'Request an install appointment.'],
-              ['03', 'Wig styling', 'Request styling or a refresh.'],
-              ['04', 'Other', 'Ask about something not listed.'],
+              ['01', 'Lace wigs', 'Consultation and appointment requests.'],
+              ['02', 'Skin top wigs', 'Consultation and appointment requests.'],
+              ['03', 'Custom color', 'Color services for your wig.'],
+              ['04', 'Styling & repairs', 'Styling, maintenance, and repair requests.'],
             ].map(([number, title, copy]) => <div key={number} className="group grid gap-4 py-7 transition-colors hover:bg-[hsl(var(--sidebar-accent))] md:grid-cols-[80px_1fr_1fr] md:items-center md:px-5">
               <span className="font-mono-ui text-xs text-[hsl(var(--accent))]">{number}</span><h3 className="font-editorial text-3xl">{title}</h3><p className="max-w-sm text-sm leading-6 opacity-60 md:justify-self-end">{copy}</p>
             </div>)}
@@ -142,7 +145,7 @@ function Home() {
         </div>
       </section>
     </main>
-    <footer className="border-t border-[hsl(var(--border))] py-10"><div className="container-rikki flex flex-col justify-between gap-8 md:flex-row md:items-end"><div><p className="font-editorial text-3xl">Rikki Wigs</p><p className="mt-2 max-w-[220px] text-sm leading-6 text-[hsl(var(--muted-foreground))]">Wigs & hair by Rikki.</p></div><div className="flex items-center gap-6 text-sm"><a href={instagramUrl} target="_blank" rel="noreferrer" className="editorial-link" data-testid="link-footer-instagram">Follow @rikki_wigs</a><a href={instagramUrl} target="_blank" rel="noreferrer" className="rounded-full border border-[hsl(var(--border))] p-2" aria-label="Instagram" data-testid="link-instagram"><Instagram size={16} /></a></div></div></footer>
+    <footer className="border-t border-[hsl(var(--border))] py-10"><div className="container-rikki flex flex-col justify-between gap-8 md:flex-row md:items-end"><div><p className="font-editorial text-3xl">Rikki Wigs</p><p className="mt-2 max-w-[220px] text-sm leading-6 text-[hsl(var(--muted-foreground))]">Luxury wig salon in New Jersey. By appointment.</p></div><div className="flex flex-wrap items-center gap-6 text-sm"><a href={phoneUrl} className="editorial-link" data-testid="link-footer-phone">{phoneDisplay}</a><a href={instagramUrl} target="_blank" rel="noreferrer" className="editorial-link" data-testid="link-footer-instagram">Follow @rikki_wigs</a><a href={instagramUrl} target="_blank" rel="noreferrer" className="rounded-full border border-[hsl(var(--border))] p-2" aria-label="Instagram" data-testid="link-instagram"><Instagram size={16} /></a></div></div></footer>
   </div>;
 }
 
@@ -163,7 +166,7 @@ function Book() {
   };
   if (submitted) return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki flex min-h-[75vh] items-center justify-center py-16"><div className="max-w-lg text-center reveal"><div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[hsl(var(--accent))]"><Check size={28} /></div><p className="eyebrow mt-8 text-[hsl(var(--primary))]">request received</p><h1 className="display-title mt-4 text-6xl">You are on the list.</h1><p className="mx-auto mt-6 max-w-md leading-7 text-[hsl(var(--muted-foreground))]">Thank you, {form.name.split(' ')[0] || 'lovely'}. Rikki will be in touch shortly to confirm your time and answer any questions.</p><Link href="/" className="btn-primary mt-9" data-testid="button-back-home">Back to Rikki Wigs <ArrowRight size={15} /></Link></div></main></div>;
   return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki grid gap-12 pb-20 pt-8 md:grid-cols-[.65fr_1.35fr] md:gap-20 md:pt-16">
-    <aside><p className="eyebrow text-[hsl(var(--primary))]">your appointment</p><h1 className="display-title mt-5 text-6xl md:text-7xl">Let's find<br /><em>your moment.</em></h1><p className="mt-7 max-w-xs leading-7 text-[hsl(var(--muted-foreground))]">A few thoughtful details and we will take it from here. No commitment until we confirm together.</p><div className="mt-12 hidden space-y-5 md:block">{[['01', 'Choose a service'], ['02', 'Find a time'], ['03', 'Tell us about you']].map(([n, label], index) => <div key={n} className={`flex items-center gap-3 text-sm ${step === index + 1 ? 'font-semibold' : 'opacity-45'}`}><span className={`flex h-7 w-7 items-center justify-center rounded-full font-mono-ui text-[10px] ${step === index + 1 ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]' : 'border border-current'}`}>{n}</span>{label}</div>)}</div></aside>
+    <aside><p className="eyebrow text-[hsl(var(--primary))]">appointment request</p><h1 className="display-title mt-5 text-6xl md:text-7xl">Book with<br /><em>Rikki Wigs.</em></h1><p className="mt-7 max-w-xs leading-7 text-[hsl(var(--muted-foreground))]">Choose a service and request an available time. Rikki will contact you to confirm the appointment.</p><div className="mt-12 hidden space-y-5 md:block">{[['01', 'Choose a service'], ['02', 'Find a time'], ['03', 'Tell us about you']].map(([n, label], index) => <div key={n} className={`flex items-center gap-3 text-sm ${step === index + 1 ? 'font-semibold' : 'opacity-45'}`}><span className={`flex h-7 w-7 items-center justify-center rounded-full font-mono-ui text-[10px] ${step === index + 1 ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]' : 'border border-current'}`}>{n}</span>{label}</div>)}</div></aside>
     <section className="max-w-2xl md:pt-4"><div className="mb-8 flex items-center justify-between border-b border-[hsl(var(--border))] pb-4 md:hidden"><span className="eyebrow">step 0{step} of 03</span><span className="text-sm font-semibold">{step === 1 ? 'Service' : step === 2 ? 'Time' : 'Details'}</span></div>
       {step === 1 && <div className="reveal"><p className="eyebrow opacity-55">Step 01</p><h2 className="font-editorial mt-3 text-4xl">What would you like to request?</h2><div className="mt-8 grid gap-3">{services.map((service) => <button key={service} onClick={() => update('service', service)} className={`flex items-center justify-between rounded-xl border p-5 text-left transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--primary))] ${form.service === service ? 'border-[hsl(var(--primary))] bg-[hsl(var(--secondary))]' : 'border-[hsl(var(--border))] bg-[hsl(var(--card))]'}`} data-testid={`button-service-${service.toLowerCase().replaceAll(' ', '-')}`}><span><span className="block font-semibold">{service}</span><span className="mt-1 block text-sm text-[hsl(var(--muted-foreground))]">{serviceDescriptions[service]}</span></span>{form.service === service && <CheckCircle2 className="text-[hsl(var(--primary))]" size={20} />}</button>)}</div></div>}
       {step === 2 && <div className="reveal"><p className="eyebrow opacity-55">Step 02</p><h2 className="font-editorial mt-3 text-4xl">When would you like to come in?</h2><p className="mt-3 text-sm text-[hsl(var(--muted-foreground))]">Choose a date, then pick an available time.</p>{availabilityLoading ? <div className="mt-8 grid gap-3 sm:grid-cols-2"><div className="skeleton h-20" /><div className="skeleton h-20" /><div className="skeleton h-20" /></div> : availabilityError ? <div className="mt-8 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 text-sm text-[hsl(var(--muted-foreground))]">Availability is taking a moment. You can still request a date below, and we will confirm a time with you.</div> : availableDays.length ? <div className="mt-8 grid gap-3 sm:grid-cols-2">{availableDays.map((day) => { const key = toDayKey(day.date); return <button key={key} onClick={() => update('appointmentDate', key)} className={`rounded-xl border p-5 text-left transition-all hover:-translate-y-0.5 ${form.appointmentDate === key ? 'border-[hsl(var(--primary))] bg-[hsl(var(--secondary))]' : 'border-[hsl(var(--border))] bg-[hsl(var(--card))]'}`} data-testid={`button-date-${key}`}><span className="font-semibold">{formatDay(day.date, { weekday: 'long', month: 'short', day: 'numeric' })}</span><span className="mt-1 block text-xs text-[hsl(var(--muted-foreground))]">{day.times.length} times available</span></button>; })}</div> : <input type="date" min={new Date().toISOString().split('T')[0]} value={form.appointmentDate} onChange={(event) => update('appointmentDate', event.target.value)} className="field-input mt-8" data-testid="input-appointment-date" />}{form.appointmentDate && <div className="mt-7"><label className="field-label">Available times</label>{selectedDay?.times?.length ? <div className="flex flex-wrap gap-2">{selectedDay.times.map((time) => <button key={time} onClick={() => update('appointmentTime', time)} className={`rounded-full border px-4 py-2 text-sm transition-colors ${form.appointmentTime === time ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]' : 'border-[hsl(var(--border))] bg-[hsl(var(--card))] hover:border-[hsl(var(--primary))]'}`} data-testid={`button-time-${time.replaceAll(':', '-')}`}>{time}</button>)}</div> : <input type="time" value={form.appointmentTime} onChange={(event) => update('appointmentTime', event.target.value)} className="field-input" data-testid="input-appointment-time" />}</div>}</div>}

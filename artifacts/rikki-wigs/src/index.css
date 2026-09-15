@@ -41,31 +41,31 @@
 }
 
 :root {
-  --background: 31 43% 94%;
-  --foreground: 345 32% 17%;
-  --border: 28 24% 82%;
-  --input: 28 24% 82%;
-  --ring: 8 63% 44%;
-  --card: 35 48% 97%;
-  --card-foreground: 345 32% 17%;
-  --card-border: 28 24% 82%;
-  --primary: 8 63% 44%;
-  --primary-foreground: 35 48% 97%;
-  --secondary: 18 40% 85%;
-  --secondary-foreground: 345 32% 17%;
-  --muted: 29 28% 88%;
-  --muted-foreground: 25 18% 45%;
-  --accent: 46 52% 58%;
-  --accent-foreground: 345 32% 17%;
+  --background: 42 24% 96%;
+  --foreground: 0 0% 8%;
+  --border: 36 13% 82%;
+  --input: 36 13% 82%;
+  --ring: 0 0% 8%;
+  --card: 42 30% 99%;
+  --card-foreground: 0 0% 8%;
+  --card-border: 36 13% 82%;
+  --primary: 0 0% 8%;
+  --primary-foreground: 42 30% 99%;
+  --secondary: 36 18% 88%;
+  --secondary-foreground: 0 0% 8%;
+  --muted: 36 14% 91%;
+  --muted-foreground: 30 5% 39%;
+  --accent: 35 30% 74%;
+  --accent-foreground: 0 0% 8%;
   --destructive: 3 57% 42%;
-  --destructive-foreground: 35 48% 97%;
-  --sidebar: 345 32% 17%;
-  --sidebar-foreground: 35 48% 97%;
-  --sidebar-border: 345 24% 25%;
-  --sidebar-primary: 8 63% 44%;
-  --sidebar-primary-foreground: 35 48% 97%;
-  --sidebar-accent: 345 24% 25%;
-  --sidebar-accent-foreground: 35 48% 97%;
+  --destructive-foreground: 42 30% 99%;
+  --sidebar: 0 0% 8%;
+  --sidebar-foreground: 42 30% 99%;
+  --sidebar-border: 0 0% 18%;
+  --sidebar-primary: 0 0% 8%;
+  --sidebar-primary-foreground: 42 30% 99%;
+  --sidebar-accent: 0 0% 15%;
+  --sidebar-accent-foreground: 42 30% 99%;
   --app-font-sans: 'DM Sans', sans-serif;
   --app-font-serif: 'Playfair Display', Georgia, serif;
   --app-font-mono: 'DM Mono', monospace;
@@ -108,7 +108,7 @@ button, input, select, textarea { font: inherit; }
 .editorial-link::after { content: ""; position: absolute; left: 0; right: 0; bottom: -5px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform .3s ease; }
 .editorial-link:hover::after { transform: scaleX(1); transform-origin: left; }
 .btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 14px 20px; border-radius: 999px; font-weight: 600; font-size: 13px; transition: transform .25s ease, background-color .25s ease; }
-.btn-primary:hover { transform: translateY(-2px); background: hsl(8 63% 37%); }
+.btn-primary:hover { transform: translateY(-2px); background: hsl(0 0% 18%); }
 .btn-quiet { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid hsl(var(--border)); padding: 13px 18px; border-radius: 999px; font-size: 13px; font-weight: 600; transition: background-color .25s ease, border-color .25s ease, transform .25s ease; }
 .btn-quiet:hover { background: hsl(var(--secondary)); border-color: hsl(var(--primary)); transform: translateY(-2px); }
 .field-label { display: block; margin-bottom: 7px; font-size: 12px; font-weight: 600; color: hsl(var(--foreground)); }
