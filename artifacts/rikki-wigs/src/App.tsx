@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { Link, Route, Switch, useLocation } from 'wouter';
-import { ArrowDownRight, ArrowRight, CalendarDays, Check, CheckCircle2, ChevronDown, Clock3, Instagram, Mail, Menu, Phone, Scissors, Trash2, X, XCircle } from 'lucide-react';
+import { ArrowDownRight, ArrowRight, CalendarDays, Check, CheckCircle2, ChevronDown, Clock3, Instagram, Mail, Menu, Phone, Trash2, X, XCircle } from 'lucide-react';
 import {
   getGetAppointmentSummaryQueryKey,
   getListAppointmentsQueryKey,
@@ -19,7 +19,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
-const services = ['The Rikki Signature', 'Lace Refresh', 'Install & Style', 'Private Consultation'];
+const services = ['Consultation', 'Wig install', 'Wig styling', 'Other'];
 const statuses = ['pending', 'confirmed', 'completed', 'cancelled'] as const;
 const instagramUrl = 'https://www.instagram.com/rikki_wigs/';
 
@@ -70,59 +70,51 @@ function Home() {
     <main>
       <section className="container-rikki relative grid min-h-[640px] items-center gap-10 pb-16 pt-10 md:grid-cols-[.9fr_1.1fr] md:pb-24 md:pt-16">
         <div className="relative z-10 reveal">
-          <p className="eyebrow mb-6 text-[hsl(var(--primary))]">A softer kind of luxury / By appointment</p>
-          <h1 className="display-title max-w-[620px] text-[clamp(3.7rem,8vw,7.7rem)]">Hair that lets you <em className="text-[hsl(var(--primary))]">arrive.</em></h1>
-          <p className="mt-7 max-w-[390px] text-base leading-7 text-[hsl(var(--muted-foreground))]">Thoughtful wigs, beautiful installs, and personal care in a private setting. Come as you are. Leave feeling entirely yourself.</p>
+          <p className="eyebrow mb-6 text-[hsl(var(--primary))]">Wigs & hair / Rikki Wigs</p>
+          <h1 className="display-title max-w-[620px] text-[clamp(3.7rem,8vw,7.7rem)]">Wigs and hair<br /><em className="text-[hsl(var(--primary))]">by Rikki.</em></h1>
+          <p className="mt-7 max-w-[390px] text-base leading-7 text-[hsl(var(--muted-foreground))]">See the latest work on Instagram or request an appointment. Details and availability are confirmed directly with Rikki.</p>
           <div className="mt-9 flex flex-wrap items-center gap-4">
             <Link href="/book" className="btn-primary" data-testid="button-hero-book">Request an appointment <ArrowDownRight size={16} /></Link>
-            <a href="#story" className="editorial-link text-sm font-semibold" data-testid="link-hero-story">Meet Rikki</a>
-          </div>
-          <div className="mt-14 flex gap-8 border-t border-[hsl(var(--border))] pt-5">
-            <div><p className="font-editorial text-3xl">1:1</p><p className="eyebrow mt-1 opacity-55">attention</p></div>
-            <div><p className="font-editorial text-3xl">1:1</p><p className="eyebrow mt-1 opacity-55">private care</p></div>
-            <div><p className="font-editorial text-3xl">care</p><p className="eyebrow mt-1 opacity-55">always personal</p></div>
+            <a href={instagramUrl} target="_blank" rel="noreferrer" className="editorial-link text-sm font-semibold" data-testid="link-hero-instagram">View Instagram</a>
           </div>
         </div>
         <div className="relative reveal reveal-delay-1">
-          <div className="absolute -right-4 -top-7 z-10 hidden h-28 w-28 rounded-full bg-[hsl(var(--accent))] p-5 text-center text-[hsl(var(--foreground))] sm:block">
-            <p className="font-editorial text-lg leading-tight">feel good<br /><em>first</em></p>
-          </div>
-          <div className="relative aspect-[4/5] overflow-hidden rounded-[170px_170px_18px_18px] bg-[hsl(var(--secondary))]">
-            <img src="/hero-portrait.jpg" alt="Client wearing a softly waved wig in warm studio light" className="h-full w-full object-cover object-center mix-blend-multiply" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[hsl(345_32%_17%/.28)] via-transparent to-transparent" />
-          </div>
-          <div className="absolute -bottom-5 -left-3 max-w-[200px] rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-[0_15px_40px_hsl(345_32%_17%/.12)] sm:-left-8">
-            <p className="font-editorial text-lg leading-tight">“I looked in the mirror and finally saw the whole picture.”</p>
-            <p className="eyebrow mt-3 opacity-55">— Maya, signature client</p>
+          <div className="relative flex aspect-[4/5] items-end overflow-hidden rounded-[170px_170px_18px_18px] bg-[hsl(var(--sidebar))] p-8 text-[hsl(var(--sidebar-foreground))] md:p-12">
+            <div>
+              <p className="eyebrow mb-5 text-[hsl(var(--accent))]">@rikki_wigs</p>
+              <p className="font-editorial text-6xl leading-[.9] md:text-8xl">Rikki<br /><em>Wigs</em></p>
+              <p className="mt-8 max-w-xs text-sm leading-6 opacity-70">Current work, updates, and visual references live on Instagram.</p>
+              <a href={instagramUrl} target="_blank" rel="noreferrer" className="btn-primary mt-8 !bg-[hsl(var(--accent))] !text-[hsl(var(--foreground))]" data-testid="button-hero-instagram"><Instagram size={16} /> Open Instagram</a>
+            </div>
           </div>
         </div>
       </section>
 
       <div className="overflow-hidden border-y border-[hsl(var(--border))] bg-[hsl(var(--primary))] py-3 text-[hsl(var(--primary-foreground))]">
-        <div className="marquee-track flex items-center gap-8 whitespace-nowrap font-editorial text-2xl italic"><span>beautifully considered</span><span>/</span><span>soft confidence</span><span>/</span><span>your best hair day</span><span>/</span><span>beautifully considered</span><span>/</span><span>soft confidence</span><span>/</span><span>your best hair day</span></div>
+        <div className="marquee-track flex items-center gap-8 whitespace-nowrap font-editorial text-2xl italic"><span>Rikki Wigs</span><span>/</span><span>wigs & hair</span><span>/</span><span>@rikki_wigs</span><span>/</span><span>Rikki Wigs</span><span>/</span><span>wigs & hair</span><span>/</span><span>@rikki_wigs</span></div>
       </div>
 
       <section id="story" className="container-rikki grid gap-12 py-24 md:grid-cols-[.8fr_1.2fr] md:py-32">
-        <div><p className="eyebrow text-[hsl(var(--primary))]">01 / the rikki approach</p><div className="mt-16 hidden h-36 w-36 items-center justify-center rounded-full border border-[hsl(var(--primary))] md:flex"><Scissors className="text-[hsl(var(--primary))]" size={30} strokeWidth={1.2} /></div></div>
+        <div><p className="eyebrow text-[hsl(var(--primary))]">01 / follow the work</p><div className="mt-16 hidden h-36 w-36 items-center justify-center rounded-full border border-[hsl(var(--primary))] md:flex"><Instagram className="text-[hsl(var(--primary))]" size={30} strokeWidth={1.2} /></div></div>
         <div>
-          <h2 className="display-title max-w-3xl text-5xl md:text-7xl">There is no one way to feel <em>like yourself.</em></h2>
+          <h2 className="display-title max-w-3xl text-5xl md:text-7xl">See the latest <em>on Instagram.</em></h2>
           <div className="mt-9 grid gap-8 text-[hsl(var(--muted-foreground))] md:grid-cols-2">
-            <p className="leading-7">Rikki Wigs began with a simple belief: hair is not a transformation you owe anyone. It is a tool for expression, ease, and the small private thrill of catching your reflection.</p>
-            <p className="leading-7">Every appointment is unrushed and tailored to you — from finding the right texture to teaching you how to make it yours at home. No crowded salon floor. No hard sell.</p>
+            <p className="leading-7">The Instagram profile is the best place to see current looks, videos, updates, and the visual identity of Rikki Wigs.</p>
+            <p className="leading-7">When you are ready, use the appointment form to share what you are looking for. Rikki can confirm the details with you.</p>
           </div>
-          <div className="mt-9"><Link href="/book" className="editorial-link text-sm font-semibold" data-testid="link-story-book">Find your fit <ArrowRight className="ml-2 inline" size={15} /></Link></div>
+          <div className="mt-9"><a href={instagramUrl} target="_blank" rel="noreferrer" className="editorial-link text-sm font-semibold" data-testid="link-story-instagram">Open @rikki_wigs <ArrowRight className="ml-2 inline" size={15} /></a></div>
         </div>
       </section>
 
       <section id="services" className="bg-[hsl(var(--sidebar))] py-24 text-[hsl(var(--sidebar-foreground))] md:py-32">
         <div className="container-rikki">
-          <div className="flex flex-wrap items-end justify-between gap-6"><div><p className="eyebrow text-[hsl(var(--accent))]">02 / services</p><h2 className="display-title mt-5 text-5xl md:text-7xl">Made for your<br /><em>real life.</em></h2></div><p className="max-w-[260px] text-sm leading-6 opacity-65">A quiet menu of considered services. We will help you choose what makes the most sense.</p></div>
+          <div className="flex flex-wrap items-end justify-between gap-6"><div><p className="eyebrow text-[hsl(var(--accent))]">02 / appointments</p><h2 className="display-title mt-5 text-5xl md:text-7xl">Start with a<br /><em>conversation.</em></h2></div><p className="max-w-[260px] text-sm leading-6 opacity-65">Choose the closest option in the request form. Rikki can confirm the exact service and timing with you.</p></div>
           <div className="mt-16 divide-y divide-[hsl(var(--sidebar-border))] border-y border-[hsl(var(--sidebar-border))]">
             {[
-              ['01', 'The Rikki Signature', 'A custom wig fitting, trim, and finish for the full feeling-good reset.'],
-              ['02', 'Lace Refresh', 'A tidy, re-melt, and restyle for a piece you already love.'],
-              ['03', 'Install & Style', 'A secure, natural install finished in your texture and your rhythm.'],
-              ['04', 'Private Consultation', 'A no-pressure hour to talk options, care, and what comes next.'],
+              ['01', 'Consultation', 'Tell us what you are looking for.'],
+              ['02', 'Wig install', 'Request an install appointment.'],
+              ['03', 'Wig styling', 'Request styling or a refresh.'],
+              ['04', 'Other', 'Ask about something not listed.'],
             ].map(([number, title, copy]) => <div key={number} className="group grid gap-4 py-7 transition-colors hover:bg-[hsl(var(--sidebar-accent))] md:grid-cols-[80px_1fr_1fr] md:items-center md:px-5">
               <span className="font-mono-ui text-xs text-[hsl(var(--accent))]">{number}</span><h3 className="font-editorial text-3xl">{title}</h3><p className="max-w-sm text-sm leading-6 opacity-60 md:justify-self-end">{copy}</p>
             </div>)}
@@ -133,18 +125,18 @@ function Home() {
 
       <section className="container-rikki grid gap-10 py-24 md:grid-cols-[1.2fr_.8fr] md:py-32">
         <div className="rounded-[12px_110px_12px_12px] bg-[hsl(var(--secondary))] p-8 md:p-14">
-          <p className="eyebrow text-[hsl(var(--primary))]">03 / the ritual</p><h2 className="display-title mt-12 max-w-lg text-5xl md:text-6xl">A chair that feels like a deep breath.</h2>
+          <p className="eyebrow text-[hsl(var(--primary))]">03 / next step</p><h2 className="display-title mt-12 max-w-lg text-5xl md:text-6xl">Request a time that works for you.</h2>
           <div className="mt-14 grid gap-7 sm:grid-cols-3">
-            {[['01', 'Tell me everything', 'Your texture, your pace, your maybe.'], ['02', 'Try the feeling', 'We make space to look, touch, and decide.'], ['03', 'Leave with a plan', 'Easy care and a look you can own.']].map(([n, t, c]) => <div key={n}><p className="font-mono-ui text-xs text-[hsl(var(--primary))]">{n}</p><h3 className="mt-3 font-semibold">{t}</h3><p className="mt-2 text-sm leading-6 text-[hsl(var(--muted-foreground))]">{c}</p></div>)}
+            {[['01', 'Choose a service', 'Select the closest option.'], ['02', 'Request a time', 'Pick an available date and time.'], ['03', 'Wait for confirmation', 'Rikki will follow up directly.']].map(([n, t, c]) => <div key={n}><p className="font-mono-ui text-xs text-[hsl(var(--primary))]">{n}</p><h3 className="mt-3 font-semibold">{t}</h3><p className="mt-2 text-sm leading-6 text-[hsl(var(--muted-foreground))]">{c}</p></div>)}
           </div>
         </div>
         <div className="flex flex-col justify-end border-t border-[hsl(var(--border))] pt-8 md:border-t-0 md:border-l md:pl-12">
-          <p className="font-editorial text-4xl leading-tight">“The best part was not feeling like I had to know exactly what I wanted.”</p><p className="eyebrow mt-6 opacity-55">— Danielle / lace refresh</p>
-          <Link href="/book" className="editorial-link mt-12 w-fit text-sm font-semibold" data-testid="link-ritual-book">Start with a conversation <ArrowRight className="ml-2 inline" size={15} /></Link>
+          <p className="font-editorial text-4xl leading-tight">Have a question first? Start with Instagram.</p>
+          <a href={instagramUrl} target="_blank" rel="noreferrer" className="editorial-link mt-12 w-fit text-sm font-semibold" data-testid="link-ritual-instagram">Message @rikki_wigs <ArrowRight className="ml-2 inline" size={15} /></a>
         </div>
       </section>
     </main>
-    <footer className="border-t border-[hsl(var(--border))] py-10"><div className="container-rikki flex flex-col justify-between gap-8 md:flex-row md:items-end"><div><p className="font-editorial text-3xl">rikki</p><p className="mt-2 max-w-[220px] text-sm leading-6 text-[hsl(var(--muted-foreground))]">Good hair, good company, and room to be exactly who you are.</p></div><div className="flex items-center gap-6 text-sm"><a href={instagramUrl} target="_blank" rel="noreferrer" className="editorial-link" data-testid="link-footer-instagram">Follow @rikki_wigs</a><a href={instagramUrl} target="_blank" rel="noreferrer" className="rounded-full border border-[hsl(var(--border))] p-2" aria-label="Instagram" data-testid="link-instagram"><Instagram size={16} /></a></div></div></footer>
+    <footer className="border-t border-[hsl(var(--border))] py-10"><div className="container-rikki flex flex-col justify-between gap-8 md:flex-row md:items-end"><div><p className="font-editorial text-3xl">Rikki Wigs</p><p className="mt-2 max-w-[220px] text-sm leading-6 text-[hsl(var(--muted-foreground))]">Wigs & hair by Rikki.</p></div><div className="flex items-center gap-6 text-sm"><a href={instagramUrl} target="_blank" rel="noreferrer" className="editorial-link" data-testid="link-footer-instagram">Follow @rikki_wigs</a><a href={instagramUrl} target="_blank" rel="noreferrer" className="rounded-full border border-[hsl(var(--border))] p-2" aria-label="Instagram" data-testid="link-instagram"><Instagram size={16} /></a></div></div></footer>
   </div>;
 }
 
