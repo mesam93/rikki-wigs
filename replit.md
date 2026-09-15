@@ -1,6 +1,6 @@
-# [Project name]
+# Rikki Wigs
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A customer-facing wig service website with appointment booking and an owner appointment-management view.
 
 ## Run & Operate
 
@@ -22,7 +22,10 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/rikki-wigs` — customer site and appointment management UI
+- `artifacts/api-server/src/routes/appointments.ts` — appointment API
+- `lib/api-spec/openapi.yaml` — API contract
+- `lib/db/src/schema/appointments.ts` — appointment persistence
 
 ## Architecture decisions
 
@@ -30,11 +33,13 @@ _Populate as you build — non-obvious choices a reader couldn't infer from the 
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Introduces Rikki Wigs and its services.
+- Lets customers request available appointment dates and times.
+- Lets the business review, confirm, complete, cancel, and remove appointments.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Instagram is the intended visual reference; exact styling should be refined from user-provided screenshots or owned media because Instagram blocks automated profile access.
 
 ## Gotchas
 

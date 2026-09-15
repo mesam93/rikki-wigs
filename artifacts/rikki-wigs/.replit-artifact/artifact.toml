@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Rikki Wigs"
+description = "A polished small-business website for Rikki Wigs with service information, visual brand storytelling, appointment booking, and an owner-facing appointment management view."
+version = "1.0.0"
+id = "artifacts/rikki-wigs"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22421
+
+[services.development]
+run = "pnpm --filter @workspace/rikki-wigs run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/rikki-wigs", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/rikki-wigs/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22421"
+BASE_PATH = "/"

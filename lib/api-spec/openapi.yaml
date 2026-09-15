@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: appointments
+    description: Appointment booking and management
 paths:
   /healthz:
     get:
@@ -24,6 +26,109 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /appointments:
+    get:
+      operationId: listAppointments
+      tags: [appointments]
+      summary: List appointments
+      parameters:
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/AppointmentStatus"
+      responses:
+        "200":
+          description: Appointment list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Appointment"
+    post:
+      operationId: createAppointment
+      tags: [appointments]
+      summary: Request an appointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppointmentInput"
+      responses:
+        "201":
+          description: Appointment requested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+  /appointments/{id}:
+    patch:
+      operationId: updateAppointment
+      tags: [appointments]
+      summary: Update an appointment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppointmentUpdate"
+      responses:
+        "200":
+          description: Updated appointment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Appointment"
+        "404":
+          description: Appointment not found
+    delete:
+      operationId: deleteAppointment
+      tags: [appointments]
+      summary: Delete an appointment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Appointment deleted
+        "404":
+          description: Appointment not found
+  /appointments/summary:
+    get:
+      operationId: getAppointmentSummary
+      tags: [appointments]
+      summary: Get appointment totals by status
+      responses:
+        "200":
+          description: Appointment summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppointmentSummary"
+  /availability:
+    get:
+      operationId: getAvailability
+      tags: [appointments]
+      summary: Get available booking dates and times
+      responses:
+        "200":
+          description: Available dates and times
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AvailabilityDay"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +138,98 @@ components:
           type: string
       required:
         - status
+    AppointmentStatus:
+      type: string
+      enum: [pending, confirmed, completed, cancelled]
+    Appointment:
+      type: object
+      required: [id, name, phone, email, service, appointmentDate, appointmentTime, status, notes, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        service:
+          type: string
+        appointmentDate:
+          type: string
+          format: date
+        appointmentTime:
+          type: string
+        status:
+          $ref: "#/components/schemas/AppointmentStatus"
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    AppointmentInput:
+      type: object
+      required: [name, phone, email, service, appointmentDate, appointmentTime]
+      properties:
+        name:
+          type: string
+          minLength: 2
+        phone:
+          type: string
+          minLength: 7
+        email:
+          type: string
+          format: email
+        service:
+          type: string
+          minLength: 2
+        appointmentDate:
+          type: string
+          format: date
+        appointmentTime:
+          type: string
+          minLength: 3
+        notes:
+          type: string
+          default: ""
+    AppointmentUpdate:
+      type: object
+      properties:
+        appointmentDate:
+          type: string
+          format: date
+        appointmentTime:
+          type: string
+        status:
+          $ref: "#/components/schemas/AppointmentStatus"
+        notes:
+          type: string
+    AppointmentSummary:
+      type: object
+      required: [total, pending, confirmed, completed, cancelled, upcoming]
+      properties:
+        total:
+          type: integer
+        pending:
+          type: integer
+        confirmed:
+          type: integer
+        completed:
+          type: integer
+        cancelled:
+          type: integer
+        upcoming:
+          type: integer
+    AvailabilityDay:
+      type: object
+      required: [date, times]
+      properties:
+        date:
+          type: string
+          format: date
+        times:
+          type: array
+          items:
+            type: string
 
