@@ -45,7 +45,7 @@ export function TestimonialsSection() {
 
   if (!data.length) return null;
   const testimonial = data[active];
-  return <section className="bg-[hsl(var(--secondary))] py-24 md:py-32">
+  return <section id="testimonials" className="scroll-mt-24 bg-[hsl(var(--secondary))] py-24 md:py-32">
     <div className="container-rikki">
       <div className="mx-auto max-w-4xl text-center">
         <Quote className="mx-auto text-[hsl(var(--primary))]" size={34} strokeWidth={1.25} />
@@ -68,7 +68,7 @@ export function GallerySection() {
     queryFn: () => request<GalleryPhoto[]>('/api/gallery'),
   });
   if (!data.length) return null;
-  return <section className="container-rikki py-24 md:py-32">
+  return <section id="gallery" className="container-rikki scroll-mt-24 py-24 md:py-32">
     <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
       <div><p className="eyebrow text-[hsl(var(--primary))]">The gallery</p><h2 className="display-title mt-4 text-5xl md:text-7xl">Recent <em>work.</em></h2></div>
       <p className="max-w-sm text-sm leading-6 text-[hsl(var(--muted-foreground))]">A closer look at custom color, natural finishes, styling, and care from Rikki Wigs.</p>

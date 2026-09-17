@@ -57,21 +57,21 @@ function SiteNav({ manage = false }: { manage?: boolean }) {
         <nav className="hidden items-center justify-center gap-9 md:flex md:flex-1" aria-label="Primary navigation">
           {manage ? <Link href="/" className="editorial-link text-base opacity-80 hover:opacity-100" data-testid="link-public-site">View public site</Link> : <>
             <a href="#services" className="editorial-link text-base" data-testid="link-services">Services</a>
-            <a href="#story" className="editorial-link text-base" data-testid="link-story">Instagram</a>
+             <a href="#testimonials" className="editorial-link text-base" data-testid="link-testimonials">Testimonials</a>
+             <a href="#gallery" className="editorial-link text-base" data-testid="link-gallery">Gallery</a>
             <Link href="/book" className="editorial-link text-base" data-testid="link-nav-book">Book</Link>
           </>}
         </nav>
         <div className="flex items-center gap-3 md:w-1/3 md:justify-end">
           {!manage && <Link href="/login" className="hidden rounded-full border border-white bg-white px-5 py-2.5 text-sm font-semibold !text-black transition-colors hover:bg-black hover:!text-white sm:inline-flex" data-testid="link-login">Log in</Link>}
-          {!manage && <Link href="/book" className="btn-primary hidden whitespace-nowrap !bg-[hsl(var(--accent))] !px-6 !py-3.5 !text-sm !text-[hsl(var(--foreground))] sm:inline-flex" data-testid="button-nav-book">Request appointment <ArrowRight size={15} /></Link>}
           {manage && <LogoutButton />}
           <button className="rounded-full border border-current/20 p-2 md:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="Open menu" data-testid="button-mobile-menu"><Menu size={19} /></button>
         </div>
       </div>
       {menuOpen && <div className="container-rikki pb-5 md:hidden">
         <div className="flex flex-col gap-4 border-t border-current/15 pt-4 text-sm">
-          {!manage && <><a href="#services" onClick={() => setMenuOpen(false)} data-testid="link-mobile-services">Services</a><a href="#story" onClick={() => setMenuOpen(false)} data-testid="link-mobile-story">Our story</a><Link href="/login" onClick={() => setMenuOpen(false)}>Log in</Link></>}
-          <Link href={manage ? '/' : '/book'} onClick={() => setMenuOpen(false)} data-testid="link-mobile-action">{manage ? 'View public site' : 'Request appointment'}</Link>
+          {!manage && <><a href="#services" onClick={() => setMenuOpen(false)} data-testid="link-mobile-services">Services</a><a href="#testimonials" onClick={() => setMenuOpen(false)} data-testid="link-mobile-testimonials">Testimonials</a><a href="#gallery" onClick={() => setMenuOpen(false)} data-testid="link-mobile-gallery">Gallery</a><Link href="/book" onClick={() => setMenuOpen(false)}>Book</Link><Link href="/login" onClick={() => setMenuOpen(false)}>Log in</Link></>}
+          {manage && <Link href="/" onClick={() => setMenuOpen(false)} data-testid="link-mobile-action">View public site</Link>}
         </div>
       </div>}
     </header>
