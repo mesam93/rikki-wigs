@@ -125,6 +125,18 @@ button, input, select, textarea { font: inherit; }
 .status-cancelled { color: hsl(3 57% 35%); background: hsl(3 55% 86%); }
 .skeleton { background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--card)) 50%, hsl(var(--muted)) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
 @keyframes shimmer { to { background-position: -200% 0; } }
+
+@keyframes gallery-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-50% - 0.375rem)); }
+}
+
+.gallery-marquee-track { animation: gallery-scroll 32s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-marquee { overflow-x: auto; }
+  .gallery-marquee-track { animation: none; }
+}
 @media (max-width: 767px) {
   .container-rikki { width: min(100% - 32px, 1180px); }
   .mobile-stack { flex-direction: column; align-items: stretch; }

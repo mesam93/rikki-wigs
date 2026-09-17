@@ -69,15 +69,14 @@ export function GallerySection() {
   });
   if (!data.length) return null;
   return <section id="gallery" className="container-rikki scroll-mt-24 py-24 md:py-32">
-    <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
-      <div><p className="eyebrow text-[hsl(var(--primary))]">The gallery</p><h2 className="display-title mt-4 text-5xl md:text-7xl">Recent <em>work.</em></h2></div>
-      <p className="max-w-sm text-sm leading-6 text-[hsl(var(--muted-foreground))]">A closer look at custom color, natural finishes, styling, and care from Rikki Wigs.</p>
-    </div>
-    <div className="mt-12 grid auto-rows-[220px] grid-cols-2 gap-3 md:auto-rows-[300px] md:grid-cols-3">
-      {data.map((photo, index) => <figure key={photo.id} className={`group relative overflow-hidden rounded-2xl bg-[hsl(var(--secondary))] ${index % 5 === 0 ? 'row-span-2' : ''}`}>
+    <h2 className="display-title text-5xl md:text-7xl">Recent <em>work.</em></h2>
+    <div className="gallery-marquee mt-12 overflow-hidden">
+      <div className="gallery-marquee-track flex w-max gap-3 hover:[animation-play-state:paused]">
+      {[...data, ...data].map((photo, index) => <figure key={`${photo.id}-${index}`} className="group relative h-[280px] w-[230px] shrink-0 overflow-hidden rounded-2xl bg-[hsl(var(--secondary))] sm:h-[360px] sm:w-[290px] lg:h-[430px] lg:w-[350px]">
         <img src={photo.imageUrl} alt={photo.altText || photo.caption || 'Rikki Wigs gallery'} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
         {photo.caption && <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-5 pb-4 pt-12 text-sm text-white">{photo.caption}</figcaption>}
       </figure>)}
+      </div>
     </div>
   </section>;
 }
