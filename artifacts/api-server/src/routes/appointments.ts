@@ -18,6 +18,7 @@ import {
   notificationEventForUpdate,
   sendAppointmentNotification,
 } from "../email/appointment-emails";
+import { requireAdmin } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
 
@@ -112,7 +113,7 @@ function overlaps(startA: number, endA: number, startB: number, endB: number) {
   return startA < endB && endA > startB;
 }
 
-router.get("/appointments", async (req, res): Promise<void> => {
+router.get("/appointments", requireAdmin, async (req, res): Promise<void> => {
   const parsed = ListAppointmentsQueryParams.safeParse(req.query);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -137,7 +138,7 @@ router.get("/appointments", async (req, res): Promise<void> => {
   );
 });
 
-router.get("/email-status", (_req, res): void => {
+router.get("/email-status", requireAdmin, (_req, res): void => {
   res.json(getEmailDeliveryStatus());
 });
 
@@ -189,7 +190,7 @@ router.post("/appointments", async (req, res): Promise<void> => {
     .json(CreateAppointmentResponse.parse(serializeAppointment(appointment)));
 });
 
-router.patch("/appointments/:id", async (req, res): Promise<void> => {
+router.patch("/appointments/:id", requireAdmin, async (req, res): Promise<void> => {
   const params = UpdateAppointmentParams.safeParse(req.params);
   const body = UpdateAppointmentBody.safeParse(req.body);
   if (!params.success) {
@@ -255,7 +256,7 @@ router.patch("/appointments/:id", async (req, res): Promise<void> => {
   );
 });
 
-router.delete("/appointments/:id", async (req, res): Promise<void> => {
+router.delete("/appointments/:id", requireAdmin, async (req, res): Promise<void> => {
   const params = DeleteAppointmentParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -275,7 +276,7 @@ router.delete("/appointments/:id", async (req, res): Promise<void> => {
   res.sendStatus(204);
 });
 
-router.get("/appointments/summary", async (_req, res): Promise<void> => {
+router.get("/appointments/summary", requireAdmin, async (_req, res): Promise<void> => {
   const today = new Date().toISOString().slice(0, 10);
   const [counts] = await db
     .select({
@@ -306,7 +307,7 @@ router.get("/scheduling-settings", async (_req, res): Promise<void> => {
   res.json(await getSettings());
 });
 
-router.put("/scheduling-settings", async (req, res): Promise<void> => {
+router.put("/scheduling-settings", requireAdmin, async (req, res): Promise<void> => {
   const serviceDurations = req.body?.serviceDurations;
   const weeklyHours = req.body?.weeklyHours;
   const blockedSlots = req.body?.blockedSlots;

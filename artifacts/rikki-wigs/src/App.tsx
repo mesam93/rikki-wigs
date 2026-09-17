@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ClerkProvider, SignIn, SignUp, useClerk, useUser } from '@clerk/react';
+import { publishableKeyFromHost } from '@clerk/react/internal';
+import { shadcn } from '@clerk/themes';
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, Route, Switch, useLocation } from 'wouter';
-import { ArrowRight, CalendarDays, Check, CheckCircle2, ChevronDown, Clock3, Instagram, Mail, Menu, Phone, Trash2, X, XCircle } from 'lucide-react';
+import { Link, Redirect, Route, Router as WouterRouter, Switch, useLocation } from 'wouter';
+import { ArrowRight, CalendarDays, Check, CheckCircle2, ChevronDown, Clock3, Instagram, LockKeyhole, Mail, Menu, Phone, Trash2, UserRound, X, XCircle } from 'lucide-react';
 import {
   getGetAppointmentSummaryQueryKey,
   getListAppointmentsQueryKey,
@@ -19,6 +22,67 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+const clerkPubKey = publishableKeyFromHost(
+  window.location.hostname,
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+);
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+const clerkAppearance = {
+  theme: shadcn,
+  cssLayerName: 'clerk',
+  options: {
+    logoPlacement: 'inside' as const,
+    logoLinkUrl: basePath || '/',
+    logoImageUrl: `${window.location.origin}${basePath}/brand/rikki-logo-official.svg`,
+    socialButtonsPlacement: 'bottom' as const,
+  },
+  variables: {
+    colorPrimary: '#171412',
+    colorForeground: '#171412',
+    colorMutedForeground: '#655d57',
+    colorDanger: '#aa342d',
+    colorBackground: '#fffdf9',
+    colorInput: '#f2ece5',
+    colorInputForeground: '#171412',
+    colorNeutral: '#d8ccc0',
+    fontFamily: '"DM Sans", sans-serif',
+    borderRadius: '10px',
+  },
+  elements: {
+    rootBox: 'w-full flex justify-center',
+    cardBox: 'bg-[#fffdf9] rounded-2xl w-[440px] max-w-full overflow-hidden border border-[#d8ccc0]',
+    card: '!shadow-none !border-0 !bg-transparent !rounded-none',
+    footer: '!shadow-none !border-0 !bg-transparent !rounded-none',
+    headerTitle: 'text-[#171412] font-serif',
+    headerSubtitle: 'text-[#655d57]',
+    socialButtonsBlockButtonText: 'text-[#171412]',
+    formFieldLabel: 'text-[#171412]',
+    footerActionLink: 'text-[#171412] font-semibold',
+    footerActionText: 'text-[#655d57]',
+    dividerText: 'text-[#655d57]',
+    identityPreviewEditButton: 'text-[#171412]',
+    formFieldSuccessText: 'text-emerald-700',
+    alertText: 'text-[#171412]',
+    logoBox: 'h-16',
+    logoImage: 'max-h-16',
+    socialButtonsBlockButton: 'border-[#d8ccc0] bg-white',
+    formButtonPrimary: 'bg-[#171412] text-white hover:bg-black',
+    formFieldInput: 'border-[#d8ccc0] bg-[#f2ece5] text-[#171412]',
+    footerAction: 'bg-transparent',
+    dividerLine: 'bg-[#d8ccc0]',
+    alert: 'border-[#d8ccc0] bg-[#f2ece5]',
+    otpCodeFieldInput: 'border-[#d8ccc0] text-[#171412]',
+    formFieldRow: 'text-[#171412]',
+    main: 'gap-5',
+  },
+};
+
+function stripBase(path: string): string {
+  return basePath && path.startsWith(basePath)
+    ? path.slice(basePath.length) || '/'
+    : path;
+}
 const services = ['Lace wig consultation', 'Skin top wig consultation', 'Custom color', 'Styling', 'Repair'];
 const statuses = ['pending', 'confirmed', 'completed', 'cancelled'] as const;
 const instagramUrl = 'https://www.instagram.com/rikki_wigs/';
@@ -61,19 +125,56 @@ function SiteNav({ manage = false }: { manage?: boolean }) {
           </>}
         </nav>
         <div className="flex items-center gap-3 md:w-1/3 md:justify-end">
-          {!manage && <Link href="/manage" className="hidden text-sm opacity-55 transition-opacity hover:opacity-100 xl:block" data-testid="link-manage">Manage appointments</Link>}
+          {!manage && <Link href="/login" className="hidden rounded-full border border-white bg-white px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-black hover:text-white sm:inline-flex" data-testid="link-login">Log in</Link>}
           {!manage && <Link href="/book" className="btn-primary hidden whitespace-nowrap !bg-[hsl(var(--accent))] !px-6 !py-3.5 !text-sm !text-[hsl(var(--foreground))] sm:inline-flex" data-testid="button-nav-book">Request appointment <ArrowRight size={15} /></Link>}
+          {manage && <LogoutButton />}
           <button className="rounded-full border border-current/20 p-2 md:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="Open menu" data-testid="button-mobile-menu"><Menu size={19} /></button>
         </div>
       </div>
       {menuOpen && <div className="container-rikki pb-5 md:hidden">
         <div className="flex flex-col gap-4 border-t border-current/15 pt-4 text-sm">
-          {!manage && <><a href="#services" onClick={() => setMenuOpen(false)} data-testid="link-mobile-services">Services</a><a href="#story" onClick={() => setMenuOpen(false)} data-testid="link-mobile-story">Our story</a></>}
+          {!manage && <><a href="#services" onClick={() => setMenuOpen(false)} data-testid="link-mobile-services">Services</a><a href="#story" onClick={() => setMenuOpen(false)} data-testid="link-mobile-story">Our story</a><Link href="/login" onClick={() => setMenuOpen(false)}>Log in</Link></>}
           <Link href={manage ? '/' : '/book'} onClick={() => setMenuOpen(false)} data-testid="link-mobile-action">{manage ? 'View public site' : 'Request appointment'}</Link>
         </div>
       </div>}
     </header>
   );
+}
+
+function LogoutButton() {
+  const { signOut } = useClerk();
+  return <button type="button" onClick={() => signOut({ redirectUrl: basePath || '/' })} className="rounded-full border border-white/35 px-4 py-2 text-sm font-semibold text-white hover:bg-white hover:text-black">Log out</button>;
+}
+
+function LoginLanding() {
+  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki py-16 md:py-24"><div className="mx-auto max-w-4xl text-center"><p className="eyebrow text-[hsl(var(--primary))]">Private access</p><h1 className="display-title mt-4 text-6xl md:text-7xl">Welcome back.</h1><p className="mx-auto mt-5 max-w-xl text-[hsl(var(--muted-foreground))]">Choose how you would like to access Rikki Wigs.</p></div><div className="mx-auto mt-12 grid max-w-4xl gap-5 md:grid-cols-2"><section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-7 md:p-9"><UserRound size={28} strokeWidth={1.5} /><p className="eyebrow mt-7 opacity-55">Client</p><h2 className="mt-3 font-editorial text-4xl">Client account</h2><p className="mt-4 min-h-12 text-sm leading-6 text-[hsl(var(--muted-foreground))]">Client appointments and account access will be available in the next phase.</p><button type="button" disabled className="mt-8 w-full rounded-full border border-[hsl(var(--border))] px-5 py-3 text-sm font-semibold opacity-45">Coming soon</button></section><section className="rounded-2xl bg-black p-7 text-white md:p-9"><LockKeyhole size={28} strokeWidth={1.5} /><p className="eyebrow mt-7 text-white/55">Admin</p><h2 className="mt-3 font-editorial text-4xl">Rikki’s dashboard</h2><p className="mt-4 min-h-12 text-sm leading-6 text-white/65">Sign in to review requests, manage appointments, and update scheduling.</p><Link href="/sign-in" className="mt-8 flex w-full items-center justify-center rounded-full border border-white bg-white px-5 py-3 text-sm font-semibold text-black transition-colors hover:bg-black hover:text-white">Admin log in</Link></section></div></main></div>;
+}
+
+function SignInPage() {
+  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki flex justify-center py-12 md:py-20"><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} fallbackRedirectUrl={`${basePath}/manage`} /></main></div>;
+}
+
+function SignUpPage() {
+  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki flex justify-center py-12 md:py-20"><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} fallbackRedirectUrl={`${basePath}/manage`} /></main></div>;
+}
+
+function AdminManageRoute() {
+  const { isLoaded, isSignedIn } = useUser();
+  const adminCheck = useQuery({
+    queryKey: ['admin-session'],
+    queryFn: () => apiJson<{ role: 'admin' }>('/api/admin-session'),
+    enabled: Boolean(isLoaded && isSignedIn),
+    retry: false,
+  });
+
+  if (!isLoaded || (isSignedIn && adminCheck.isLoading)) {
+    return <div className="site-shell flex min-h-[100dvh] items-center justify-center bg-[hsl(var(--background))]"><div className="text-center"><div className="skeleton mx-auto h-12 w-12 rounded-full" /><p className="mt-4 text-sm text-[hsl(var(--muted-foreground))]">Checking access…</p></div></div>;
+  }
+  if (!isSignedIn) return <Redirect to="/login" />;
+  if (adminCheck.isError) {
+    return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav manage /><main className="container-rikki flex min-h-[70vh] items-center justify-center py-16"><div className="max-w-lg rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-8 text-center"><LockKeyhole className="mx-auto" size={30} /><h1 className="mt-5 font-editorial text-4xl">Admin access only</h1><p className="mt-3 text-sm leading-6 text-[hsl(var(--muted-foreground))]">This account is not authorized to manage appointments.</p></div></main></div>;
+  }
+  return <Manage />;
 }
 
 function Home() {
@@ -310,11 +411,25 @@ function AppointmentRow({ appointment, onStatus, onDelete, onReschedule, busy }:
 
 function Router() {
   const [location] = useLocation();
-  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/book" component={Book} /><Route path="/manage" component={Manage} /><Route component={NotFound} /></Switch></ErrorBoundary>;
+  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/book" component={Book} /><Route path="/login" component={LoginLanding} /><Route path="/sign-in/*?" component={SignInPage} /><Route path="/sign-up/*?" component={SignUpPage} /><Route path="/manage" component={AdminManageRoute} /><Route component={NotFound} /></Switch></ErrorBoundary>;
+}
+
+function ClerkProviderWithRoutes() {
+  const [, setLocation] = useLocation();
+  return <ClerkProvider
+    publishableKey={clerkPubKey}
+    proxyUrl={clerkProxyUrl}
+    appearance={clerkAppearance}
+    signInUrl={`${basePath}/sign-in`}
+    signUpUrl={`${basePath}/sign-up`}
+    localization={{ signIn: { start: { title: 'Welcome back', subtitle: 'Sign in to access the Rikki Wigs dashboard' } }, signUp: { start: { title: 'Create the admin account', subtitle: 'Use the approved Rikki Wigs admin email' } } }}
+    routerPush={(to) => setLocation(stripBase(to))}
+    routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
+  ><QueryClientProvider client={queryClient}><TooltipProvider><Router /><Toaster /></TooltipProvider></QueryClientProvider></ClerkProvider>;
 }
 
 function App() {
-  return <QueryClientProvider client={queryClient}><TooltipProvider><Router /><Toaster /></TooltipProvider></QueryClientProvider>;
+  return <WouterRouter base={basePath}><ClerkProviderWithRoutes /></WouterRouter>;
 }
 
 export default App;
