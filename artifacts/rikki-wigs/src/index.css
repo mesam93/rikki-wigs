@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";
@@ -41,31 +41,32 @@
 }
 
 :root {
-  --background: 42 24% 96%;
-  --foreground: 0 0% 8%;
-  --border: 36 13% 82%;
-  --input: 36 13% 82%;
-  --ring: 0 0% 8%;
-  --card: 42 30% 99%;
+  --background: 34 32% 94%;
+  --foreground: 20 10% 8%;
+  --border: 31 19% 78%;
+  --input: 31 19% 78%;
+  --ring: 32 42% 49%;
+  --card: 35 40% 98%;
   --card-foreground: 0 0% 8%;
   --card-border: 36 13% 82%;
-  --primary: 0 0% 8%;
-  --primary-foreground: 42 30% 99%;
-  --secondary: 36 18% 88%;
+  --primary: 20 10% 8%;
+  --primary-foreground: 35 40% 98%;
+  --secondary: 31 28% 87%;
   --secondary-foreground: 0 0% 8%;
-  --muted: 36 14% 91%;
-  --muted-foreground: 30 5% 39%;
-  --accent: 35 30% 74%;
+  --muted: 31 22% 90%;
+  --muted-foreground: 25 8% 35%;
+  --accent: 32 42% 66%;
   --accent-foreground: 0 0% 8%;
   --destructive: 3 57% 42%;
   --destructive-foreground: 42 30% 99%;
-  --sidebar: 0 0% 8%;
-  --sidebar-foreground: 42 30% 99%;
-  --sidebar-border: 0 0% 18%;
-  --sidebar-primary: 0 0% 8%;
-  --sidebar-primary-foreground: 42 30% 99%;
-  --sidebar-accent: 0 0% 15%;
-  --sidebar-accent-foreground: 42 30% 99%;
+  --sidebar: 20 10% 7%;
+  --sidebar-foreground: 35 40% 98%;
+  --sidebar-border: 30 12% 20%;
+  --sidebar-primary: 20 10% 7%;
+  --sidebar-primary-foreground: 35 40% 98%;
+  --sidebar-accent: 27 12% 14%;
+  --sidebar-accent-foreground: 35 40% 98%;
+  --brand-gold: 32 42% 58%;
   --app-font-sans: 'DM Sans', sans-serif;
   --app-font-serif: 'Playfair Display', Georgia, serif;
   --app-font-mono: 'DM Mono', monospace;
@@ -86,7 +87,7 @@ button, input, select, textarea { font: inherit; }
 .font-editorial { font-family: var(--app-font-serif); }
 .font-mono-ui { font-family: var(--app-font-mono); }
 .eyebrow { font-family: var(--app-font-mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; }
-.display-title { font-family: var(--app-font-serif); font-weight: 500; letter-spacing: -.045em; line-height: .94; }
+.display-title { font-family: var(--app-font-serif); font-weight: 400; letter-spacing: -.04em; line-height: .94; }
 .site-shell { overflow: hidden; }
 .container-rikki { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
 .hairline { border-color: hsl(var(--border)); }
@@ -109,6 +110,7 @@ button, input, select, textarea { font: inherit; }
 .editorial-link:hover::after { transform: scaleX(1); transform-origin: left; }
 .btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 14px 20px; border-radius: 999px; font-weight: 600; font-size: 13px; transition: transform .25s ease, background-color .25s ease; }
 .btn-primary:hover { transform: translateY(-2px); background: hsl(0 0% 18%); }
+.hero-media img { filter: saturate(.82) contrast(1.03); }
 .btn-quiet { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid hsl(var(--border)); padding: 13px 18px; border-radius: 999px; font-size: 13px; font-weight: 600; transition: background-color .25s ease, border-color .25s ease, transform .25s ease; }
 .btn-quiet:hover { background: hsl(var(--secondary)); border-color: hsl(var(--primary)); transform: translateY(-2px); }
 .field-label { display: block; margin-bottom: 7px; font-size: 12px; font-weight: 600; color: hsl(var(--foreground)); }

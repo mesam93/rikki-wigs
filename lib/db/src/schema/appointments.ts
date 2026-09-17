@@ -1,5 +1,7 @@
 import {
   date,
+  integer,
+  jsonb,
   pgEnum,
   pgTable,
   serial,
@@ -37,3 +39,17 @@ export const insertAppointmentSchema = createInsertSchema(
 
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 export type Appointment = typeof appointmentsTable.$inferSelect;
+
+export type TimeWindow = { id: string; start: string; end: string };
+export type WeeklyHours = Record<string, Record<string, TimeWindow[]>>;
+export type BlockedSlot = { id: string; date: string; startTime: string; endTime: string; reason: string };
+
+export const schedulingSettingsTable = pgTable("scheduling_settings", {
+  id: integer("id").primaryKey().default(1),
+  serviceDurations: jsonb("service_durations").$type<Record<string, number>>().notNull(),
+  weeklyHours: jsonb("weekly_hours").$type<WeeklyHours>().notNull(),
+  blockedSlots: jsonb("blocked_slots").$type<BlockedSlot[]>().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type SchedulingSettings = typeof schedulingSettingsTable.$inferSelect;

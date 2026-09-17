@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
-import { appointmentsTable, db, type Appointment } from "@workspace/db";
+import { and, asc, eq, gte, inArray, ne, sql } from "drizzle-orm";
+import { appointmentsTable, db, schedulingSettingsTable, type Appointment, type BlockedSlot, type TimeWindow, type WeeklyHours } from "@workspace/db";
 import {
   CreateAppointmentBody,
   CreateAppointmentResponse,
@@ -25,6 +25,56 @@ function serializeAppointment(appointment: Appointment) {
 
 function toDateString(date: Date): string {
   return date.toISOString().slice(0, 10);
+}
+
+const defaultDurations: Record<string, number> = {
+  "Lace wig consultation": 60,
+  "Skin top wig consultation": 60,
+  "Custom color": 120,
+  Styling: 60,
+  Repair: 60,
+};
+const weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const defaultDayWindows = Object.fromEntries(weekdays.map((day) => [day, day === "sunday" || day === "saturday" ? [] : [{ id: `${day}-1`, start: "10:00", end: day === "friday" ? "15:00" : "17:00" }]])) as Record<string, TimeWindow[]>;
+const defaultWeeklyHours: WeeklyHours = Object.fromEntries(Object.keys(defaultDurations).map((service) => [service, structuredClone(defaultDayWindows)]));
+const defaultSettings = { id: 1, serviceDurations: defaultDurations, weeklyHours: defaultWeeklyHours, blockedSlots: [] as BlockedSlot[] };
+
+async function getSettings() {
+  const [settings] = await db.select().from(schedulingSettingsTable).where(eq(schedulingSettingsTable.id, 1));
+  if (!settings) return defaultSettings;
+  const firstValue = Object.values(settings.weeklyHours ?? {})[0];
+  if (firstValue && typeof firstValue === "object" && "open" in firstValue) {
+    const legacy = settings.weeklyHours as unknown as Record<string, { open: string; close: string; closed: boolean }>;
+    const migrated = Object.fromEntries(Object.keys(defaultDurations).map((service) => [service, Object.fromEntries(weekdays.map((day) => {
+      const value = legacy[day];
+      return [day, !value || value.closed ? [] : [{ id: `${day}-1`, start: value.open, end: value.close }]];
+    }))])) as WeeklyHours;
+    return { ...settings, weeklyHours: migrated };
+  }
+  return settings;
+}
+
+function toMinutes(value: string): number {
+  const match = value.trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+  if (!match) return 0;
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const period = match[3]?.toUpperCase();
+  if (period === "PM" && hours !== 12) hours += 12;
+  if (period === "AM" && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+}
+
+function toDisplayTime(minutes: number): string {
+  const hours24 = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  const period = hours24 >= 12 ? "PM" : "AM";
+  const hours = hours24 % 12 || 12;
+  return `${hours}:${String(mins).padStart(2, "0")} ${period}`;
+}
+
+function overlaps(startA: number, endA: number, startB: number, endB: number) {
+  return startA < endB && endA > startB;
 }
 
 router.get("/appointments", async (req, res): Promise<void> => {
@@ -60,8 +110,11 @@ router.post("/appointments", async (req, res): Promise<void> => {
     return;
   }
 
+  const settings = await getSettings();
+  const requestedStart = toMinutes(parsed.data.appointmentTime);
+  const requestedEnd = requestedStart + (settings.serviceDurations[parsed.data.service] ?? 60);
   const existing = await db
-    .select({ id: appointmentsTable.id })
+    .select({ time: appointmentsTable.appointmentTime, service: appointmentsTable.service })
     .from(appointmentsTable)
     .where(
       and(
@@ -69,12 +122,14 @@ router.post("/appointments", async (req, res): Promise<void> => {
           appointmentsTable.appointmentDate,
           toDateString(parsed.data.appointmentDate),
         ),
-        eq(appointmentsTable.appointmentTime, parsed.data.appointmentTime),
         inArray(appointmentsTable.status, ["pending", "confirmed"]),
       ),
     );
 
-  if (existing.length > 0) {
+  if (existing.some((item) => {
+    const start = toMinutes(item.time);
+    return overlaps(requestedStart, requestedEnd, start, start + (settings.serviceDurations[item.service] ?? 60));
+  })) {
     res.status(409).json({ error: "That time was just booked. Please choose another." });
     return;
   }
@@ -103,6 +158,34 @@ router.patch("/appointments/:id", async (req, res): Promise<void> => {
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
     return;
+  }
+
+  const [current] = await db.select().from(appointmentsTable).where(eq(appointmentsTable.id, params.data.id));
+  if (!current) {
+    res.status(404).json({ error: "Appointment not found" });
+    return;
+  }
+  const nextDate = body.data.appointmentDate ? toDateString(body.data.appointmentDate) : current.appointmentDate;
+  const nextTime = body.data.appointmentTime ?? current.appointmentTime;
+  const nextStatus = body.data.status ?? current.status;
+  if (nextStatus === "pending" || nextStatus === "confirmed") {
+    const settings = await getSettings();
+    const start = toMinutes(nextTime);
+    const end = start + (settings.serviceDurations[current.service] ?? 60);
+    const conflicts = await db.select({ time: appointmentsTable.appointmentTime, service: appointmentsTable.service })
+      .from(appointmentsTable)
+      .where(and(
+        ne(appointmentsTable.id, current.id),
+        eq(appointmentsTable.appointmentDate, nextDate),
+        inArray(appointmentsTable.status, ["pending", "confirmed"]),
+      ));
+    if (conflicts.some((item) => {
+      const otherStart = toMinutes(item.time);
+      return overlaps(start, end, otherStart, otherStart + (settings.serviceDurations[item.service] ?? 60));
+    })) {
+      res.status(409).json({ error: "That time overlaps another active appointment." });
+      return;
+    }
   }
 
   const { appointmentDate, ...otherUpdates } = body.data;
@@ -173,10 +256,38 @@ router.get("/appointments/summary", async (_req, res): Promise<void> => {
   );
 });
 
-router.get("/availability", async (_req, res): Promise<void> => {
+router.get("/scheduling-settings", async (_req, res): Promise<void> => {
+  res.json(await getSettings());
+});
+
+router.put("/scheduling-settings", async (req, res): Promise<void> => {
+  const serviceDurations = req.body?.serviceDurations;
+  const weeklyHours = req.body?.weeklyHours;
+  const blockedSlots = req.body?.blockedSlots;
+  if (!serviceDurations || !weeklyHours || !Array.isArray(blockedSlots)) {
+    res.status(400).json({ error: "Invalid scheduling settings" });
+    return;
+  }
+  const [settings] = await db.insert(schedulingSettingsTable).values({
+    id: 1,
+    serviceDurations,
+    weeklyHours,
+    blockedSlots,
+    updatedAt: new Date(),
+  }).onConflictDoUpdate({
+    target: schedulingSettingsTable.id,
+    set: { serviceDurations, weeklyHours, blockedSlots, updatedAt: new Date() },
+  }).returning();
+  res.json(settings);
+});
+
+router.get("/availability", async (req, res): Promise<void> => {
+  const settings = await getSettings();
+  const service = typeof req.query.service === "string" ? req.query.service : "Lace wig consultation";
+  const requestedDuration = settings.serviceDurations[service] ?? 60;
   const today = new Date();
   const lastDay = new Date(today);
-  lastDay.setUTCDate(lastDay.getUTCDate() + 21);
+  lastDay.setUTCDate(lastDay.getUTCDate() + 180);
   const start = today.toISOString().slice(0, 10);
   const end = lastDay.toISOString().slice(0, 10);
 
@@ -184,6 +295,7 @@ router.get("/availability", async (_req, res): Promise<void> => {
     .select({
       date: appointmentsTable.appointmentDate,
       time: appointmentsTable.appointmentTime,
+      service: appointmentsTable.service,
     })
     .from(appointmentsTable)
     .where(
@@ -193,22 +305,35 @@ router.get("/availability", async (_req, res): Promise<void> => {
       ),
     );
 
-  const bookedSlots = new Set(
-    booked.map((slot) => `${slot.date}:${slot.time}`),
-  );
-  const baseTimes = ["10:00 AM", "11:30 AM", "1:00 PM", "2:30 PM", "4:00 PM"];
   const availability = [];
-
-  for (let offset = 1; offset <= 21; offset += 1) {
+  for (let offset = 1; offset <= 180; offset += 1) {
     const day = new Date(today);
     day.setUTCDate(day.getUTCDate() + offset);
-    const weekday = day.getUTCDay();
-    if (weekday === 0 || weekday === 6) continue;
+    const weekday = weekdays[day.getUTCDay()];
+    const windows = settings.weeklyHours[service]?.[weekday] ?? [];
+    if (!windows.length) continue;
     const date = day.toISOString().slice(0, 10);
     if (date > end) break;
-    const times = baseTimes.filter(
-      (time) => !bookedSlots.has(`${date}:${time}`),
-    );
+    const dayBookings = booked.filter((slot) => slot.date === date);
+    const dayBlocks = settings.blockedSlots.filter((slot) => slot.date === date);
+    const times: string[] = [];
+    for (const window of windows) {
+      const open = toMinutes(window.start);
+      const close = toMinutes(window.end);
+      for (let startTime = open; startTime + requestedDuration <= close; startTime += 30) {
+        const endTime = startTime + requestedDuration;
+        const conflictsWithBooking = dayBookings.some((slot) => {
+          const bookedStart = toMinutes(slot.time);
+          const bookedDuration = settings.serviceDurations[slot.service] ?? 60;
+          return overlaps(startTime, endTime, bookedStart, bookedStart + bookedDuration);
+        });
+        const conflictsWithBlock = dayBlocks.some((slot) =>
+          overlaps(startTime, endTime, toMinutes(slot.startTime), toMinutes(slot.endTime)),
+        );
+        const display = toDisplayTime(startTime);
+        if (!conflictsWithBooking && !conflictsWithBlock && !times.includes(display)) times.push(display);
+      }
+    }
     if (times.length > 0) availability.push({ date, times });
   }
 

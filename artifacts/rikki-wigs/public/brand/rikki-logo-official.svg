@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 620" role="img" aria-labelledby="title desc">
+  <title id="title">Rikki Wigs</title>
+  <desc id="desc">Official Rikki Wigs wordmark in gold on charcoal</desc>
+  <circle cx="310" cy="310" r="302" fill="#171716"/>
+  <circle cx="310" cy="310" r="292" fill="none" stroke="#b89b50" stroke-width="3"/>
+  <circle cx="310" cy="310" r="282" fill="none" stroke="#b89b50" stroke-width="1" opacity=".45"/>
+  <g fill="#b89b50" transform="translate(105 130) scale(.48)">
+    <!-- R -->
+    <path d="M90 92h18v342H90zm18 0h34c42 0 63 30 63 88v39c0 44-15 72-45 83l49 132h-20l-46-127h-35v-17h31c32 0 48-22 48-66v-48c0-45-15-67-46-67h-33V92z"/>
+    <!-- I -->
+    <rect x="287" y="92" width="18" height="342"/>
+    <!-- K -->
+    <rect x="408" y="92" width="18" height="342"/>
+    <path d="M426 280 475 92h19l-47 181 56 161h-20l-49-143-8 29z"/>
+    <!-- K -->
+    <rect x="557" y="92" width="18" height="342"/>
+    <path d="M575 280 624 92h19l-47 181 56 161h-20l-49-143-8 29z"/>
+    <!-- I -->
+    <rect x="745" y="92" width="18" height="342"/>
+  </g>
+  <text x="310" y="445" fill="#b89b50" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" letter-spacing="25">WIGS</text>
+</svg>

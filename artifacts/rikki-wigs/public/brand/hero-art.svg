@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1125" role="img" aria-labelledby="title desc">
+  <title id="title">Rikki Wigs signature hair design</title>
+  <desc id="desc">An elegant abstract composition of flowing bronze hair on a deep black background</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#080706"/>
+      <stop offset=".56" stop-color="#17120e"/>
+      <stop offset="1" stop-color="#0b0907"/>
+    </linearGradient>
+    <linearGradient id="gold" x1=".1" y1=".1" x2=".9" y2=".9">
+      <stop stop-color="#6e4727"/>
+      <stop offset=".34" stop-color="#d0a56e"/>
+      <stop offset=".58" stop-color="#8f6037"/>
+      <stop offset=".82" stop-color="#e0ba82"/>
+      <stop offset="1" stop-color="#5c3a22"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".72" cy=".27" r=".7">
+      <stop stop-color="#d2a66f" stop-opacity=".2"/>
+      <stop offset="1" stop-color="#d2a66f" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="28"/></filter>
+  </defs>
+  <rect width="900" height="1125" fill="url(#bg)"/>
+  <rect width="900" height="1125" fill="url(#glow)"/>
+  <ellipse cx="660" cy="350" rx="230" ry="290" fill="#bd8d54" opacity=".08" filter="url(#soft)"/>
+  <g fill="none" stroke="url(#gold)" stroke-linecap="round">
+    <path d="M760-60C415 180 785 350 480 580S390 890 95 1185" stroke-width="92" opacity=".22"/>
+    <path d="M825-30C475 205 820 400 530 625S455 930 155 1170" stroke-width="42" opacity=".42"/>
+    <path d="M862-10C520 220 850 445 590 660S520 940 240 1160" stroke-width="18" opacity=".85"/>
+    <path d="M714-25C380 205 740 333 430 560S340 875 52 1115" stroke-width="24" opacity=".72"/>
+    <path d="M632-15C340 220 630 350 355 570S270 845 25 1035" stroke-width="9" opacity=".92"/>
+    <path d="M882 110C610 300 885 520 650 710S585 965 390 1132" stroke-width="7" opacity=".64"/>
+    <path d="M690 10C510 205 675 345 520 490" stroke-width="3" opacity=".7"/>
+  </g>
+  <g fill="none" stroke="#e5c292" stroke-width="2" opacity=".35">
+    <path d="M735 0C430 210 760 370 467 600S390 890 110 1125"/>
+    <path d="M790 0C500 260 800 420 545 650S470 950 230 1125"/>
+  </g>
+</svg>
