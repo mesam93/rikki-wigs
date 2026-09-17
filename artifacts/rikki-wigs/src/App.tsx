@@ -285,7 +285,7 @@ function Manage() {
     ['completed', 'completed', 'Completed'],
     ['cancelled', 'cancelled', 'Cancelled'],
   ] as const;
-  const tabs = [['requests', 'Requests'], ['schedule', 'Schedule settings'], ['calendar', 'Calendar']] as const;
+  const tabs = [['requests', 'Requests'], ['calendar', 'Calendar'], ['schedule', 'Schedule settings']] as const;
   return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav manage /><main className="bg-[hsl(var(--background))]"><div className="container-rikki py-10 md:py-16"><div className="flex flex-col justify-between gap-6 md:flex-row md:items-end"><div><p className="eyebrow text-[hsl(var(--primary))]">Rikki Wigs / owner view</p><h1 className="display-title mt-4 text-6xl md:text-7xl">Good morning,<br /><em>Rikki.</em></h1></div><div className="flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))]"><span className="status-dot bg-[hsl(147_35%_45%)]" /> Your appointment book</div></div>
        <div className="mt-10 flex overflow-x-auto border-b border-[hsl(var(--border))]" role="tablist" aria-label="Appointment management sections">{tabs.map(([key, label]) => <button key={key} role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={`shrink-0 px-4 py-3 text-sm font-semibold sm:px-5 ${tab === key ? 'border-b-2 border-[hsl(var(--primary))]' : 'opacity-50'}`} data-testid={`tab-${key}`}>{label}</button>)}</div>
        {tab === 'schedule' ? <ScheduleSettingsPanel /> : tab === 'requests' ? <>
