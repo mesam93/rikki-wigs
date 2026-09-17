@@ -24,6 +24,8 @@ export const appointmentsTable = pgTable("appointments", {
   phone: text("phone").notNull(),
   email: text("email").notNull(),
   service: text("service").notNull(),
+  serviceId: integer("service_id"),
+  serviceDurationMinutes: integer("service_duration_minutes").notNull().default(60),
   appointmentDate: date("appointment_date", { mode: "string" }).notNull(),
   appointmentTime: text("appointment_time").notNull(),
   status: appointmentStatusEnum("status").notNull().default("pending"),
@@ -35,7 +37,7 @@ export const appointmentsTable = pgTable("appointments", {
 
 export const insertAppointmentSchema = createInsertSchema(
   appointmentsTable,
-).omit({ id: true, createdAt: true });
+).omit({ id: true, createdAt: true, serviceId: true, serviceDurationMinutes: true });
 
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 export type Appointment = typeof appointmentsTable.$inferSelect;

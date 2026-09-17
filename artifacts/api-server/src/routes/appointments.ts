@@ -19,6 +19,7 @@ import {
   sendAppointmentNotification,
 } from "../email/appointment-emails";
 import { requireAdmin } from "../middlewares/requireAdmin";
+import { ensureServices, getBookableService, weekdays } from "../lib/services";
 
 const router: IRouter = Router();
 
@@ -70,7 +71,6 @@ const defaultDurations: Record<string, number> = {
   Styling: 60,
   Repair: 60,
 };
-const weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 const defaultDayWindows = Object.fromEntries(weekdays.map((day) => [day, day === "sunday" || day === "saturday" ? [] : [{ id: `${day}-1`, start: "10:00", end: day === "friday" ? "15:00" : "17:00" }]])) as Record<string, TimeWindow[]>;
 const defaultWeeklyHours: WeeklyHours = Object.fromEntries(Object.keys(defaultDurations).map((service) => [service, structuredClone(defaultDayWindows)]));
 const defaultSettings = { id: 1, serviceDurations: defaultDurations, weeklyHours: defaultWeeklyHours, blockedSlots: [] as BlockedSlot[] };
@@ -150,38 +150,60 @@ router.post("/appointments", async (req, res): Promise<void> => {
     return;
   }
 
+  const service = await getBookableService(parsed.data.service);
+  if (!service) {
+    res.status(400).json({ error: "Choose a service that is currently available for booking." });
+    return;
+  }
   const settings = await getSettings();
   const requestedStart = toMinutes(parsed.data.appointmentTime);
-  const requestedEnd = requestedStart + (settings.serviceDurations[parsed.data.service] ?? 60);
-  const existing = await db
-    .select({ time: appointmentsTable.appointmentTime, service: appointmentsTable.service })
-    .from(appointmentsTable)
-    .where(
-      and(
-        eq(
-          appointmentsTable.appointmentDate,
-          toDateString(parsed.data.appointmentDate),
+  const requestedEnd = requestedStart + service.durationMinutes;
+  const requestedDate = toDateString(parsed.data.appointmentDate);
+  const requestedWeekday = weekdays[parsed.data.appointmentDate.getUTCDay()];
+  const insideServiceHours = (service.weeklyHours[requestedWeekday] ?? []).some((window) =>
+    requestedStart >= toMinutes(window.start) && requestedEnd <= toMinutes(window.end)
+  );
+  const conflictsWithBlock = settings.blockedSlots.some((slot) =>
+    slot.date === requestedDate
+    && overlaps(requestedStart, requestedEnd, toMinutes(slot.startTime), toMinutes(slot.endTime))
+  );
+  if (requestedDate <= toDateString(new Date()) || !insideServiceHours || conflictsWithBlock) {
+    res.status(409).json({ error: "That time is not available. Please choose another." });
+    return;
+  }
+  const appointment = await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${requestedDate}))`);
+    const existing = await tx
+      .select({ time: appointmentsTable.appointmentTime, durationMinutes: appointmentsTable.serviceDurationMinutes })
+      .from(appointmentsTable)
+      .where(
+        and(
+          eq(appointmentsTable.appointmentDate, requestedDate),
+          inArray(appointmentsTable.status, ["pending", "confirmed"]),
         ),
-        inArray(appointmentsTable.status, ["pending", "confirmed"]),
-      ),
-    );
+      );
+    if (existing.some((item) => {
+      const start = toMinutes(item.time);
+      return overlaps(requestedStart, requestedEnd, start, start + item.durationMinutes);
+    })) return null;
 
-  if (existing.some((item) => {
-    const start = toMinutes(item.time);
-    return overlaps(requestedStart, requestedEnd, start, start + (settings.serviceDurations[item.service] ?? 60));
-  })) {
+    const [created] = await tx
+      .insert(appointmentsTable)
+      .values({
+        ...parsed.data,
+        serviceId: service.id,
+        serviceDurationMinutes: service.durationMinutes,
+        appointmentDate: requestedDate,
+        notes: parsed.data.notes ?? "",
+      })
+      .returning();
+    return created;
+  });
+
+  if (!appointment) {
     res.status(409).json({ error: "That time was just booked. Please choose another." });
     return;
   }
-
-  const [appointment] = await db
-    .insert(appointmentsTable)
-    .values({
-      ...parsed.data,
-      appointmentDate: toDateString(parsed.data.appointmentDate),
-      notes: parsed.data.notes ?? "",
-    })
-    .returning();
 
   await deliverAppointmentEmail(req, "request_received", appointment);
 
@@ -191,6 +213,7 @@ router.post("/appointments", async (req, res): Promise<void> => {
 });
 
 router.patch("/appointments/:id", requireAdmin, async (req, res): Promise<void> => {
+  await ensureServices();
   const params = UpdateAppointmentParams.safeParse(req.params);
   const body = UpdateAppointmentBody.safeParse(req.body);
   if (!params.success) {
@@ -211,10 +234,9 @@ router.patch("/appointments/:id", requireAdmin, async (req, res): Promise<void> 
   const nextTime = body.data.appointmentTime ?? current.appointmentTime;
   const nextStatus = body.data.status ?? current.status;
   if (nextStatus === "pending" || nextStatus === "confirmed") {
-    const settings = await getSettings();
     const start = toMinutes(nextTime);
-    const end = start + (settings.serviceDurations[current.service] ?? 60);
-    const conflicts = await db.select({ time: appointmentsTable.appointmentTime, service: appointmentsTable.service })
+    const end = start + current.serviceDurationMinutes;
+    const conflicts = await db.select({ time: appointmentsTable.appointmentTime, durationMinutes: appointmentsTable.serviceDurationMinutes })
       .from(appointmentsTable)
       .where(and(
         ne(appointmentsTable.id, current.id),
@@ -223,7 +245,7 @@ router.patch("/appointments/:id", requireAdmin, async (req, res): Promise<void> 
       ));
     if (conflicts.some((item) => {
       const otherStart = toMinutes(item.time);
-      return overlaps(start, end, otherStart, otherStart + (settings.serviceDurations[item.service] ?? 60));
+      return overlaps(start, end, otherStart, otherStart + item.durationMinutes);
     })) {
       res.status(409).json({ error: "That time overlaps another active appointment." });
       return;
@@ -308,30 +330,34 @@ router.get("/scheduling-settings", requireAdmin, async (_req, res): Promise<void
 });
 
 router.put("/scheduling-settings", requireAdmin, async (req, res): Promise<void> => {
-  const serviceDurations = req.body?.serviceDurations;
-  const weeklyHours = req.body?.weeklyHours;
   const blockedSlots = req.body?.blockedSlots;
-  if (!serviceDurations || !weeklyHours || !Array.isArray(blockedSlots)) {
+  if (!Array.isArray(blockedSlots)) {
     res.status(400).json({ error: "Invalid scheduling settings" });
     return;
   }
+  const current = await getSettings();
   const [settings] = await db.insert(schedulingSettingsTable).values({
     id: 1,
-    serviceDurations,
-    weeklyHours,
+    serviceDurations: current.serviceDurations,
+    weeklyHours: current.weeklyHours,
     blockedSlots,
     updatedAt: new Date(),
   }).onConflictDoUpdate({
     target: schedulingSettingsTable.id,
-    set: { serviceDurations, weeklyHours, blockedSlots, updatedAt: new Date() },
+    set: { blockedSlots, updatedAt: new Date() },
   }).returning();
   res.json(settings);
 });
 
 router.get("/availability", async (req, res): Promise<void> => {
   const settings = await getSettings();
-  const service = typeof req.query.service === "string" ? req.query.service : "Lace wig consultation";
-  const requestedDuration = settings.serviceDurations[service] ?? 60;
+  const serviceName = typeof req.query.service === "string" ? req.query.service : "";
+  const service = await getBookableService(serviceName);
+  if (!service) {
+    res.status(400).json({ error: "Service is not available for booking" });
+    return;
+  }
+  const requestedDuration = service.durationMinutes;
   const today = new Date();
   const lastDay = new Date(today);
   lastDay.setUTCDate(lastDay.getUTCDate() + 180);
@@ -342,7 +368,7 @@ router.get("/availability", async (req, res): Promise<void> => {
     .select({
       date: appointmentsTable.appointmentDate,
       time: appointmentsTable.appointmentTime,
-      service: appointmentsTable.service,
+      durationMinutes: appointmentsTable.serviceDurationMinutes,
     })
     .from(appointmentsTable)
     .where(
@@ -357,7 +383,7 @@ router.get("/availability", async (req, res): Promise<void> => {
     const day = new Date(today);
     day.setUTCDate(day.getUTCDate() + offset);
     const weekday = weekdays[day.getUTCDay()];
-    const windows = settings.weeklyHours[service]?.[weekday] ?? [];
+    const windows = service.weeklyHours[weekday] ?? [];
     if (!windows.length) continue;
     const date = day.toISOString().slice(0, 10);
     if (date > end) break;
@@ -371,8 +397,7 @@ router.get("/availability", async (req, res): Promise<void> => {
         const endTime = startTime + requestedDuration;
         const conflictsWithBooking = dayBookings.some((slot) => {
           const bookedStart = toMinutes(slot.time);
-          const bookedDuration = settings.serviceDurations[slot.service] ?? 60;
-          return overlaps(startTime, endTime, bookedStart, bookedStart + bookedDuration);
+          return overlaps(startTime, endTime, bookedStart, bookedStart + slot.durationMinutes);
         });
         const conflictsWithBlock = dayBlocks.some((slot) =>
           overlaps(startTime, endTime, toMinutes(slot.startTime), toMinutes(slot.endTime)),

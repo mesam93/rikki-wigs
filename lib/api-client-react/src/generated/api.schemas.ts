@@ -82,6 +82,59 @@ export interface AvailabilityDay {
   times: string[];
 }
 
+export interface TimeWindow {
+  id: string;
+  start: string;
+  end: string;
+}
+
+export interface ServiceWeeklyHours {
+  sunday: TimeWindow[];
+  monday: TimeWindow[];
+  tuesday: TimeWindow[];
+  wednesday: TimeWindow[];
+  thursday: TimeWindow[];
+  friday: TimeWindow[];
+  saturday: TimeWindow[];
+}
+
+export interface Service {
+  id: number;
+  name: string;
+  imagePath: string;
+  imageUrl: string;
+  altText: string;
+  sortOrder: number;
+  isVisible: boolean;
+  isBookable: boolean;
+  isArchived: boolean;
+  durationMinutes: number;
+  weeklyHours: ServiceWeeklyHours;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ServiceInput {
+  /** @minLength 1 */
+  name: string;
+  imagePath: string;
+  altText: string;
+  /** @minimum 0 */
+  sortOrder: number;
+  isVisible: boolean;
+  isBookable: boolean;
+  /**
+     * @minimum 15
+     * @maximum 480
+     */
+  durationMinutes: number;
+  weeklyHours: ServiceWeeklyHours;
+}
+
+export interface ServiceUploadRequest {
+  contentType: string;
+}
+
 export interface Testimonial {
   id: number;
   author: string;
@@ -122,6 +175,15 @@ export interface GalleryUploadRequest {
 
 export type ListAppointmentsParams = {
 status?: AppointmentStatus;
+};
+
+export type GetAvailabilityParams = {
+service: string;
+};
+
+export type RequestServiceUploadUrl200 = {
+  uploadUrl: string;
+  objectPath: string;
 };
 
 export type RequestGalleryUploadUrl200 = {

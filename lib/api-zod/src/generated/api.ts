@@ -140,11 +140,388 @@ export const GetEmailStatusResponse = zod.object({
 /**
  * @summary Get available booking dates and times
  */
+export const GetAvailabilityQueryParams = zod.object({
+  "service": zod.coerce.string()
+})
+
 export const GetAvailabilityResponseItem = zod.object({
   "date": zod.coerce.date(),
   "times": zod.array(zod.string())
 })
 export const GetAvailabilityResponse = zod.array(GetAvailabilityResponseItem)
+
+
+/**
+ * @summary List active public and bookable services
+ */
+export const ListServicesResponseItem = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "imagePath": zod.string(),
+  "imageUrl": zod.string(),
+  "altText": zod.string(),
+  "sortOrder": zod.number().int(),
+  "isVisible": zod.boolean(),
+  "isBookable": zod.boolean(),
+  "isArchived": zod.boolean(),
+  "durationMinutes": zod.number().int(),
+  "weeklyHours": zod.object({
+  "sunday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "monday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "tuesday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "wednesday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "thursday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "friday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "saturday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+}))
+}),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListServicesResponse = zod.array(ListServicesResponseItem)
+
+
+/**
+ * @summary Get an uploaded service image
+ */
+export const GetServiceImageParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetServiceImageResponse = zod.unknown()
+
+
+/**
+ * @summary List all services for the admin
+ */
+export const ListAdminServicesResponseItem = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "imagePath": zod.string(),
+  "imageUrl": zod.string(),
+  "altText": zod.string(),
+  "sortOrder": zod.number().int(),
+  "isVisible": zod.boolean(),
+  "isBookable": zod.boolean(),
+  "isArchived": zod.boolean(),
+  "durationMinutes": zod.number().int(),
+  "weeklyHours": zod.object({
+  "sunday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "monday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "tuesday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "wednesday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "thursday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "friday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "saturday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+}))
+}),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListAdminServicesResponse = zod.array(ListAdminServicesResponseItem)
+
+
+/**
+ * @summary Create a service
+ */
+
+export const createServiceBodySortOrderMin = 0;
+
+export const createServiceBodyDurationMinutesMin = 15;
+export const createServiceBodyDurationMinutesMax = 480;
+
+
+
+export const CreateServiceBody = zod.object({
+  "name": zod.string().min(1),
+  "imagePath": zod.string(),
+  "altText": zod.string(),
+  "sortOrder": zod.number().int().min(createServiceBodySortOrderMin),
+  "isVisible": zod.boolean(),
+  "isBookable": zod.boolean(),
+  "durationMinutes": zod.number().int().min(createServiceBodyDurationMinutesMin).max(createServiceBodyDurationMinutesMax),
+  "weeklyHours": zod.object({
+  "sunday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "monday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "tuesday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "wednesday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "thursday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "friday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "saturday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+}))
+})
+})
+
+export const CreateServiceResponse = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "imagePath": zod.string(),
+  "imageUrl": zod.string(),
+  "altText": zod.string(),
+  "sortOrder": zod.number().int(),
+  "isVisible": zod.boolean(),
+  "isBookable": zod.boolean(),
+  "isArchived": zod.boolean(),
+  "durationMinutes": zod.number().int(),
+  "weeklyHours": zod.object({
+  "sunday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "monday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "tuesday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "wednesday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "thursday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "friday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "saturday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+}))
+}),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Request a protected service image upload URL
+ */
+export const RequestServiceUploadUrlBody = zod.object({
+  "contentType": zod.string()
+})
+
+export const RequestServiceUploadUrlResponse = zod.object({
+  "uploadUrl": zod.string().url(),
+  "objectPath": zod.string()
+})
+
+
+/**
+ * @summary Update a service
+ */
+export const UpdateServiceParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+export const updateServiceBodySortOrderMin = 0;
+
+export const updateServiceBodyDurationMinutesMin = 15;
+export const updateServiceBodyDurationMinutesMax = 480;
+
+
+
+export const UpdateServiceBody = zod.object({
+  "name": zod.string().min(1),
+  "imagePath": zod.string(),
+  "altText": zod.string(),
+  "sortOrder": zod.number().int().min(updateServiceBodySortOrderMin),
+  "isVisible": zod.boolean(),
+  "isBookable": zod.boolean(),
+  "durationMinutes": zod.number().int().min(updateServiceBodyDurationMinutesMin).max(updateServiceBodyDurationMinutesMax),
+  "weeklyHours": zod.object({
+  "sunday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "monday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "tuesday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "wednesday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "thursday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "friday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "saturday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+}))
+})
+})
+
+export const UpdateServiceResponse = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "imagePath": zod.string(),
+  "imageUrl": zod.string(),
+  "altText": zod.string(),
+  "sortOrder": zod.number().int(),
+  "isVisible": zod.boolean(),
+  "isBookable": zod.boolean(),
+  "isArchived": zod.boolean(),
+  "durationMinutes": zod.number().int(),
+  "weeklyHours": zod.object({
+  "sunday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "monday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "tuesday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "wednesday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "thursday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "friday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+})),
+  "saturday": zod.array(zod.object({
+  "id": zod.string(),
+  "start": zod.string(),
+  "end": zod.string()
+}))
+}),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Archive a service
+ */
+export const ArchiveServiceParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ArchiveServiceResponse = zod.void()
 
 
 /**

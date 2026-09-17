@@ -5,6 +5,7 @@ import { ArrowRight, CalendarDays, Check, CheckCircle2, ChevronDown, Clock3, Ins
 import {
   getGetAppointmentSummaryQueryKey,
   getListAppointmentsQueryKey,
+  useListServices,
   useCreateAppointment,
   useDeleteAppointment,
   useGetAppointmentSummary,
@@ -17,17 +18,10 @@ import { Calendar } from '@/components/ui/calendar';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { GalleryAdmin, GallerySection, TestimonialsAdmin, TestimonialsSection } from '@/components/site-content';
+import { ServicesAdmin } from '@/components/services-admin';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
-const services = ['Lace wig consultation', 'Skin top wig consultation', 'Custom color', 'Styling', 'Repair'];
-const serviceCards = [
-  { image: '/services/lace-wigs.jpg', title: 'Lace wig consultation' },
-  { image: '/services/skin-top-wigs.jpg', title: 'Skin top wig consultation' },
-  { image: '/services/custom-color.jpg', title: 'Custom color' },
-  { image: '/services/styling-repairs.jpg', title: 'Styling' },
-  { image: '/services/styling-repairs.jpg', title: 'Repair' },
-];
 const statuses = ['pending', 'confirmed', 'completed', 'cancelled'] as const;
 const instagramUrl = 'https://www.instagram.com/rikki_wigs/';
 const phoneDisplay = '732-742-4559';
@@ -39,11 +33,9 @@ function WhatsAppIcon({ size = 16 }: { size?: number }) {
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.075-.792.372-.273.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.626.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.981.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.002-5.45 4.437-9.884 9.892-9.884a9.82 9.82 0 0 1 7.021 2.91 9.83 9.83 0 0 1 2.898 7.026c-.003 5.45-4.438 9.881-9.927 9.881m8.413-18.297A11.82 11.82 0 0 0 12.055 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.9 11.9 0 0 0 5.689 1.448h.005C18.614 23.794 23.95 18.459 23.953 11.9a11.82 11.82 0 0 0-3.489-8.412Z" />
   </svg>;
 }
-type TimeWindow = { id: string; start: string; end: string };
 type BlockedSlot = { id: string; date: string; startTime: string; endTime: string; reason: string };
-type SchedulingSettings = { serviceDurations: Record<string, number>; weeklyHours: Record<string, Record<string, TimeWindow[]>>; blockedSlots: BlockedSlot[] };
+type SchedulingSettings = { blockedSlots: BlockedSlot[] };
 type EmailDeliveryStatus = { mode: 'disabled' | 'test' | 'smtp'; configured: boolean; label: string };
-const weekdayLabels: Record<string, string> = { sunday: 'Sunday', monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday' };
 
 async function apiJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...options?.headers } });
@@ -160,6 +152,8 @@ function AdminManageRoute() {
 }
 
 function Home() {
+  const { data: allServices = [], isLoading: servicesLoading, isError: servicesError } = useListServices();
+  const serviceCards = allServices.filter((service) => service.isVisible && !service.isArchived);
   return <div className="site-shell texture bg-[hsl(var(--background))]">
     <SiteNav />
     <main>
@@ -178,16 +172,16 @@ function Home() {
         <div className="container-rikki">
           <div><h2 className="display-title text-5xl md:text-7xl">Wigs, color,<br /><em>styling & care.</em></h2></div>
           <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            {serviceCards.map(({ image, title }) => <article key={title} className="group flex overflow-hidden rounded-2xl border border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-accent)/.45)] transition-all hover:-translate-y-1 hover:border-[hsl(var(--accent)/.65)] hover:bg-[hsl(var(--sidebar-accent))]">
+            {servicesLoading ? [1, 2, 3, 4, 5].map((item) => <div key={item} className="skeleton aspect-[3/4] rounded-2xl opacity-20" />) : servicesError ? <div className="col-span-full rounded-xl border border-[hsl(var(--sidebar-border))] p-6 text-sm opacity-75">Services could not be loaded right now.</div> : serviceCards.map((service) => <article key={service.id} className="group flex overflow-hidden rounded-2xl border border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-accent)/.45)] transition-all hover:-translate-y-1 hover:border-[hsl(var(--accent)/.65)] hover:bg-[hsl(var(--sidebar-accent))]">
               <div className="flex w-full flex-col">
                 <div className="aspect-[4/3] overflow-hidden">
-                  <img src={image} alt={`${title} service at Rikki Wigs`} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  {service.imageUrl ? <img src={service.imageUrl} alt={service.altText} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center bg-[hsl(var(--sidebar-accent))] text-xs uppercase tracking-[.18em] opacity-50">Rikki Wigs</div>}
                 </div>
                 <div className="flex min-h-48 flex-1 flex-col p-6 text-center">
                   <div className="flex flex-1 items-center justify-center">
-                    <h3 className="font-editorial text-3xl">{title}</h3>
+                    <h3 className="font-editorial text-3xl">{service.name}</h3>
                   </div>
-                  <Link href={`/book?service=${encodeURIComponent(title)}`} className="mx-auto flex items-center gap-2 pt-5 text-xs font-semibold text-[hsl(var(--accent))]">Request this service <ArrowRight size={14} /></Link>
+                  {service.isBookable ? <Link href={`/book?service=${encodeURIComponent(service.name)}`} className="mx-auto flex items-center gap-2 pt-5 text-xs font-semibold text-[hsl(var(--accent))]">Request this service <ArrowRight size={14} /></Link> : <a href={phoneUrl} className="mx-auto flex items-center gap-2 pt-5 text-xs font-semibold text-[hsl(var(--accent))]">Call about this service <ArrowRight size={14} /></a>}
                 </div>
               </div>
             </article>)}
@@ -204,14 +198,16 @@ function Home() {
 
 function Book() {
   const createAppointment = useCreateAppointment();
+  const { data: allServices = [], isLoading: servicesLoading, isError: servicesError } = useListServices();
+  const services = allServices.filter((service) => service.isBookable && !service.isArchived);
   const timeSelectorRef = useRef<HTMLDivElement>(null);
+  const directLinkHandled = useRef(false);
   const requestedService = new URLSearchParams(window.location.search).get('service') ?? '';
-  const initialService = services.includes(requestedService) ? requestedService : '';
-  const [step, setStep] = useState(initialService ? 2 : 1);
+  const [step, setStep] = useState(1);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ name: '', phone: '', email: '', service: initialService, appointmentDate: '', appointmentTime: '', notes: '' });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', service: '', appointmentDate: '', appointmentTime: '', notes: '' });
   const { data: availability, isLoading: availabilityLoading, isError: availabilityError } = useQuery({
     queryKey: ['availability', form.service],
     queryFn: () => apiJson<Array<{ date: string; times: string[] }>>(`/api/availability?service=${encodeURIComponent(form.service)}`),
@@ -225,6 +221,15 @@ function Book() {
   bookingHorizon.setDate(bookingHorizon.getDate() + 180);
   const canContinue = step === 1 ? Boolean(form.service) : step === 2 ? Boolean(form.appointmentDate && form.appointmentTime) : Boolean(form.name && form.phone && form.email);
   const update = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }));
+  useEffect(() => {
+    if (directLinkHandled.current || servicesLoading) return;
+    directLinkHandled.current = true;
+    const matched = services.find((service) => service.name === requestedService && service.isVisible);
+    if (matched) {
+      setForm((current) => ({ ...current, service: matched.name }));
+      setStep(2);
+    }
+  }, [requestedService, services, servicesLoading]);
   useEffect(() => {
     if (step !== 2 || !form.appointmentDate) return;
     const frame = window.requestAnimationFrame(() => {
@@ -244,7 +249,7 @@ function Book() {
   return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki grid gap-12 pb-20 pt-8 md:grid-cols-[.65fr_1.35fr] md:gap-20 md:pt-16">
     <aside><p className="eyebrow text-[hsl(var(--primary))]">appointment request</p><h1 className="display-title mt-5 text-6xl md:text-7xl">Book with<br /><em>Rikki Wigs.</em></h1><p className="mt-7 max-w-xs leading-7 text-[hsl(var(--muted-foreground))]">Choose a service and request an available time. Rikki will contact you to confirm the appointment.</p><div className="mt-12 hidden space-y-5 md:block">{[['01', 'Choose a service'], ['02', 'Find a time'], ['03', 'Submit request']].map(([n, label], index) => <div key={n} className={`flex items-center gap-3 text-sm ${step === index + 1 ? 'font-semibold' : 'opacity-45'}`}><span className={`flex h-7 w-7 items-center justify-center rounded-full font-mono-ui text-[10px] ${step === index + 1 ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]' : 'border border-current'}`}>{n}</span>{label}</div>)}</div></aside>
     <section className="max-w-2xl md:pt-4"><div className="mb-8 flex items-center justify-between border-b border-[hsl(var(--border))] pb-4 md:hidden"><span className="eyebrow">step 0{step} of 03</span><span className="text-sm font-semibold">{step === 1 ? 'Service' : step === 2 ? 'Time' : 'Submit'}</span></div>
-      {step === 1 && <div className="reveal"><p className="eyebrow opacity-55">Step 01</p><h2 className="font-editorial mt-3 text-4xl">What would you like to request?</h2><div className="mt-8 grid gap-3">{services.map((service) => <button key={service} onClick={() => update('service', service)} className={`flex items-center justify-between rounded-xl border p-5 text-left transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--primary))] ${form.service === service ? 'border-[hsl(var(--primary))] bg-[hsl(var(--secondary))]' : 'border-[hsl(var(--border))] bg-[hsl(var(--card))]'}`} data-testid={`button-service-${service.toLowerCase().replaceAll(' ', '-')}`}><span className="font-semibold">{service}</span>{form.service === service && <CheckCircle2 className="text-[hsl(var(--primary))]" size={20} />}</button>)}</div></div>}
+      {step === 1 && <div className="reveal"><p className="eyebrow opacity-55">Step 01</p><h2 className="font-editorial mt-3 text-4xl">What would you like to request?</h2>{servicesLoading ? <div className="skeleton mt-8 h-64 w-full" /> : servicesError ? <div className="mt-8 rounded-xl border border-[hsl(var(--destructive))] p-5 text-sm text-[hsl(var(--destructive))]">Services could not be loaded. Please refresh and try again.</div> : services.length ? <div className="mt-8 grid gap-3">{services.map((service) => <button key={service.id} onClick={() => { directLinkHandled.current = true; update('service', service.name); }} className={`flex items-center justify-between rounded-xl border p-5 text-left transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--primary))] ${form.service === service.name ? 'border-[hsl(var(--primary))] bg-[hsl(var(--secondary))]' : 'border-[hsl(var(--border))] bg-[hsl(var(--card))]'}`} data-testid={`button-service-${service.name.toLowerCase().replaceAll(' ', '-')}`}><span className="font-semibold">{service.name}</span>{form.service === service.name && <CheckCircle2 className="text-[hsl(var(--primary))]" size={20} />}</button>)}</div> : <div className="mt-8 rounded-xl border border-dashed border-[hsl(var(--border))] p-8 text-sm text-[hsl(var(--muted-foreground))]">No services are currently accepting online appointment requests. Please contact Rikki directly.</div>}</div>}
       {step === 2 && <div className="reveal"><p className="eyebrow opacity-55">Step 02</p><h2 className="font-editorial mt-3 text-4xl">When would you like to come in?</h2><p className="mt-3 text-sm text-[hsl(var(--muted-foreground))]">Choose an available date, then select a time.</p>{availabilityLoading ? <div className="skeleton mt-8 h-80 w-full" /> : availabilityError ? <div className="mt-8 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 text-sm text-[hsl(var(--muted-foreground))]">Availability could not be loaded. Please go back and try again.</div> : availableDays.length ? <div className="mt-10 w-full"><Calendar mode="single" month={calendarMonth} onMonthChange={setCalendarMonth} selected={selectedDate} onSelect={(date) => { if (!date) return; const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; setCalendarMonth(date); setForm((current) => ({ ...current, appointmentDate: key, appointmentTime: '' })); }} disabled={(date) => { const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; return !availableDateKeys.has(key); }} startMonth={new Date()} endMonth={bookingHorizon} className="w-full !bg-transparent !p-0 [--cell-size:clamp(2.7rem,11vw,4.5rem)]" classNames={{ root: 'w-full', months: 'w-full', month: 'w-full gap-6', month_caption: 'flex h-12 w-full items-center justify-center px-12 font-editorial text-2xl', nav: 'absolute inset-x-0 top-1 flex w-full items-center justify-between', month_grid: 'w-full border-collapse', weekdays: 'flex border-b border-[hsl(var(--border))] pb-3', weekday: 'flex-1 text-center font-mono-ui text-[10px] uppercase tracking-[.14em] text-[hsl(var(--muted-foreground))]', week: 'mt-3 flex w-full', day: 'relative aspect-square h-full flex-1 p-1 text-center', today: 'rounded-full border border-[hsl(var(--accent))]', disabled: 'text-[hsl(var(--muted-foreground))] opacity-25' }} /></div> : <div className="mt-8 rounded-xl border border-dashed border-[hsl(var(--border))] p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">No available dates are currently configured for this service.</div>}{form.appointmentDate && <div ref={timeSelectorRef} className="mt-9 scroll-mt-6 border-t border-[hsl(var(--border))] pt-7"><label className="field-label">{formatDay(form.appointmentDate, { weekday: 'long', month: 'long', day: 'numeric' })} · Available times</label>{selectedDay?.times?.length ? <div className="flex flex-wrap gap-2">{selectedDay.times.map((time) => <button key={time} onClick={() => update('appointmentTime', time)} className={`rounded-full border px-4 py-2 text-sm transition-colors ${form.appointmentTime === time ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]' : 'border-[hsl(var(--border))] bg-transparent hover:border-[hsl(var(--primary))]'}`} data-testid={`button-time-${time.replaceAll(':', '-')}`}>{time}</button>)}</div> : null}</div>}</div>}
       {step === 3 && <div className="reveal"><p className="eyebrow opacity-55">Step 03</p><h2 className="font-editorial mt-3 text-4xl">Submit appointment request.</h2><div className="mt-8 grid gap-5 sm:grid-cols-2"><div><label className="field-label" htmlFor="name">Your name</label><input id="name" value={form.name} onChange={(e) => update('name', e.target.value)} className="field-input" placeholder="First and last" data-testid="input-name" /></div><div><label className="field-label" htmlFor="phone">Phone</label><input id="phone" value={form.phone} onChange={(e) => update('phone', e.target.value)} className="field-input" placeholder="(555) 000-0000" data-testid="input-phone" /></div><div className="sm:col-span-2"><label className="field-label" htmlFor="email">Email address</label><input id="email" type="email" value={form.email} onChange={(e) => update('email', e.target.value)} className="field-input" placeholder="you@example.com" data-testid="input-email" /></div><div className="sm:col-span-2"><label className="field-label" htmlFor="notes">Anything you want us to know <span className="font-normal opacity-50">(optional)</span></label><textarea id="notes" value={form.notes} onChange={(e) => update('notes', e.target.value)} className="field-input min-h-28 resize-y" placeholder="Tell us about your hair goals, timeline, or questions." data-testid="input-notes" /></div></div></div>}
       {error && <div className="mt-6 flex items-start gap-2 rounded-lg border border-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/.08)] p-3 text-sm text-[hsl(var(--destructive))]" role="alert"><XCircle size={17} className="mt-0.5 shrink-0" />{error}</div>}
@@ -260,7 +265,6 @@ function ScheduleSettingsPanel() {
   const [draft, setDraft] = useState<SchedulingSettings | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
-  const [selectedService, setSelectedService] = useState(services[0]);
   const [block, setBlock] = useState({ date: '', startTime: '10:00', endTime: '11:00', reason: '' });
   useEffect(() => { if (data) setDraft(data); }, [data]);
   if (isLoading || !draft) return <div className="skeleton mt-8 h-64" />;
@@ -289,31 +293,18 @@ function ScheduleSettingsPanel() {
       </div>
     </div>
     <div>
-      <h2 className="font-editorial text-4xl">Appointment lengths</h2>
-      <p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">Set how much calendar time each appointment type uses.</p>
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{services.map((service) => <label key={service} className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 text-sm"><span className="font-semibold">{service}</span><span className="mt-3 flex items-center gap-2"><input type="number" min="15" step="15" value={draft.serviceDurations[service] ?? 60} onChange={(e) => setDraft({ ...draft, serviceDurations: { ...draft.serviceDurations, [service]: Number(e.target.value) } })} className="field-input !w-24" /> minutes</span></label>)}</div>
-    </div>
-    <div>
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h2 className="font-editorial text-4xl">Service availability</h2><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">Add multiple appointment windows for each service and day.</p></div><label className="text-sm font-semibold">Appointment type<select value={selectedService} onChange={(e) => setSelectedService(e.target.value)} className="field-input mt-2 min-w-64">{services.map((service) => <option key={service}>{service}</option>)}</select></label></div>
-      <div className="mt-5 space-y-3">{Object.entries(weekdayLabels).map(([day, label]) => {
-        const windows = draft.weeklyHours[selectedService]?.[day] ?? [];
-        const updateWindows = (next: TimeWindow[]) => setDraft({ ...draft, weeklyHours: { ...draft.weeklyHours, [selectedService]: { ...(draft.weeklyHours[selectedService] ?? {}), [day]: next } } });
-        return <div key={day} className="grid gap-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 sm:grid-cols-[130px_1fr]"><div><span className="font-semibold">{label}</span><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">{windows.length ? `${windows.length} window${windows.length === 1 ? '' : 's'}` : 'Closed'}</p></div><div className="space-y-2">{windows.map((window) => <div key={window.id} className="flex flex-wrap items-center gap-2"><input type="time" value={window.start} onChange={(e) => updateWindows(windows.map((item) => item.id === window.id ? { ...item, start: e.target.value } : item))} className="field-input !w-auto" /><span className="text-sm">to</span><input type="time" value={window.end} onChange={(e) => updateWindows(windows.map((item) => item.id === window.id ? { ...item, end: e.target.value } : item))} className="field-input !w-auto" /><button onClick={() => updateWindows(windows.filter((item) => item.id !== window.id))} className="btn-quiet !px-3 !py-2 text-xs !text-[hsl(var(--destructive))]">Remove</button></div>)}<button onClick={() => updateWindows([...windows, { id: `${Date.now()}`, start: '10:00', end: '12:00' }])} className="btn-quiet !px-3 !py-2 text-xs">Add time window</button></div></div>;
-      })}</div>
-    </div>
-    <div>
       <h2 className="font-editorial text-4xl">Blocked times</h2>
       <div className="mt-5 grid gap-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 md:grid-cols-4"><input type="date" value={block.date} onChange={(e) => setBlock({ ...block, date: e.target.value })} className="field-input" /><input type="time" value={block.startTime} onChange={(e) => setBlock({ ...block, startTime: e.target.value })} className="field-input" /><input type="time" value={block.endTime} onChange={(e) => setBlock({ ...block, endTime: e.target.value })} className="field-input" /><input placeholder="Reason (optional)" value={block.reason} onChange={(e) => setBlock({ ...block, reason: e.target.value })} className="field-input" /><button onClick={addBlock} className="btn-primary md:col-span-4">Block this time</button></div>
       <div className="mt-3 space-y-2">{draft.blockedSlots.map((item) => <div key={item.id} className="flex items-center justify-between rounded-lg border border-[hsl(var(--border))] p-3 text-sm"><span>{item.date} · {item.startTime}–{item.endTime} {item.reason && `· ${item.reason}`}</span><button onClick={() => { const next = { ...draft, blockedSlots: draft.blockedSlots.filter((slot) => slot.id !== item.id) }; setDraft(next); void save(next); }} className="text-[hsl(var(--destructive))]">Remove</button></div>)}</div>
     </div>
-    <div className="flex items-center gap-4"><button onClick={() => void save()} disabled={saving} className="btn-primary">{saving ? 'Saving…' : 'Save scheduling settings'}</button>{message && <span className="text-sm">{message}</span>}</div>
+    <div className="flex items-center gap-4"><button onClick={() => void save()} disabled={saving} className="btn-primary">{saving ? 'Saving…' : 'Save blocked times'}</button>{message && <span className="text-sm">{message}</span>}</div>
   </section>;
 }
 
 function Manage() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'upcoming' | 'completed' | 'cancelled'>('all');
-  const [tab, setTab] = useState<'requests' | 'schedule' | 'calendar' | 'testimonials' | 'gallery'>('requests');
+  const [tab, setTab] = useState<'requests' | 'schedule' | 'calendar' | 'services' | 'testimonials' | 'gallery'>('requests');
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<Date>();
   const { data: summary, isLoading: summaryLoading, isError: summaryError } = useGetAppointmentSummary();
@@ -343,10 +334,10 @@ function Manage() {
     ['completed', 'completed', 'Completed'],
     ['cancelled', 'cancelled', 'Cancelled'],
   ] as const;
-  const tabs = [['requests', 'Requests'], ['calendar', 'Calendar'], ['schedule', 'Schedule settings'], ['testimonials', 'Testimonials'], ['gallery', 'Gallery']] as const;
+  const tabs = [['requests', 'Requests'], ['calendar', 'Calendar'], ['services', 'Services'], ['schedule', 'Schedule settings'], ['testimonials', 'Testimonials'], ['gallery', 'Gallery']] as const;
   return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav manage /><main className="bg-[hsl(var(--background))]"><div className="container-rikki py-10 md:py-16"><div className="flex flex-col justify-between gap-6 md:flex-row md:items-end"><div><p className="eyebrow text-[hsl(var(--primary))]">Rikki Wigs / owner view</p><h1 className="display-title mt-4 text-6xl md:text-7xl">Good morning,<br /><em>Rikki.</em></h1></div><div className="flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))]"><span className="status-dot bg-[hsl(147_35%_45%)]" /> Your appointment book</div></div>
        <div className="mt-10 flex overflow-x-auto border-b border-[hsl(var(--border))]" role="tablist" aria-label="Appointment management sections">{tabs.map(([key, label]) => <button key={key} role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={`shrink-0 px-4 py-3 text-sm font-semibold sm:px-5 ${tab === key ? 'border-b-2 border-[hsl(var(--primary))]' : 'opacity-50'}`} data-testid={`tab-${key}`}>{label}</button>)}</div>
-        {tab === 'schedule' ? <ScheduleSettingsPanel /> : tab === 'testimonials' ? <TestimonialsAdmin /> : tab === 'gallery' ? <GalleryAdmin /> : tab === 'requests' ? <>
+         {tab === 'services' ? <ServicesAdmin /> : tab === 'schedule' ? <ScheduleSettingsPanel /> : tab === 'testimonials' ? <TestimonialsAdmin /> : tab === 'gallery' ? <GalleryAdmin /> : tab === 'requests' ? <>
        {summaryError ? <div className="mt-10 rounded-xl border border-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/.08)] p-4 text-sm text-[hsl(var(--destructive))]" role="alert">Summary is unavailable right now. The appointment list may still load below.</div> : <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">{summaryCards.map(([filterKey, summaryKey, label]) => <button key={filterKey} type="button" onClick={() => setFilter(filterKey)} aria-pressed={filter === filterKey} className={`relative rounded-xl border bg-[hsl(var(--card))] p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] ${filter === filterKey ? 'border-[hsl(var(--primary))] shadow-[inset_0_0_0_1px_hsl(var(--primary))]' : 'border-[hsl(var(--border))] hover:border-[hsl(var(--primary)/.55)]'}`} data-testid={`button-filter-${filterKey}`}><span className="flex items-center justify-between gap-2"><span className="eyebrow opacity-60">{label}</span>{filter === filterKey && <CheckCircle2 size={16} aria-hidden="true" />}</span>{summaryLoading ? <span className="skeleton mt-3 block h-8 w-14" /> : <span className="mt-2 block font-editorial text-3xl" data-testid={`text-summary-${summaryKey}`}>{summary?.[summaryKey] ?? 0}</span>}<span className="sr-only">{filter === filterKey ? 'Selected filter' : 'Filter requests'}</span></button>)}</div>}
        <div className="mt-12 border-b border-[hsl(var(--border))] pb-4"><p className="eyebrow opacity-55">appointment requests</p><h2 className="mt-2 font-editorial text-3xl">{summaryCards.find(([key]) => key === filter)?.[2]}</h2></div>
        {isError ? <div className="mt-8 rounded-xl border border-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/.08)] p-5 text-sm text-[hsl(var(--destructive))]" role="alert">We could not load appointments. Refresh the page and try again.</div> : isLoading ? <div className="mt-5 space-y-3">{[1, 2, 3].map((item) => <div className="skeleton h-24 w-full" key={item} />)}</div> : filteredAppointments.length ? <div className="mt-5 space-y-3">{filteredAppointments.map((appointment) => <AppointmentRow key={appointment.id} appointment={appointment} onStatus={updateStatus} onDelete={remove} onReschedule={reschedule} busy={updateAppointment.isPending || deleteAppointment.isPending} />)}</div> : <div className="mt-8 rounded-xl border border-dashed border-[hsl(var(--border))] bg-[hsl(var(--card))] px-6 py-16 text-center"><CalendarDays className="mx-auto text-[hsl(var(--primary))]" size={28} strokeWidth={1.3} /><h3 className="mt-4 font-editorial text-3xl">Nothing here yet.</h3><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">{filter === 'all' ? 'New appointment requests will appear here.' : `There are no ${summaryCards.find(([key]) => key === filter)?.[2].toLowerCase()} appointments.`}</p></div>}</> : <section className="mt-10">

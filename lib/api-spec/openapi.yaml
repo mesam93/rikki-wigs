@@ -14,6 +14,8 @@ tags:
     description: Appointment booking and management
   - name: site-content
     description: Public testimonials and gallery content
+  - name: services
+    description: Public services and admin service management
 paths:
   /healthz:
     get:
@@ -134,6 +136,12 @@ paths:
       operationId: getAvailability
       tags: [appointments]
       summary: Get available booking dates and times
+      parameters:
+        - in: query
+          name: service
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: Available dates and times
@@ -143,6 +151,132 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AvailabilityDay"
+  /services:
+    get:
+      operationId: listServices
+      tags: [services]
+      summary: List active public and bookable services
+      responses:
+        "200":
+          description: Active services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Service"
+  /services/images/{id}:
+    get:
+      operationId: getServiceImage
+      tags: [services]
+      summary: Get an uploaded service image
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Service image
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Service image not found
+  /admin/services:
+    get:
+      operationId: listAdminServices
+      tags: [services]
+      summary: List all services for the admin
+      responses:
+        "200":
+          description: All services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Service"
+    post:
+      operationId: createService
+      tags: [services]
+      summary: Create a service
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceInput"
+      responses:
+        "201":
+          description: Service created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+  /admin/services/upload-url:
+    post:
+      operationId: requestServiceUploadUrl
+      tags: [services]
+      summary: Request a protected service image upload URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceUploadRequest"
+      responses:
+        "200":
+          description: Upload details
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [uploadUrl, objectPath]
+                properties:
+                  uploadUrl: { type: string, format: uri }
+                  objectPath: { type: string }
+  /admin/services/{id}:
+    patch:
+      operationId: updateService
+      tags: [services]
+      summary: Update a service
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceInput"
+      responses:
+        "200":
+          description: Service updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+        "404":
+          description: Service not found
+    delete:
+      operationId: archiveService
+      tags: [services]
+      summary: Archive a service
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Service archived
+        "404":
+          description: Service not found
   /testimonials:
     get:
       operationId: listTestimonials
@@ -417,6 +551,74 @@ components:
           type: array
           items:
             type: string
+    TimeWindow:
+      type: object
+      required: [id, start, end]
+      properties:
+        id: { type: string }
+        start: { type: string }
+        end: { type: string }
+    ServiceWeeklyHours:
+      type: object
+      required: [sunday, monday, tuesday, wednesday, thursday, friday, saturday]
+      properties:
+        sunday:
+          type: array
+          items: { $ref: "#/components/schemas/TimeWindow" }
+        monday:
+          type: array
+          items: { $ref: "#/components/schemas/TimeWindow" }
+        tuesday:
+          type: array
+          items: { $ref: "#/components/schemas/TimeWindow" }
+        wednesday:
+          type: array
+          items: { $ref: "#/components/schemas/TimeWindow" }
+        thursday:
+          type: array
+          items: { $ref: "#/components/schemas/TimeWindow" }
+        friday:
+          type: array
+          items: { $ref: "#/components/schemas/TimeWindow" }
+        saturday:
+          type: array
+          items: { $ref: "#/components/schemas/TimeWindow" }
+    Service:
+      type: object
+      required: [id, name, imagePath, imageUrl, altText, sortOrder, isVisible, isBookable, isArchived, durationMinutes, weeklyHours, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        imagePath: { type: string }
+        imageUrl: { type: string }
+        altText: { type: string }
+        sortOrder: { type: integer }
+        isVisible: { type: boolean }
+        isBookable: { type: boolean }
+        isArchived: { type: boolean }
+        durationMinutes: { type: integer }
+        weeklyHours:
+          $ref: "#/components/schemas/ServiceWeeklyHours"
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ServiceInput:
+      type: object
+      required: [name, imagePath, altText, sortOrder, isVisible, isBookable, durationMinutes, weeklyHours]
+      properties:
+        name: { type: string, minLength: 1 }
+        imagePath: { type: string }
+        altText: { type: string }
+        sortOrder: { type: integer, minimum: 0 }
+        isVisible: { type: boolean }
+        isBookable: { type: boolean }
+        durationMinutes: { type: integer, minimum: 15, maximum: 480 }
+        weeklyHours:
+          $ref: "#/components/schemas/ServiceWeeklyHours"
+    ServiceUploadRequest:
+      type: object
+      required: [contentType]
+      properties:
+        contentType: { type: string }
     Testimonial:
       type: object
       required: [id, author, quote, isPublished, sortOrder, createdAt]

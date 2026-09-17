@@ -13,6 +13,8 @@ const appointment: Appointment = {
   phone: "555-0100",
   email: "ana@example.com",
   service: "Custom color & styling",
+  serviceId: 3,
+  serviceDurationMinutes: 120,
   appointmentDate: "2026-10-15",
   appointmentTime: "1:30 PM",
   status: "pending",

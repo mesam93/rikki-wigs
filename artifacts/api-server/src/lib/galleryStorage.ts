@@ -50,6 +50,25 @@ export async function createGalleryUploadUrl() {
   return { uploadUrl: payload.signed_url, objectPath: `/objects/gallery/${object.split("/").pop()}` };
 }
 
+export async function createServiceUploadUrl() {
+  const fullPath = `${privateDir()}/services/${randomUUID()}`;
+  const { bucket, object } = parsePath(fullPath);
+  const response = await fetch(`${SIDECAR}/object-storage/signed-object-url`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      bucket_name: bucket,
+      object_name: object,
+      method: "PUT",
+      expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!response.ok) throw new Error("Could not create upload URL");
+  const payload = (await response.json()) as { signed_url: string };
+  return { uploadUrl: payload.signed_url, objectPath: `/objects/services/${object.split("/").pop()}` };
+}
+
 export async function getGalleryFile(objectPath: string): Promise<File> {
   if (!objectPath.startsWith("/objects/gallery/")) throw new Error("Invalid gallery path");
   const relative = objectPath.slice("/objects/".length);
@@ -60,8 +79,23 @@ export async function getGalleryFile(objectPath: string): Promise<File> {
   return file;
 }
 
+export async function getServiceFile(objectPath: string): Promise<File> {
+  if (!objectPath.startsWith("/objects/services/")) throw new Error("Invalid service image path");
+  const relative = objectPath.slice("/objects/".length);
+  const { bucket, object } = parsePath(`${privateDir()}/${relative}`);
+  const file = storage.bucket(bucket).file(object);
+  const [exists] = await file.exists();
+  if (!exists) throw new Error("Object not found");
+  return file;
+}
+
 export async function deleteGalleryFile(objectPath: string) {
   const file = await getGalleryFile(objectPath);
+  await file.delete();
+}
+
+export async function deleteServiceFile(objectPath: string) {
+  const file = await getServiceFile(objectPath);
   await file.delete();
 }
 
