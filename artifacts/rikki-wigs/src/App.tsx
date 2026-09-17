@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ClerkProvider, SignIn, SignUp, useClerk, useUser } from '@clerk/react';
+import { ClerkProvider, SignIn, useClerk, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -69,7 +69,7 @@ const clerkAppearance = {
     socialButtonsBlockButton: 'border-[#d8ccc0] bg-white',
     formButtonPrimary: 'bg-[#171412] text-white hover:bg-black',
     formFieldInput: 'border-[#d8ccc0] bg-[#f2ece5] text-[#171412]',
-    footerAction: 'bg-transparent',
+    footerAction: 'hidden',
     dividerLine: 'bg-[#d8ccc0]',
     alert: 'border-[#d8ccc0] bg-[#f2ece5]',
     otpCodeFieldInput: 'border-[#d8ccc0] text-[#171412]',
@@ -125,7 +125,7 @@ function SiteNav({ manage = false }: { manage?: boolean }) {
           </>}
         </nav>
         <div className="flex items-center gap-3 md:w-1/3 md:justify-end">
-          {!manage && <Link href="/login" className="hidden rounded-full border border-white bg-white px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-black hover:text-white sm:inline-flex" data-testid="link-login">Log in</Link>}
+          {!manage && <Link href="/login" className="hidden rounded-full border border-white bg-white px-5 py-2.5 text-sm font-semibold !text-black transition-colors hover:bg-black hover:!text-white sm:inline-flex" data-testid="link-login">Log in</Link>}
           {!manage && <Link href="/book" className="btn-primary hidden whitespace-nowrap !bg-[hsl(var(--accent))] !px-6 !py-3.5 !text-sm !text-[hsl(var(--foreground))] sm:inline-flex" data-testid="button-nav-book">Request appointment <ArrowRight size={15} /></Link>}
           {manage && <LogoutButton />}
           <button className="rounded-full border border-current/20 p-2 md:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="Open menu" data-testid="button-mobile-menu"><Menu size={19} /></button>
@@ -147,34 +147,70 @@ function LogoutButton() {
 }
 
 function LoginLanding() {
-  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki py-16 md:py-24"><div className="mx-auto max-w-4xl text-center"><p className="eyebrow text-[hsl(var(--primary))]">Private access</p><h1 className="display-title mt-4 text-6xl md:text-7xl">Welcome back.</h1><p className="mx-auto mt-5 max-w-xl text-[hsl(var(--muted-foreground))]">Choose how you would like to access Rikki Wigs.</p></div><div className="mx-auto mt-12 grid max-w-4xl gap-5 md:grid-cols-2"><section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-7 md:p-9"><UserRound size={28} strokeWidth={1.5} /><p className="eyebrow mt-7 opacity-55">Client</p><h2 className="mt-3 font-editorial text-4xl">Client account</h2><p className="mt-4 min-h-12 text-sm leading-6 text-[hsl(var(--muted-foreground))]">Client appointments and account access will be available in the next phase.</p><button type="button" disabled className="mt-8 w-full rounded-full border border-[hsl(var(--border))] px-5 py-3 text-sm font-semibold opacity-45">Coming soon</button></section><section className="rounded-2xl bg-black p-7 text-white md:p-9"><LockKeyhole size={28} strokeWidth={1.5} /><p className="eyebrow mt-7 text-white/55">Admin</p><h2 className="mt-3 font-editorial text-4xl">Rikki’s dashboard</h2><p className="mt-4 min-h-12 text-sm leading-6 text-white/65">Sign in to review requests, manage appointments, and update scheduling.</p><Link href="/sign-in" className="mt-8 flex w-full items-center justify-center rounded-full border border-white bg-white px-5 py-3 text-sm font-semibold text-black transition-colors hover:bg-black hover:text-white">Admin log in</Link></section></div></main></div>;
+  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki py-16 md:py-24"><div className="mx-auto max-w-4xl text-center"><p className="eyebrow text-[hsl(var(--primary))]">Private access</p><h1 className="display-title mt-4 text-6xl md:text-7xl">Welcome back.</h1><p className="mx-auto mt-5 max-w-xl text-[hsl(var(--muted-foreground))]">Choose how you would like to access Rikki Wigs.</p></div><div className="mx-auto mt-12 grid max-w-4xl gap-5 md:grid-cols-2"><section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-7 md:p-9"><UserRound size={28} strokeWidth={1.5} /><p className="eyebrow mt-7 opacity-55">Client</p><h2 className="mt-3 font-editorial text-4xl">Client account</h2><p className="mt-4 min-h-12 text-sm leading-6 text-[hsl(var(--muted-foreground))]">Client appointments and account access will be available in the next phase.</p><button type="button" disabled className="mt-8 w-full rounded-full border border-[hsl(var(--border))] px-5 py-3 text-sm font-semibold opacity-45">Coming soon</button></section><section className="rounded-2xl bg-black p-7 text-white md:p-9"><LockKeyhole size={28} strokeWidth={1.5} /><p className="eyebrow mt-7 text-white/55">Admin</p><h2 className="mt-3 font-editorial text-4xl">Rikki’s dashboard</h2><p className="mt-4 min-h-12 text-sm leading-6 text-white/65">Private access for the approved Rikki Wigs administrator only.</p><Link href="/sign-in" className="mt-8 flex w-full items-center justify-center rounded-full border border-white bg-white px-5 py-3 text-sm font-semibold !text-black transition-colors hover:bg-black hover:!text-white">Admin log in</Link></section></div></main></div>;
 }
 
 function SignInPage() {
-  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki flex justify-center py-12 md:py-20"><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} fallbackRedirectUrl={`${basePath}/manage`} /></main></div>;
-}
-
-function SignUpPage() {
-  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki flex justify-center py-12 md:py-20"><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} fallbackRedirectUrl={`${basePath}/manage`} /></main></div>;
+  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki flex justify-center py-12 md:py-20"><SignIn routing="path" path={`${basePath}/sign-in`} fallbackRedirectUrl={`${basePath}/manage`} /></main></div>;
 }
 
 function AdminManageRoute() {
-  const { isLoaded, isSignedIn } = useUser();
-  const adminCheck = useQuery({
-    queryKey: ['admin-session'],
-    queryFn: () => apiJson<{ role: 'admin' }>('/api/admin-session'),
-    enabled: Boolean(isLoaded && isSignedIn),
-    retry: false,
-  });
+  const { isLoaded, isSignedIn, user } = useUser();
+  const userId = user?.id;
+  const [accessCheck, setAccessCheck] = useState<{ userId: string; allowed: boolean } | null>(null);
+  const currentAccessCheck = accessCheck?.userId === userId ? accessCheck : null;
 
-  if (!isLoaded || (isSignedIn && adminCheck.isLoading)) {
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !userId) {
+      setAccessCheck(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    setAccessCheck(null);
+    fetch('/api/admin-session', { signal: controller.signal })
+      .then((response) => {
+        setAccessCheck({ userId, allowed: response.ok });
+      })
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+          setAccessCheck({ userId, allowed: false });
+        }
+      });
+
+    return () => controller.abort();
+  }, [isLoaded, isSignedIn, userId]);
+
+  if (!isLoaded || (isSignedIn && !currentAccessCheck)) {
     return <div className="site-shell flex min-h-[100dvh] items-center justify-center bg-[hsl(var(--background))]"><div className="text-center"><div className="skeleton mx-auto h-12 w-12 rounded-full" /><p className="mt-4 text-sm text-[hsl(var(--muted-foreground))]">Checking access…</p></div></div>;
   }
   if (!isSignedIn) return <Redirect to="/login" />;
-  if (adminCheck.isError) {
+  if (!currentAccessCheck?.allowed) {
     return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav manage /><main className="container-rikki flex min-h-[70vh] items-center justify-center py-16"><div className="max-w-lg rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-8 text-center"><LockKeyhole className="mx-auto" size={30} /><h1 className="mt-5 font-editorial text-4xl">Admin access only</h1><p className="mt-3 text-sm leading-6 text-[hsl(var(--muted-foreground))]">This account is not authorized to manage appointments.</p></div></main></div>;
   }
   return <Manage />;
+}
+
+function ClerkQueryClientCacheInvalidator() {
+  const { addListener } = useClerk();
+  const queryClient = useQueryClient();
+  const previousUserId = useRef<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    const unsubscribe = addListener(({ user }) => {
+      const userId = user?.id ?? null;
+      if (
+        previousUserId.current !== undefined &&
+        previousUserId.current !== userId
+      ) {
+        queryClient.clear();
+      }
+      previousUserId.current = userId;
+    });
+    return unsubscribe;
+  }, [addListener, queryClient]);
+
+  return null;
 }
 
 function Home() {
@@ -411,7 +447,7 @@ function AppointmentRow({ appointment, onStatus, onDelete, onReschedule, busy }:
 
 function Router() {
   const [location] = useLocation();
-  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/book" component={Book} /><Route path="/login" component={LoginLanding} /><Route path="/sign-in/*?" component={SignInPage} /><Route path="/sign-up/*?" component={SignUpPage} /><Route path="/manage" component={AdminManageRoute} /><Route component={NotFound} /></Switch></ErrorBoundary>;
+  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/book" component={Book} /><Route path="/login" component={LoginLanding} /><Route path="/sign-in/*?" component={SignInPage} /><Route path="/manage" component={AdminManageRoute} /><Route component={NotFound} /></Switch></ErrorBoundary>;
 }
 
 function ClerkProviderWithRoutes() {
@@ -421,11 +457,10 @@ function ClerkProviderWithRoutes() {
     proxyUrl={clerkProxyUrl}
     appearance={clerkAppearance}
     signInUrl={`${basePath}/sign-in`}
-    signUpUrl={`${basePath}/sign-up`}
-    localization={{ signIn: { start: { title: 'Welcome back', subtitle: 'Sign in to access the Rikki Wigs dashboard' } }, signUp: { start: { title: 'Create the admin account', subtitle: 'Use the approved Rikki Wigs admin email' } } }}
+    localization={{ signIn: { start: { title: 'Welcome back', subtitle: 'Sign in to access the Rikki Wigs dashboard' } } }}
     routerPush={(to) => setLocation(stripBase(to))}
     routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
-  ><QueryClientProvider client={queryClient}><TooltipProvider><Router /><Toaster /></TooltipProvider></QueryClientProvider></ClerkProvider>;
+  ><QueryClientProvider client={queryClient}><ClerkQueryClientCacheInvalidator /><TooltipProvider><Router /><Toaster /></TooltipProvider></QueryClientProvider></ClerkProvider>;
 }
 
 function App() {

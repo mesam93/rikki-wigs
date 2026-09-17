@@ -303,7 +303,7 @@ router.get("/appointments/summary", requireAdmin, async (_req, res): Promise<voi
   );
 });
 
-router.get("/scheduling-settings", async (_req, res): Promise<void> => {
+router.get("/scheduling-settings", requireAdmin, async (_req, res): Promise<void> => {
   res.json(await getSettings());
 });
 

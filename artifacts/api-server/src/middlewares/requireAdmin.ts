@@ -17,9 +17,12 @@ export const requireAdmin: RequestHandler = async (req, res, next) => {
 
   try {
     const user = await clerkClient.users.getUser(userId);
-    const isAdmin = user.emailAddresses.some(
-      ({ emailAddress }) => emailAddress.toLowerCase() === adminEmail,
+    const primaryEmail = user.emailAddresses.find(
+      ({ id }) => id === user.primaryEmailAddressId,
     );
+    const isAdmin =
+      primaryEmail?.emailAddress.toLowerCase() === adminEmail &&
+      primaryEmail.verification?.status === "verified";
 
     if (!isAdmin) {
       res.status(403).json({ error: "Admin access required" });
