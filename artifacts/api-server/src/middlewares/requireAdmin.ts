@@ -8,21 +8,9 @@ export const requireAdmin: RequestHandler = async (req, res, next) => {
     return;
   }
 
-  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  if (!adminEmail) {
-    req.log.error("ADMIN_EMAIL is not configured");
-    res.status(503).json({ error: "Admin access is not configured" });
-    return;
-  }
-
   try {
     const user = await clerkClient.users.getUser(userId);
-    const primaryEmail = user.emailAddresses.find(
-      ({ id }) => id === user.primaryEmailAddressId,
-    );
-    const isAdmin =
-      primaryEmail?.emailAddress.toLowerCase() === adminEmail &&
-      primaryEmail.verification?.status === "verified";
+    const isAdmin = user.publicMetadata.role === "admin";
 
     if (!isAdmin) {
       res.status(403).json({ error: "Admin access required" });
