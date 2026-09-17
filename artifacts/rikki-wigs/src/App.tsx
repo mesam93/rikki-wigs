@@ -21,6 +21,13 @@ import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
 const services = ['Lace wig consultation', 'Skin top wig consultation', 'Custom color', 'Styling', 'Repair'];
+const serviceCards = [
+  { image: '/services/lace-wigs.jpg', title: 'Lace wig consultation' },
+  { image: '/services/skin-top-wigs.jpg', title: 'Skin top wig consultation' },
+  { image: '/services/custom-color.jpg', title: 'Custom color' },
+  { image: '/services/styling-repairs.jpg', title: 'Styling' },
+  { image: '/services/styling-repairs.jpg', title: 'Repair' },
+];
 const statuses = ['pending', 'confirmed', 'completed', 'cancelled'] as const;
 const instagramUrl = 'https://www.instagram.com/rikki_wigs/';
 const phoneDisplay = '732-742-4559';
@@ -163,13 +170,8 @@ function Home() {
       <section id="services" className="bg-[hsl(var(--sidebar))] py-24 text-[hsl(var(--sidebar-foreground))] md:py-32">
         <div className="container-rikki">
           <div><h2 className="display-title text-5xl md:text-7xl">Wigs, color,<br /><em>styling & care.</em></h2></div>
-          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              ['/services/lace-wigs.jpg', 'Lace wigs'],
-              ['/services/skin-top-wigs.jpg', 'Skin top wigs'],
-              ['/services/custom-color.jpg', 'Custom color'],
-              ['/services/styling-repairs.jpg', 'Styling & repairs'],
-            ].map(([image, title]) => <article key={title} className="group flex overflow-hidden rounded-2xl border border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-accent)/.45)] transition-all hover:-translate-y-1 hover:border-[hsl(var(--accent)/.65)] hover:bg-[hsl(var(--sidebar-accent))]">
+          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {serviceCards.map(({ image, title }) => <article key={title} className="group flex overflow-hidden rounded-2xl border border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-accent)/.45)] transition-all hover:-translate-y-1 hover:border-[hsl(var(--accent)/.65)] hover:bg-[hsl(var(--sidebar-accent))]">
               <div className="flex w-full flex-col">
                 <div className="aspect-[4/3] overflow-hidden">
                   <img src={image} alt={`${title} service at Rikki Wigs`} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
@@ -178,7 +180,7 @@ function Home() {
                   <div className="flex flex-1 items-center justify-center">
                     <h3 className="font-editorial text-3xl">{title}</h3>
                   </div>
-                  <Link href="/book" className="mx-auto flex items-center gap-2 pt-5 text-xs font-semibold text-[hsl(var(--accent))]">Request this service <ArrowRight size={14} /></Link>
+                  <Link href={`/book?service=${encodeURIComponent(title)}`} className="mx-auto flex items-center gap-2 pt-5 text-xs font-semibold text-[hsl(var(--accent))]">Request this service <ArrowRight size={14} /></Link>
                 </div>
               </div>
             </article>)}
@@ -196,11 +198,13 @@ function Home() {
 function Book() {
   const createAppointment = useCreateAppointment();
   const timeSelectorRef = useRef<HTMLDivElement>(null);
-  const [step, setStep] = useState(1);
+  const requestedService = new URLSearchParams(window.location.search).get('service') ?? '';
+  const initialService = services.includes(requestedService) ? requestedService : '';
+  const [step, setStep] = useState(initialService ? 2 : 1);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ name: '', phone: '', email: '', service: '', appointmentDate: '', appointmentTime: '', notes: '' });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', service: initialService, appointmentDate: '', appointmentTime: '', notes: '' });
   const { data: availability, isLoading: availabilityLoading, isError: availabilityError } = useQuery({
     queryKey: ['availability', form.service],
     queryFn: () => apiJson<Array<{ date: string; times: string[] }>>(`/api/availability?service=${encodeURIComponent(form.service)}`),
