@@ -12,5 +12,7 @@ export * from './appointmentStatus';
 export * from './appointmentSummary';
 export * from './appointmentUpdate';
 export * from './availabilityDay';
+export * from './emailDeliveryStatus';
+export * from './emailDeliveryStatusMode';
 export * from './healthStatus';
 export * from './listAppointmentsParams';

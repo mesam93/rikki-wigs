@@ -115,6 +115,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppointmentSummary"
+  /email-status:
+    get:
+      operationId: getEmailStatus
+      tags: [appointments]
+      summary: Get appointment email delivery status
+      responses:
+        "200":
+          description: Email delivery status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailDeliveryStatus"
   /availability:
     get:
       operationId: getAvailability
@@ -141,6 +153,17 @@ components:
     AppointmentStatus:
       type: string
       enum: [pending, confirmed, completed, cancelled]
+    EmailDeliveryStatus:
+      type: object
+      required: [mode, configured, label]
+      properties:
+        mode:
+          type: string
+          enum: [disabled, test, smtp]
+        configured:
+          type: boolean
+        label:
+          type: string
     Appointment:
       type: object
       required: [id, name, phone, email, service, appointmentDate, appointmentTime, status, notes, createdAt]

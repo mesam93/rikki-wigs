@@ -25,6 +25,7 @@ import type {
   AppointmentSummary,
   AppointmentUpdate,
   AvailabilityDay,
+  EmailDeliveryStatus,
   HealthStatus,
   ListAppointmentsParams
 } from './api.schemas';
@@ -534,6 +535,83 @@ export function useGetAppointmentSummary<TData = Awaited<ReturnType<typeof getAp
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAppointmentSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetEmailStatusUrl = () => {
+
+
+
+
+  return `/api/email-status`
+}
+
+/**
+ * @summary Get appointment email delivery status
+ */
+export const getEmailStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<EmailDeliveryStatus> => {
+
+  return customFetch<EmailDeliveryStatus>(getGetEmailStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEmailStatusQueryKey = () => {
+    return [
+    `/api/email-status`
+    ] as const;
+    }
+
+
+export const getGetEmailStatusQueryOptions = <TData = Awaited<ReturnType<typeof getEmailStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmailStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEmailStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmailStatus>>> = ({ signal }) => getEmailStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmailStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEmailStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getEmailStatus>>>
+export type GetEmailStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get appointment email delivery status
+ */
+
+export function useGetEmailStatus<TData = Awaited<ReturnType<typeof getEmailStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmailStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEmailStatusQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

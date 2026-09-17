@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 import { and, asc, eq, gte, inArray, ne, sql } from "drizzle-orm";
 import { appointmentsTable, db, schedulingSettingsTable, type Appointment, type BlockedSlot, type TimeWindow, type WeeklyHours } from "@workspace/db";
 import {
@@ -13,8 +13,43 @@ import {
   UpdateAppointmentParams,
   UpdateAppointmentResponse,
 } from "@workspace/api-zod";
+import {
+  getEmailDeliveryStatus,
+  notificationEventForUpdate,
+  sendAppointmentNotification,
+} from "../email/appointment-emails";
 
 const router: IRouter = Router();
+
+async function deliverAppointmentEmail(
+  req: Request,
+  event: Parameters<typeof sendAppointmentNotification>[0],
+  appointment: Appointment,
+) {
+  try {
+    const result = await sendAppointmentNotification(event, appointment);
+    const details = {
+      appointmentId: appointment.id,
+      eventType: result.eventType,
+      outcome: result.outcome,
+      error: result.error,
+    };
+    if (result.outcome === "failed") {
+      req.log.error(details, "Appointment email delivery failed");
+    } else {
+      req.log.info(details, "Appointment email processed");
+    }
+  } catch (error) {
+    req.log.error(
+      {
+        appointmentId: appointment.id,
+        eventType: event,
+        error: error instanceof Error ? error.message : "Unknown notification error",
+      },
+      "Appointment saved but its email notification could not be recorded",
+    );
+  }
+}
 
 function serializeAppointment(appointment: Appointment) {
   return {
@@ -102,6 +137,10 @@ router.get("/appointments", async (req, res): Promise<void> => {
   );
 });
 
+router.get("/email-status", (_req, res): void => {
+  res.json(getEmailDeliveryStatus());
+});
+
 router.post("/appointments", async (req, res): Promise<void> => {
   const parsed = CreateAppointmentBody.safeParse(req.body);
   if (!parsed.success) {
@@ -142,6 +181,8 @@ router.post("/appointments", async (req, res): Promise<void> => {
       notes: parsed.data.notes ?? "",
     })
     .returning();
+
+  await deliverAppointmentEmail(req, "request_received", appointment);
 
   res
     .status(201)
@@ -202,6 +243,11 @@ router.patch("/appointments/:id", async (req, res): Promise<void> => {
   if (!appointment) {
     res.status(404).json({ error: "Appointment not found" });
     return;
+  }
+
+  const emailEvent = notificationEventForUpdate(current, appointment);
+  if (emailEvent) {
+    await deliverAppointmentEmail(req, emailEvent, appointment);
   }
 
   res.json(

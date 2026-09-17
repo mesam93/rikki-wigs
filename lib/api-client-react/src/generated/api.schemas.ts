@@ -19,6 +19,21 @@ export const AppointmentStatus = {
   cancelled: 'cancelled',
 } as const;
 
+export type EmailDeliveryStatusMode = typeof EmailDeliveryStatusMode[keyof typeof EmailDeliveryStatusMode];
+
+
+export const EmailDeliveryStatusMode = {
+  disabled: 'disabled',
+  test: 'test',
+  smtp: 'smtp',
+} as const;
+
+export interface EmailDeliveryStatus {
+  mode: EmailDeliveryStatusMode;
+  configured: boolean;
+  label: string;
+}
+
 export interface Appointment {
   id: number;
   name: string;

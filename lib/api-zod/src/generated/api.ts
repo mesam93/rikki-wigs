@@ -128,6 +128,16 @@ export const GetAppointmentSummaryResponse = zod.object({
 
 
 /**
+ * @summary Get appointment email delivery status
+ */
+export const GetEmailStatusResponse = zod.object({
+  "mode": zod.enum(['disabled', 'test', 'smtp']),
+  "configured": zod.boolean(),
+  "label": zod.string()
+})
+
+
+/**
  * @summary Get available booking dates and times
  */
 export const GetAvailabilityResponseItem = zod.object({

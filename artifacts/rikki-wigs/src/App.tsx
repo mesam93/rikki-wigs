@@ -27,6 +27,7 @@ const phoneUrl = 'tel:+17327424559';
 type TimeWindow = { id: string; start: string; end: string };
 type BlockedSlot = { id: string; date: string; startTime: string; endTime: string; reason: string };
 type SchedulingSettings = { serviceDurations: Record<string, number>; weeklyHours: Record<string, Record<string, TimeWindow[]>>; blockedSlots: BlockedSlot[] };
+type EmailDeliveryStatus = { mode: 'disabled' | 'test' | 'smtp'; configured: boolean; label: string };
 const weekdayLabels: Record<string, string> = { sunday: 'Sunday', monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday' };
 
 async function apiJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -197,6 +198,7 @@ function Book() {
 function ScheduleSettingsPanel() {
   const queryClient = useQueryClient();
   const { data, isLoading, isError } = useQuery({ queryKey: ['scheduling-settings'], queryFn: () => apiJson<SchedulingSettings>('/api/scheduling-settings') });
+  const { data: emailStatus, isError: emailStatusError } = useQuery({ queryKey: ['email-status'], queryFn: () => apiJson<EmailDeliveryStatus>('/api/email-status') });
   const [draft, setDraft] = useState<SchedulingSettings | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -218,6 +220,16 @@ function ScheduleSettingsPanel() {
     setDraft(next); setBlock({ date: '', startTime: '10:00', endTime: '11:00', reason: '' }); void save(next);
   };
   return <section className="mt-10 space-y-10">
+    <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5">
+      <div className="flex items-start gap-3">
+        <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${emailStatus?.mode === 'smtp' && emailStatus.configured ? 'bg-[hsl(147_35%_45%)]' : emailStatus?.mode === 'test' ? 'bg-[hsl(var(--accent))]' : 'bg-[hsl(var(--muted-foreground))]'}`} />
+        <div>
+          <h2 className="font-editorial text-3xl">Customer emails</h2>
+          <p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">{emailStatusError ? 'Email delivery status could not be loaded.' : emailStatus?.label ?? 'Checking email delivery…'}</p>
+          {emailStatus?.mode !== 'smtp' && <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">Appointments still save normally. Real emails remain off until the client adds their own SMTP settings.</p>}
+        </div>
+      </div>
+    </div>
     <div>
       <h2 className="font-editorial text-4xl">Appointment lengths</h2>
       <p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">Set how much calendar time each appointment type uses.</p>
