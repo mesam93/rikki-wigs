@@ -147,3 +147,167 @@ export const GetAvailabilityResponseItem = zod.object({
 export const GetAvailabilityResponse = zod.array(GetAvailabilityResponseItem)
 
 
+/**
+ * @summary List published testimonials
+ */
+export const ListTestimonialsResponseItem = zod.object({
+  "id": zod.number().int(),
+  "author": zod.string(),
+  "quote": zod.string(),
+  "isPublished": zod.boolean(),
+  "sortOrder": zod.number().int(),
+  "createdAt": zod.coerce.date()
+})
+export const ListTestimonialsResponse = zod.array(ListTestimonialsResponseItem)
+
+
+/**
+ * @summary List testimonials for the admin
+ */
+export const ListAdminTestimonialsResponseItem = zod.object({
+  "id": zod.number().int(),
+  "author": zod.string(),
+  "quote": zod.string(),
+  "isPublished": zod.boolean(),
+  "sortOrder": zod.number().int(),
+  "createdAt": zod.coerce.date()
+})
+export const ListAdminTestimonialsResponse = zod.array(ListAdminTestimonialsResponseItem)
+
+
+/**
+ * @summary Add a testimonial
+ */
+
+
+export const createTestimonialBodyIsPublishedDefault = true;
+
+export const CreateTestimonialBody = zod.object({
+  "author": zod.string().min(1),
+  "quote": zod.string().min(1),
+  "isPublished": zod.boolean().default(createTestimonialBodyIsPublishedDefault)
+})
+
+export const CreateTestimonialResponse = zod.object({
+  "id": zod.number().int(),
+  "author": zod.string(),
+  "quote": zod.string(),
+  "isPublished": zod.boolean(),
+  "sortOrder": zod.number().int(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a testimonial
+ */
+export const UpdateTestimonialParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+export const updateTestimonialBodyIsPublishedDefault = true;
+
+export const UpdateTestimonialBody = zod.object({
+  "author": zod.string().min(1),
+  "quote": zod.string().min(1),
+  "isPublished": zod.boolean().default(updateTestimonialBodyIsPublishedDefault)
+})
+
+export const UpdateTestimonialResponse = zod.object({
+  "id": zod.number().int(),
+  "author": zod.string(),
+  "quote": zod.string(),
+  "isPublished": zod.boolean(),
+  "sortOrder": zod.number().int(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Remove a testimonial
+ */
+export const DeleteTestimonialParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteTestimonialResponse = zod.void()
+
+
+/**
+ * @summary List published gallery photos
+ */
+export const ListGalleryPhotosResponseItem = zod.object({
+  "id": zod.number().int(),
+  "objectPath": zod.string(),
+  "imageUrl": zod.string(),
+  "altText": zod.string(),
+  "caption": zod.string(),
+  "isPublished": zod.boolean(),
+  "sortOrder": zod.number().int(),
+  "createdAt": zod.coerce.date()
+})
+export const ListGalleryPhotosResponse = zod.array(ListGalleryPhotosResponseItem)
+
+
+/**
+ * @summary List gallery photos for the admin
+ */
+export const ListAdminGalleryPhotosResponseItem = zod.object({
+  "id": zod.number().int(),
+  "objectPath": zod.string(),
+  "imageUrl": zod.string(),
+  "altText": zod.string(),
+  "caption": zod.string(),
+  "isPublished": zod.boolean(),
+  "sortOrder": zod.number().int(),
+  "createdAt": zod.coerce.date()
+})
+export const ListAdminGalleryPhotosResponse = zod.array(ListAdminGalleryPhotosResponseItem)
+
+
+/**
+ * @summary Add an uploaded photo to the gallery
+ */
+export const CreateGalleryPhotoBody = zod.object({
+  "objectPath": zod.string(),
+  "altText": zod.string().optional(),
+  "caption": zod.string().optional()
+})
+
+export const CreateGalleryPhotoResponse = zod.object({
+  "id": zod.number().int(),
+  "objectPath": zod.string(),
+  "imageUrl": zod.string(),
+  "altText": zod.string(),
+  "caption": zod.string(),
+  "isPublished": zod.boolean(),
+  "sortOrder": zod.number().int(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Request a protected gallery image upload URL
+ */
+export const RequestGalleryUploadUrlBody = zod.object({
+  "contentType": zod.string()
+})
+
+export const RequestGalleryUploadUrlResponse = zod.object({
+  "uploadUrl": zod.string().url(),
+  "objectPath": zod.string()
+})
+
+
+/**
+ * @summary Remove a gallery photo
+ */
+export const DeleteGalleryPhotoParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteGalleryPhotoResponse = zod.void()
+
+

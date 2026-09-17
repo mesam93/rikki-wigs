@@ -82,7 +82,50 @@ export interface AvailabilityDay {
   times: string[];
 }
 
+export interface Testimonial {
+  id: number;
+  author: string;
+  quote: string;
+  isPublished: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface TestimonialInput {
+  /** @minLength 1 */
+  author: string;
+  /** @minLength 1 */
+  quote: string;
+  isPublished?: boolean;
+}
+
+export interface GalleryPhoto {
+  id: number;
+  objectPath: string;
+  imageUrl: string;
+  altText: string;
+  caption: string;
+  isPublished: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface GalleryPhotoInput {
+  objectPath: string;
+  altText?: string;
+  caption?: string;
+}
+
+export interface GalleryUploadRequest {
+  contentType: string;
+}
+
 export type ListAppointmentsParams = {
 status?: AppointmentStatus;
+};
+
+export type RequestGalleryUploadUrl200 = {
+  uploadUrl: string;
+  objectPath: string;
 };
 

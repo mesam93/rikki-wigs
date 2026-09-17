@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { createHash, timingSafeEqual } from "node:crypto";
 import healthRouter from "./health";
 import appointmentsRouter from "./appointments";
+import siteContentRouter from "./site-content";
 import {
   ADMIN_SESSION_COOKIE,
   requireAdmin,
@@ -57,6 +58,7 @@ router.post("/admin-logout", (_req, res) => {
 router.get("/admin-session", requireAdmin, (_req, res) => {
   res.json({ role: "admin" });
 });
+router.use(siteContentRouter);
 router.use(appointmentsRouter);
 
 export default router;

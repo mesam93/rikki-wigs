@@ -16,6 +16,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { Calendar } from '@/components/ui/calendar';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { GalleryAdmin, GallerySection, TestimonialsAdmin, TestimonialsSection } from '@/components/site-content';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
@@ -185,30 +186,8 @@ function Home() {
         </div>
       </section>
 
-      <section id="story" className="container-rikki grid gap-12 py-24 md:grid-cols-[.8fr_1.2fr] md:py-32">
-        <div><p className="eyebrow text-[hsl(var(--primary))]">Follow the work</p><div className="mt-16 hidden h-36 w-36 items-center justify-center rounded-full border border-[hsl(var(--primary))] md:flex"><Instagram className="text-[hsl(var(--primary))]" size={30} strokeWidth={1.2} /></div></div>
-        <div>
-          <h2 className="display-title max-w-3xl text-5xl md:text-7xl">See the latest <em>on Instagram.</em></h2>
-          <div className="mt-9 grid gap-8 text-[hsl(var(--muted-foreground))] md:grid-cols-2">
-            <p className="leading-7">The Instagram profile is the best place to see current looks, videos, updates, and the visual identity of Rikki Wigs.</p>
-            <p className="leading-7">When you are ready, use the appointment form to share what you are looking for. Rikki can confirm the details with you.</p>
-          </div>
-          <div className="mt-9"><a href={instagramUrl} target="_blank" rel="noreferrer" className="editorial-link text-sm font-semibold" data-testid="link-story-instagram">Open @rikki_wigs <ArrowRight className="ml-2 inline" size={15} /></a></div>
-        </div>
-      </section>
-
-      <section className="container-rikki grid gap-10 py-24 md:grid-cols-[1.2fr_.8fr] md:py-32">
-        <div className="rounded-[12px_110px_12px_12px] bg-[hsl(var(--secondary))] p-8 md:p-14">
-          <p className="eyebrow text-[hsl(var(--primary))]">03 / next step</p><h2 className="display-title mt-12 max-w-lg text-5xl md:text-6xl">Request a time that works for you.</h2>
-          <div className="mt-14 grid gap-7 sm:grid-cols-3">
-            {[['01', 'Choose a service', 'Select the closest option.'], ['02', 'Request a time', 'Pick an available date and time.'], ['03', 'Wait for confirmation', 'Rikki will follow up directly.']].map(([n, t, c]) => <div key={n}><p className="font-mono-ui text-xs text-[hsl(var(--primary))]">{n}</p><h3 className="mt-3 font-semibold">{t}</h3><p className="mt-2 text-sm leading-6 text-[hsl(var(--muted-foreground))]">{c}</p></div>)}
-          </div>
-        </div>
-        <div className="flex flex-col justify-end border-t border-[hsl(var(--border))] pt-8 md:border-t-0 md:border-l md:pl-12">
-          <p className="font-editorial text-4xl leading-tight">Have a question first? Start with Instagram.</p>
-          <a href={instagramUrl} target="_blank" rel="noreferrer" className="editorial-link mt-12 w-fit text-sm font-semibold" data-testid="link-ritual-instagram">Message @rikki_wigs <ArrowRight className="ml-2 inline" size={15} /></a>
-        </div>
-      </section>
+      <GallerySection />
+      <TestimonialsSection />
     </main>
     <footer className="border-t border-[hsl(var(--border))] py-10"><div className="container-rikki flex flex-col justify-between gap-8 md:flex-row md:items-end"><div className="flex items-center gap-4"><img src="/brand/rikki-logo-official.svg" alt="" className="h-16 w-16 rounded-full object-contain" /><div><p className="font-editorial text-2xl tracking-[.12em]">RIKKI WIGS</p><p className="mt-2 max-w-[220px] text-sm leading-6 text-[hsl(var(--muted-foreground))]">Luxury wig salon in New Jersey. By appointment.</p></div></div><div className="flex flex-wrap items-center gap-6 text-sm"><a href={phoneUrl} className="editorial-link" data-testid="link-footer-phone">{phoneDisplay}</a><a href={instagramUrl} target="_blank" rel="noreferrer" className="editorial-link" data-testid="link-footer-instagram">Follow @rikki_wigs</a><a href={instagramUrl} target="_blank" rel="noreferrer" className="rounded-full border border-[hsl(var(--border))] p-2" aria-label="Instagram" data-testid="link-instagram"><Instagram size={16} /></a></div></div></footer>
   </div>;
@@ -323,7 +302,7 @@ function ScheduleSettingsPanel() {
 function Manage() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'upcoming' | 'completed' | 'cancelled'>('all');
-  const [tab, setTab] = useState<'requests' | 'schedule' | 'calendar'>('requests');
+  const [tab, setTab] = useState<'requests' | 'schedule' | 'calendar' | 'testimonials' | 'gallery'>('requests');
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<Date>();
   const { data: summary, isLoading: summaryLoading, isError: summaryError } = useGetAppointmentSummary();
@@ -353,10 +332,10 @@ function Manage() {
     ['completed', 'completed', 'Completed'],
     ['cancelled', 'cancelled', 'Cancelled'],
   ] as const;
-  const tabs = [['requests', 'Requests'], ['calendar', 'Calendar'], ['schedule', 'Schedule settings']] as const;
+  const tabs = [['requests', 'Requests'], ['calendar', 'Calendar'], ['schedule', 'Schedule settings'], ['testimonials', 'Testimonials'], ['gallery', 'Gallery']] as const;
   return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav manage /><main className="bg-[hsl(var(--background))]"><div className="container-rikki py-10 md:py-16"><div className="flex flex-col justify-between gap-6 md:flex-row md:items-end"><div><p className="eyebrow text-[hsl(var(--primary))]">Rikki Wigs / owner view</p><h1 className="display-title mt-4 text-6xl md:text-7xl">Good morning,<br /><em>Rikki.</em></h1></div><div className="flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))]"><span className="status-dot bg-[hsl(147_35%_45%)]" /> Your appointment book</div></div>
        <div className="mt-10 flex overflow-x-auto border-b border-[hsl(var(--border))]" role="tablist" aria-label="Appointment management sections">{tabs.map(([key, label]) => <button key={key} role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={`shrink-0 px-4 py-3 text-sm font-semibold sm:px-5 ${tab === key ? 'border-b-2 border-[hsl(var(--primary))]' : 'opacity-50'}`} data-testid={`tab-${key}`}>{label}</button>)}</div>
-       {tab === 'schedule' ? <ScheduleSettingsPanel /> : tab === 'requests' ? <>
+        {tab === 'schedule' ? <ScheduleSettingsPanel /> : tab === 'testimonials' ? <TestimonialsAdmin /> : tab === 'gallery' ? <GalleryAdmin /> : tab === 'requests' ? <>
        {summaryError ? <div className="mt-10 rounded-xl border border-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/.08)] p-4 text-sm text-[hsl(var(--destructive))]" role="alert">Summary is unavailable right now. The appointment list may still load below.</div> : <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">{summaryCards.map(([filterKey, summaryKey, label]) => <button key={filterKey} type="button" onClick={() => setFilter(filterKey)} aria-pressed={filter === filterKey} className={`relative rounded-xl border bg-[hsl(var(--card))] p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] ${filter === filterKey ? 'border-[hsl(var(--primary))] shadow-[inset_0_0_0_1px_hsl(var(--primary))]' : 'border-[hsl(var(--border))] hover:border-[hsl(var(--primary)/.55)]'}`} data-testid={`button-filter-${filterKey}`}><span className="flex items-center justify-between gap-2"><span className="eyebrow opacity-60">{label}</span>{filter === filterKey && <CheckCircle2 size={16} aria-hidden="true" />}</span>{summaryLoading ? <span className="skeleton mt-3 block h-8 w-14" /> : <span className="mt-2 block font-editorial text-3xl" data-testid={`text-summary-${summaryKey}`}>{summary?.[summaryKey] ?? 0}</span>}<span className="sr-only">{filter === filterKey ? 'Selected filter' : 'Filter requests'}</span></button>)}</div>}
        <div className="mt-12 border-b border-[hsl(var(--border))] pb-4"><p className="eyebrow opacity-55">appointment requests</p><h2 className="mt-2 font-editorial text-3xl">{summaryCards.find(([key]) => key === filter)?.[2]}</h2></div>
        {isError ? <div className="mt-8 rounded-xl border border-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/.08)] p-5 text-sm text-[hsl(var(--destructive))]" role="alert">We could not load appointments. Refresh the page and try again.</div> : isLoading ? <div className="mt-5 space-y-3">{[1, 2, 3].map((item) => <div className="skeleton h-24 w-full" key={item} />)}</div> : filteredAppointments.length ? <div className="mt-5 space-y-3">{filteredAppointments.map((appointment) => <AppointmentRow key={appointment.id} appointment={appointment} onStatus={updateStatus} onDelete={remove} onReschedule={reschedule} busy={updateAppointment.isPending || deleteAppointment.isPending} />)}</div> : <div className="mt-8 rounded-xl border border-dashed border-[hsl(var(--border))] bg-[hsl(var(--card))] px-6 py-16 text-center"><CalendarDays className="mx-auto text-[hsl(var(--primary))]" size={28} strokeWidth={1.3} /><h3 className="mt-4 font-editorial text-3xl">Nothing here yet.</h3><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">{filter === 'all' ? 'New appointment requests will appear here.' : `There are no ${summaryCards.find(([key]) => key === filter)?.[2].toLowerCase()} appointments.`}</p></div>}</> : <section className="mt-10">

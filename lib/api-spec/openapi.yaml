@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: appointments
     description: Appointment booking and management
+  - name: site-content
+    description: Public testimonials and gallery content
 paths:
   /healthz:
     get:
@@ -141,6 +143,166 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AvailabilityDay"
+  /testimonials:
+    get:
+      operationId: listTestimonials
+      tags: [site-content]
+      summary: List published testimonials
+      responses:
+        "200":
+          description: Published testimonials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Testimonial"
+  /admin/testimonials:
+    get:
+      operationId: listAdminTestimonials
+      tags: [site-content]
+      summary: List testimonials for the admin
+      responses:
+        "200":
+          description: All testimonials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Testimonial"
+    post:
+      operationId: createTestimonial
+      tags: [site-content]
+      summary: Add a testimonial
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestimonialInput"
+      responses:
+        "201":
+          description: Testimonial created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Testimonial"
+  /admin/testimonials/{id}:
+    patch:
+      operationId: updateTestimonial
+      tags: [site-content]
+      summary: Update a testimonial
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestimonialInput"
+      responses:
+        "200":
+          description: Testimonial updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Testimonial"
+    delete:
+      operationId: deleteTestimonial
+      tags: [site-content]
+      summary: Remove a testimonial
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Testimonial removed
+  /gallery:
+    get:
+      operationId: listGalleryPhotos
+      tags: [site-content]
+      summary: List published gallery photos
+      responses:
+        "200":
+          description: Gallery photos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GalleryPhoto"
+  /admin/gallery:
+    get:
+      operationId: listAdminGalleryPhotos
+      tags: [site-content]
+      summary: List gallery photos for the admin
+      responses:
+        "200":
+          description: All gallery photos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GalleryPhoto"
+    post:
+      operationId: createGalleryPhoto
+      tags: [site-content]
+      summary: Add an uploaded photo to the gallery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GalleryPhotoInput"
+      responses:
+        "201":
+          description: Gallery photo created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GalleryPhoto"
+  /admin/gallery/upload-url:
+    post:
+      operationId: requestGalleryUploadUrl
+      tags: [site-content]
+      summary: Request a protected gallery image upload URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GalleryUploadRequest"
+      responses:
+        "200":
+          description: Upload details
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [uploadUrl, objectPath]
+                properties:
+                  uploadUrl: { type: string, format: uri }
+                  objectPath: { type: string }
+  /admin/gallery/{id}:
+    delete:
+      operationId: deleteGalleryPhoto
+      tags: [site-content]
+      summary: Remove a gallery photo
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Gallery photo removed
 components:
   schemas:
     HealthStatus:
@@ -255,4 +417,45 @@ components:
           type: array
           items:
             type: string
+    Testimonial:
+      type: object
+      required: [id, author, quote, isPublished, sortOrder, createdAt]
+      properties:
+        id: { type: integer }
+        author: { type: string }
+        quote: { type: string }
+        isPublished: { type: boolean }
+        sortOrder: { type: integer }
+        createdAt: { type: string, format: date-time }
+    TestimonialInput:
+      type: object
+      required: [author, quote]
+      properties:
+        author: { type: string, minLength: 1 }
+        quote: { type: string, minLength: 1 }
+        isPublished: { type: boolean, default: true }
+    GalleryPhoto:
+      type: object
+      required: [id, objectPath, imageUrl, altText, caption, isPublished, sortOrder, createdAt]
+      properties:
+        id: { type: integer }
+        objectPath: { type: string }
+        imageUrl: { type: string }
+        altText: { type: string }
+        caption: { type: string }
+        isPublished: { type: boolean }
+        sortOrder: { type: integer }
+        createdAt: { type: string, format: date-time }
+    GalleryPhotoInput:
+      type: object
+      required: [objectPath]
+      properties:
+        objectPath: { type: string }
+        altText: { type: string }
+        caption: { type: string }
+    GalleryUploadRequest:
+      type: object
+      required: [contentType]
+      properties:
+        contentType: { type: string }
 
