@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ClerkProvider, SignIn, useClerk, useUser } from '@clerk/react';
-import { publishableKeyFromHost } from '@clerk/react/internal';
-import { shadcn } from '@clerk/themes';
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, Redirect, Route, Router as WouterRouter, Switch, useLocation } from 'wouter';
+import { Link, Redirect, Route, Switch, useLocation } from 'wouter';
 import { ArrowRight, CalendarDays, Check, CheckCircle2, ChevronDown, Clock3, Instagram, LockKeyhole, Mail, Menu, Phone, Trash2, UserRound, X, XCircle } from 'lucide-react';
 import {
   getGetAppointmentSummaryQueryKey,
@@ -22,67 +19,6 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
-const clerkAppearance = {
-  theme: shadcn,
-  cssLayerName: 'clerk',
-  options: {
-    logoPlacement: 'inside' as const,
-    logoLinkUrl: basePath || '/',
-    logoImageUrl: `${window.location.origin}${basePath}/brand/rikki-logo-official.svg`,
-    socialButtonsPlacement: 'bottom' as const,
-  },
-  variables: {
-    colorPrimary: '#171412',
-    colorForeground: '#171412',
-    colorMutedForeground: '#655d57',
-    colorDanger: '#aa342d',
-    colorBackground: '#fffdf9',
-    colorInput: '#f2ece5',
-    colorInputForeground: '#171412',
-    colorNeutral: '#d8ccc0',
-    fontFamily: '"DM Sans", sans-serif',
-    borderRadius: '10px',
-  },
-  elements: {
-    rootBox: 'w-full flex justify-center',
-    cardBox: 'bg-[#fffdf9] rounded-2xl w-[440px] max-w-full overflow-hidden border border-[#d8ccc0]',
-    card: '!shadow-none !border-0 !bg-transparent !rounded-none',
-    footer: '!shadow-none !border-0 !bg-transparent !rounded-none',
-    headerTitle: 'text-[#171412] font-serif',
-    headerSubtitle: 'text-[#655d57]',
-    socialButtonsBlockButtonText: 'text-[#171412]',
-    formFieldLabel: 'text-[#171412]',
-    footerActionLink: 'text-[#171412] font-semibold',
-    footerActionText: 'text-[#655d57]',
-    dividerText: 'text-[#655d57]',
-    identityPreviewEditButton: 'text-[#171412]',
-    formFieldSuccessText: 'text-emerald-700',
-    alertText: 'text-[#171412]',
-    logoBox: 'h-16',
-    logoImage: 'max-h-16',
-    socialButtonsBlockButton: 'border-[#d8ccc0] bg-white',
-    formButtonPrimary: 'bg-[#171412] text-white hover:bg-black',
-    formFieldInput: 'border-[#d8ccc0] bg-[#f2ece5] text-[#171412]',
-    footerAction: 'hidden',
-    dividerLine: 'bg-[#d8ccc0]',
-    alert: 'border-[#d8ccc0] bg-[#f2ece5]',
-    otpCodeFieldInput: 'border-[#d8ccc0] text-[#171412]',
-    formFieldRow: 'text-[#171412]',
-    main: 'gap-5',
-  },
-};
-
-function stripBase(path: string): string {
-  return basePath && path.startsWith(basePath)
-    ? path.slice(basePath.length) || '/'
-    : path;
-}
 const services = ['Lace wig consultation', 'Skin top wig consultation', 'Custom color', 'Styling', 'Repair'];
 const statuses = ['pending', 'confirmed', 'completed', 'cancelled'] as const;
 const instagramUrl = 'https://www.instagram.com/rikki_wigs/';
@@ -142,8 +78,13 @@ function SiteNav({ manage = false }: { manage?: boolean }) {
 }
 
 function LogoutButton() {
-  const { signOut } = useClerk();
-  return <button type="button" onClick={() => signOut({ redirectUrl: basePath || '/' })} className="rounded-full border border-white/35 px-4 py-2 text-sm font-semibold text-white hover:bg-white hover:text-black">Log out</button>;
+  const [, setLocation] = useLocation();
+  const logout = async () => {
+    await fetch('/api/admin-logout', { method: 'POST' });
+    queryClient.clear();
+    setLocation('/');
+  };
+  return <button type="button" onClick={() => void logout()} className="rounded-full border border-white/35 px-4 py-2 text-sm font-semibold text-white hover:bg-white hover:text-black">Log out</button>;
 }
 
 function LoginLanding() {
@@ -151,66 +92,56 @@ function LoginLanding() {
 }
 
 function SignInPage() {
-  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki flex justify-center py-12 md:py-20"><SignIn routing="path" path={`${basePath}/sign-in`} fallbackRedirectUrl={`${basePath}/manage`} /></main></div>;
+  const [, setLocation] = useLocation();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setError('');
+    try {
+      await apiJson<{ role: 'admin' }>('/api/admin-login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      queryClient.clear();
+      setLocation('/manage');
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : 'Login failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki flex justify-center py-12 md:py-20"><form onSubmit={(event) => void submit(event)} className="w-full max-w-md rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-7 shadow-sm md:p-10"><img src="/brand/rikki-logo-official.svg" alt="Rikki Wigs" className="mx-auto h-20 w-20" /><p className="eyebrow mt-7 text-center opacity-55">Admin access</p><h1 className="mt-3 text-center font-editorial text-4xl">Welcome back</h1><p className="mt-3 text-center text-sm text-[hsl(var(--muted-foreground))]">Enter the admin email and password.</p><label className="field-label mt-8">Email address<input type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} className="field-input" /></label><label className="field-label mt-5">Password<input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} className="field-input" /></label>{error && <p role="alert" className="mt-5 rounded-lg bg-[hsl(var(--destructive)/.08)] p-3 text-sm text-[hsl(var(--destructive))]">{error}</p>}<button type="submit" disabled={submitting} className="btn-primary mt-7 w-full">{submitting ? 'Logging in…' : 'Log in'}</button></form></main></div>;
 }
 
 function AdminManageRoute() {
-  const { isLoaded, isSignedIn, user } = useUser();
-  const userId = user?.id;
-  const [accessCheck, setAccessCheck] = useState<{ userId: string; allowed: boolean } | null>(null);
-  const currentAccessCheck = accessCheck?.userId === userId ? accessCheck : null;
+  const [accessState, setAccessState] = useState<'checking' | 'allowed' | 'denied'>('checking');
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn || !userId) {
-      setAccessCheck(null);
-      return;
-    }
-
     const controller = new AbortController();
-    setAccessCheck(null);
     fetch('/api/admin-session', { signal: controller.signal })
       .then((response) => {
-        setAccessCheck({ userId, allowed: response.ok });
+        setAccessState(response.ok ? 'allowed' : 'denied');
       })
       .catch((error: unknown) => {
         if (!(error instanceof DOMException && error.name === 'AbortError')) {
-          setAccessCheck({ userId, allowed: false });
+          setAccessState('denied');
         }
       });
 
     return () => controller.abort();
-  }, [isLoaded, isSignedIn, userId]);
+  }, []);
 
-  if (!isLoaded || (isSignedIn && !currentAccessCheck)) {
+  if (accessState === 'checking') {
     return <div className="site-shell flex min-h-[100dvh] items-center justify-center bg-[hsl(var(--background))]"><div className="text-center"><div className="skeleton mx-auto h-12 w-12 rounded-full" /><p className="mt-4 text-sm text-[hsl(var(--muted-foreground))]">Checking access…</p></div></div>;
   }
-  if (!isSignedIn) return <Redirect to="/login" />;
-  if (!currentAccessCheck?.allowed) {
-    return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav manage /><main className="container-rikki flex min-h-[70vh] items-center justify-center py-16"><div className="max-w-lg rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-8 text-center"><LockKeyhole className="mx-auto" size={30} /><h1 className="mt-5 font-editorial text-4xl">Admin access only</h1><p className="mt-3 text-sm leading-6 text-[hsl(var(--muted-foreground))]">This account is not authorized to manage appointments.</p></div></main></div>;
-  }
+  if (accessState === 'denied') return <Redirect to="/sign-in" />;
   return <Manage />;
-}
-
-function ClerkQueryClientCacheInvalidator() {
-  const { addListener } = useClerk();
-  const queryClient = useQueryClient();
-  const previousUserId = useRef<string | null | undefined>(undefined);
-
-  useEffect(() => {
-    const unsubscribe = addListener(({ user }) => {
-      const userId = user?.id ?? null;
-      if (
-        previousUserId.current !== undefined &&
-        previousUserId.current !== userId
-      ) {
-        queryClient.clear();
-      }
-      previousUserId.current = userId;
-    });
-    return unsubscribe;
-  }, [addListener, queryClient]);
-
-  return null;
 }
 
 function Home() {
@@ -450,21 +381,8 @@ function Router() {
   return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/book" component={Book} /><Route path="/login" component={LoginLanding} /><Route path="/sign-in/*?" component={SignInPage} /><Route path="/manage" component={AdminManageRoute} /><Route component={NotFound} /></Switch></ErrorBoundary>;
 }
 
-function ClerkProviderWithRoutes() {
-  const [, setLocation] = useLocation();
-  return <ClerkProvider
-    publishableKey={clerkPubKey}
-    proxyUrl={clerkProxyUrl}
-    appearance={clerkAppearance}
-    signInUrl={`${basePath}/sign-in`}
-    localization={{ signIn: { start: { title: 'Welcome back', subtitle: 'Sign in to access the Rikki Wigs dashboard' } } }}
-    routerPush={(to) => setLocation(stripBase(to))}
-    routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
-  ><QueryClientProvider client={queryClient}><ClerkQueryClientCacheInvalidator /><TooltipProvider><Router /><Toaster /></TooltipProvider></QueryClientProvider></ClerkProvider>;
-}
-
 function App() {
-  return <WouterRouter base={basePath}><ClerkProviderWithRoutes /></WouterRouter>;
+  return <QueryClientProvider client={queryClient}><TooltipProvider><Router /><Toaster /></TooltipProvider></QueryClientProvider>;
 }
 
 export default App;
