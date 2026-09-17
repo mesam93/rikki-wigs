@@ -56,9 +56,9 @@ function SiteNav({ manage = false }: { manage?: boolean }) {
         </Link>
         <nav className="hidden items-center justify-center gap-9 md:flex md:flex-1" aria-label="Primary navigation">
           {manage ? <Link href="/" className="editorial-link text-base opacity-80 hover:opacity-100" data-testid="link-public-site">View public site</Link> : <>
-            <a href="#services" className="editorial-link text-base" data-testid="link-services">Services</a>
-             <a href="#testimonials" className="editorial-link text-base" data-testid="link-testimonials">Testimonials</a>
-             <a href="#gallery" className="editorial-link text-base" data-testid="link-gallery">Gallery</a>
+             <a href="/#services" className="editorial-link text-base" data-testid="link-services">Services</a>
+             <a href="/#testimonials" className="editorial-link text-base" data-testid="link-testimonials">Testimonials</a>
+             <a href="/#gallery" className="editorial-link text-base" data-testid="link-gallery">Gallery</a>
              <Link href="/book" className="whitespace-nowrap rounded-full bg-[hsl(var(--accent))] px-5 py-2.5 text-sm font-semibold !text-[hsl(var(--foreground))] transition-colors hover:bg-white" data-testid="link-nav-book">Book appointment</Link>
           </>}
         </nav>
@@ -70,7 +70,7 @@ function SiteNav({ manage = false }: { manage?: boolean }) {
       </div>
       {menuOpen && <div className="container-rikki pb-5 md:hidden">
         <div className="flex flex-col gap-4 border-t border-current/15 pt-4 text-sm">
-          {!manage && <><a href="#services" onClick={() => setMenuOpen(false)} data-testid="link-mobile-services">Services</a><a href="#testimonials" onClick={() => setMenuOpen(false)} data-testid="link-mobile-testimonials">Testimonials</a><a href="#gallery" onClick={() => setMenuOpen(false)} data-testid="link-mobile-gallery">Gallery</a><Link href="/book" onClick={() => setMenuOpen(false)} className="w-fit rounded-full bg-[hsl(var(--accent))] px-4 py-2 font-semibold text-[hsl(var(--foreground))]">Book appointment</Link><Link href="/login" onClick={() => setMenuOpen(false)}>Log in</Link></>}
+          {!manage && <><a href="/#services" onClick={() => setMenuOpen(false)} data-testid="link-mobile-services">Services</a><a href="/#testimonials" onClick={() => setMenuOpen(false)} data-testid="link-mobile-testimonials">Testimonials</a><a href="/#gallery" onClick={() => setMenuOpen(false)} data-testid="link-mobile-gallery">Gallery</a><Link href="/book" onClick={() => setMenuOpen(false)} className="w-fit rounded-full bg-[hsl(var(--accent))] px-4 py-2 font-semibold text-[hsl(var(--foreground))]">Book appointment</Link><Link href="/login" onClick={() => setMenuOpen(false)}>Log in</Link></>}
           {manage && <Link href="/" onClick={() => setMenuOpen(false)} data-testid="link-mobile-action">View public site</Link>}
         </div>
       </div>}
