@@ -301,10 +301,48 @@ function ScheduleSettingsPanel() {
   </section>;
 }
 
+type ScheduleTab = 'requests' | 'calendar' | 'schedule';
+type SiteTab = 'services' | 'testimonials' | 'gallery';
+type AdminGroup = 'schedule' | 'site';
+
+const scheduleTabs = [['requests', 'Requests'], ['calendar', 'Calendar'], ['schedule', 'Schedule Settings']] as const;
+const siteTabs = [['services', 'Services'], ['testimonials', 'Testimonials'], ['gallery', 'Gallery']] as const;
+const adminGroups = [['schedule', 'Schedule'], ['site', 'Manage Site']] as const;
+
+function AdminTabs<T extends string>({ items, selected, onSelect, label, idPrefix, panelId, primary = false }: {
+  items: readonly (readonly [T, string])[];
+  selected: T;
+  onSelect: (value: T) => void;
+  label: string;
+  idPrefix: string;
+  panelId: string;
+  primary?: boolean;
+}) {
+  const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const current = items.findIndex(([key]) => key === selected);
+    let next = current;
+    if (event.key === 'ArrowRight') next = (current + 1) % items.length;
+    else if (event.key === 'ArrowLeft') next = (current - 1 + items.length) % items.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = items.length - 1;
+    else return;
+    event.preventDefault();
+    onSelect(items[next][0]);
+    event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
+  };
+
+  return <div className={`${primary ? 'mt-10' : 'mt-3'} flex overflow-x-auto border-b border-[hsl(var(--border))]`} role="tablist" aria-label={label} onKeyDown={onKeyDown}>
+    {items.map(([key, text]) => <button key={key} type="button" role="tab" id={`${idPrefix}-${key}`} aria-selected={selected === key} aria-controls={panelId} tabIndex={selected === key ? 0 : -1} onClick={() => onSelect(key)} className={`shrink-0 border-b-2 px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] sm:px-5 ${selected === key ? 'border-[hsl(var(--primary))] text-[hsl(var(--foreground))]' : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}`} data-testid={primary ? `tab-group-${key}` : `tab-${key}`}>{text}</button>)}
+  </div>;
+}
+
 function Manage() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'upcoming' | 'completed' | 'cancelled'>('all');
-  const [tab, setTab] = useState<'requests' | 'schedule' | 'calendar' | 'services' | 'testimonials' | 'gallery'>('requests');
+  const [group, setGroup] = useState<AdminGroup>('schedule');
+  const [scheduleTab, setScheduleTab] = useState<ScheduleTab>('requests');
+  const [siteTab, setSiteTab] = useState<SiteTab>('services');
+  const tab = group === 'schedule' ? scheduleTab : siteTab;
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<Date>();
   const { data: summary, isLoading: summaryLoading, isError: summaryError } = useGetAppointmentSummary();
@@ -334,9 +372,13 @@ function Manage() {
     ['completed', 'completed', 'Completed'],
     ['cancelled', 'cancelled', 'Cancelled'],
   ] as const;
-  const tabs = [['requests', 'Requests'], ['calendar', 'Calendar'], ['services', 'Services'], ['schedule', 'Schedule settings'], ['testimonials', 'Testimonials'], ['gallery', 'Gallery']] as const;
   return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav manage /><main className="bg-[hsl(var(--background))]"><div className="container-rikki py-10 md:py-16"><div className="flex flex-col justify-between gap-6 md:flex-row md:items-end"><div><p className="eyebrow text-[hsl(var(--primary))]">Rikki Wigs / owner view</p><h1 className="display-title mt-4 text-6xl md:text-7xl">Good morning,<br /><em>Rikki.</em></h1></div><div className="flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))]"><span className="status-dot bg-[hsl(147_35%_45%)]" /> Your appointment book</div></div>
-       <div className="mt-10 flex overflow-x-auto border-b border-[hsl(var(--border))]" role="tablist" aria-label="Appointment management sections">{tabs.map(([key, label]) => <button key={key} role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={`shrink-0 px-4 py-3 text-sm font-semibold sm:px-5 ${tab === key ? 'border-b-2 border-[hsl(var(--primary))]' : 'opacity-50'}`} data-testid={`tab-${key}`}>{label}</button>)}</div>
+        <AdminTabs items={adminGroups} selected={group} onSelect={(value: AdminGroup) => setGroup(value)} label="Owner dashboard sections" idPrefix="admin-group" panelId="admin-group-panel" primary />
+        <div id="admin-group-panel" role="tabpanel" aria-labelledby={`admin-group-${group}`}>
+          {group === 'schedule'
+            ? <AdminTabs items={scheduleTabs} selected={scheduleTab} onSelect={(value: ScheduleTab) => setScheduleTab(value)} label="Schedule sections" idPrefix="admin-section" panelId="admin-section-panel" />
+            : <AdminTabs items={siteTabs} selected={siteTab} onSelect={(value: SiteTab) => setSiteTab(value)} label="Manage Site sections" idPrefix="admin-section" panelId="admin-section-panel" />}
+          <div id="admin-section-panel" role="tabpanel" aria-labelledby={`admin-section-${tab}`}>
          {tab === 'services' ? <ServicesAdmin /> : tab === 'schedule' ? <ScheduleSettingsPanel /> : tab === 'testimonials' ? <TestimonialsAdmin /> : tab === 'gallery' ? <GalleryAdmin /> : tab === 'requests' ? <>
        {summaryError ? <div className="mt-10 rounded-xl border border-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/.08)] p-4 text-sm text-[hsl(var(--destructive))]" role="alert">Summary is unavailable right now. The appointment list may still load below.</div> : <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">{summaryCards.map(([filterKey, summaryKey, label]) => <button key={filterKey} type="button" onClick={() => setFilter(filterKey)} aria-pressed={filter === filterKey} className={`relative rounded-xl border bg-[hsl(var(--card))] p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] ${filter === filterKey ? 'border-[hsl(var(--primary))] shadow-[inset_0_0_0_1px_hsl(var(--primary))]' : 'border-[hsl(var(--border))] hover:border-[hsl(var(--primary)/.55)]'}`} data-testid={`button-filter-${filterKey}`}><span className="flex items-center justify-between gap-2"><span className="eyebrow opacity-60">{label}</span>{filter === filterKey && <CheckCircle2 size={16} aria-hidden="true" />}</span>{summaryLoading ? <span className="skeleton mt-3 block h-8 w-14" /> : <span className="mt-2 block font-editorial text-3xl" data-testid={`text-summary-${summaryKey}`}>{summary?.[summaryKey] ?? 0}</span>}<span className="sr-only">{filter === filterKey ? 'Selected filter' : 'Filter requests'}</span></button>)}</div>}
        <div className="mt-12 border-b border-[hsl(var(--border))] pb-4"><p className="eyebrow opacity-55">appointment requests</p><h2 className="mt-2 font-editorial text-3xl">{summaryCards.find(([key]) => key === filter)?.[2]}</h2></div>
@@ -346,7 +388,9 @@ function Manage() {
            <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-3 sm:p-6"><Calendar mode="single" month={calendarMonth} onMonthChange={setCalendarMonth} selected={selectedCalendarDay} onSelect={setSelectedCalendarDay} modifiers={{ confirmed: confirmedDates }} modifiersClassNames={{ confirmed: 'after:absolute after:bottom-1 after:left-1/2 after:h-1.5 after:w-1.5 after:-translate-x-1/2 after:rounded-full after:bg-[hsl(var(--primary))]' }} className="w-full !bg-transparent !p-0 [--cell-size:clamp(2.4rem,10vw,4.25rem)]" classNames={{ root: 'w-full', months: 'w-full', month: 'w-full gap-6', month_caption: 'flex h-12 w-full items-center justify-center px-12 font-editorial text-2xl', nav: 'absolute inset-x-0 top-1 flex w-full items-center justify-between', month_grid: 'w-full border-collapse', weekdays: 'flex border-b border-[hsl(var(--border))] pb-3', weekday: 'flex-1 text-center font-mono-ui text-[10px] uppercase tracking-[.14em] text-[hsl(var(--muted-foreground))]', week: 'mt-2 flex w-full', day: 'relative aspect-square h-full flex-1 p-1 text-center', today: 'rounded-full border border-[hsl(var(--accent))]' }} /></div>
            <aside className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5" aria-live="polite"><p className="eyebrow opacity-55">{selectedCalendarDay ? formatDay(selectedCalendarDay, { weekday: 'long', month: 'long', day: 'numeric' }) : 'Selected day'}</p>{!selectedCalendarDay ? <p className="mt-5 text-sm text-[hsl(var(--muted-foreground))]">Select a day to view appointment details.</p> : selectedDayAppointments.length ? <div className="mt-5 space-y-3">{selectedDayAppointments.map((appointment) => <article key={appointment.id} className="rounded-lg border border-[hsl(var(--border))] p-4"><h3 className="font-semibold">{appointment.name}</h3><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">{appointment.service}</p><p className="mt-3 flex items-center gap-2 text-sm"><Clock3 size={15} />{appointment.appointmentTime}</p></article>)}</div> : <p className="mt-5 text-sm text-[hsl(var(--muted-foreground))]">No confirmed appointments on this day.</p>}</aside>
          </div> : <div className="mt-8 rounded-xl border border-dashed border-[hsl(var(--border))] bg-[hsl(var(--card))] px-6 py-16 text-center"><CalendarDays className="mx-auto text-[hsl(var(--primary))]" size={28} strokeWidth={1.3} /><h3 className="mt-4 font-editorial text-3xl">No confirmed appointments.</h3><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">Approved appointments will appear on this calendar.</p></div>}
-       </section>}
+        </section>}
+          </div>
+        </div>
     </div></main></div>;
 }
 
