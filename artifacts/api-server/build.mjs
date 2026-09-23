@@ -15,7 +15,12 @@ async function buildAll() {
   await rm(distDir, { recursive: true, force: true });
 
   await esbuild({
-    entryPoints: [path.resolve(artifactDir, "src/index.ts")],
+    entryPoints: {
+      index: path.resolve(artifactDir, "src/index.ts"),
+      ...(process.argv.includes("--receipt-test")
+        ? { "wig-receipt-pdf.test": path.resolve(artifactDir, "src/lib/wig-receipt-pdf.test.ts") }
+        : {}),
+    },
     platform: "node",
     bundle: true,
     format: "esm",
@@ -33,6 +38,9 @@ async function buildAll() {
       "better-sqlite3",
       "sqlite3",
       "canvas",
+      // PDFKit resolves its standard fonts through package-private #standard-fonts imports.
+      // Bundling moves those imports outside PDFKit's package scope, breaking receipts.
+      "pdfkit",
       "bcrypt",
       "argon2",
       "fsevents",
