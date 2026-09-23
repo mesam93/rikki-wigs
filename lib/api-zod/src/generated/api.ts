@@ -440,6 +440,7 @@ export const GetCalendarSyncStatusResponse = zod.object({
   "accessRole": zod.string()
 })),
   "failed": zod.number().int(),
+  "queued": zod.number().int(),
   "unsynced": zod.number().int(),
   "error": zod.string().nullable()
 })
@@ -465,6 +466,7 @@ export const SelectCalendarSyncDestinationResponse = zod.object({
   "accessRole": zod.string()
 })),
   "failed": zod.number().int(),
+  "queued": zod.number().int(),
   "unsynced": zod.number().int(),
   "error": zod.string().nullable()
 })

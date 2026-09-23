@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { reconcileCalendarInBackground } from "./lib/calendar-sync";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +23,9 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  const reconcile = () => void reconcileCalendarInBackground().catch((error: unknown) => {
+    logger.error({ error }, "Calendar reconciliation failed");
+  });
+  reconcile();
+  setInterval(reconcile, 60_000).unref();
 });

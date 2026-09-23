@@ -6,6 +6,7 @@ type Status = {
   calendarId: string;
   calendars: { id: string; summary: string; primary?: boolean }[];
   failed: number;
+  queued: number;
   unsynced: number;
   error: string | null;
 };
@@ -30,7 +31,7 @@ export function CalendarSyncPanel() {
     setWorking(true); setMessage('');
     try {
       await request<Status>('/api/calendar-sync', { method: 'PUT', body: JSON.stringify({ calendarId }) });
-      setMessage('Calendar selected. Sync upcoming appointments to move existing events to this calendar.');
+      setMessage('Calendar selected. Existing events will move automatically; you can also retry now.');
       await refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not select calendar.'); }
     finally { setWorking(false); }
@@ -39,7 +40,7 @@ export function CalendarSyncPanel() {
     setWorking(true); setMessage('');
     try {
       const result = await request<{ processed: number; failed: number }>('/api/calendar-sync/retry', { method: 'POST' });
-      setMessage(`${result.processed} appointments checked. ${result.failed ? `${result.failed} failed; try again later.` : 'Calendar is up to date.'}`);
+      setMessage(`${result.processed} appointments checked${result.processed === 20 ? ' in this batch' : ''}. ${result.failed ? `${result.failed} failed; they will retry automatically.` : result.processed === 20 ? 'Any remaining updates will run automatically.' : 'No failures in this batch.'}`);
       await refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Sync could not run.'); }
     finally { setWorking(false); }
@@ -50,9 +51,10 @@ export function CalendarSyncPanel() {
     {isLoading ? <p className="mt-4 text-sm">Checking connection…</p> : isError ? <p role="alert" className="mt-4 text-sm text-[hsl(var(--destructive))]">Sync status could not be loaded.</p> : data && <>
       <p className={`mt-4 text-sm font-semibold ${data.connected && !data.error ? '' : 'text-[hsl(var(--destructive))]'}`}>
         {data.connected && !data.error ? 'Connected' : 'Connection needs attention'}
+        {data.queued > 0 && ` · ${data.queued} queued`}
         {data.failed > 0 && ` · ${data.failed} failed`}
-        {data.unsynced > 0 && ` · ${data.unsynced} upcoming not yet synced`}
       </p>
+      {(data.queued > 0 || data.failed > 0) && <p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">Calendar updates retry automatically when the connection is available. You can also retry now.</p>}
       {data.error && <p role="alert" className="mt-2 break-words text-sm text-[hsl(var(--destructive))]">{data.error}</p>}
       {data.calendars.length > 0 && <label className="field-label mt-5 max-w-sm">Destination calendar
         <select value={data.calendarId === 'primary' ? data.calendars.find((calendar) => calendar.primary)?.id ?? 'primary' : data.calendarId} onChange={(event) => void select(event.target.value)} disabled={working} className="field-input">
@@ -60,7 +62,7 @@ export function CalendarSyncPanel() {
         </select>
       </label>}
       <button type="button" className="btn-primary mt-5" disabled={working || !data.connected || !!data.error} onClick={() => void retry()}>
-        {working ? 'Syncing…' : 'Sync upcoming & retry failures'}
+        {working ? 'Syncing…' : 'Retry now (up to 20)'}
       </button>
     </>}
     {message && <p role="status" className="mt-3 text-sm">{message}</p>}

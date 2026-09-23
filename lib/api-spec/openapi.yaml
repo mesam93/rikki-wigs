@@ -707,7 +707,7 @@ components:
         accessRole: { type: string }
     CalendarSyncStatus:
       type: object
-      required: [connected, calendarId, calendars, failed, unsynced, error]
+      required: [connected, calendarId, calendars, failed, queued, unsynced, error]
       properties:
         connected: { type: boolean }
         calendarId: { type: string }
@@ -716,6 +716,7 @@ components:
           items:
             $ref: "#/components/schemas/WritableCalendar"
         failed: { type: integer }
+        queued: { type: integer }
         unsynced: { type: integer }
         error: { type: ["string", "null"] }
     CalendarSyncSelection:

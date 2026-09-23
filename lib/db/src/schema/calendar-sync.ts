@@ -9,6 +9,8 @@ export const appointmentCalendarSyncTable = pgTable("appointment_calendar_sync",
   status: text("status").notNull().default("pending"),
   error: text("error"),
   syncedAt: timestamp("synced_at", { withTimezone: true }),
+  attempts: integer("attempts").notNull().default(0),
+  nextRetryAt: timestamp("next_retry_at", { withTimezone: true }),
 });
 
 export const calendarSyncSettingsTable = pgTable("calendar_sync_settings", {

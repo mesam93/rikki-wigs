@@ -1,5 +1,5 @@
 import { ReplitConnectors } from "@replit/connectors-sdk";
-import { and, eq, gte, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lte, ne, or } from "drizzle-orm";
 import {
   appointmentCalendarSyncTable,
   appointmentsTable,
@@ -11,6 +11,7 @@ import { logger } from "./logger";
 import { eventForAppointment } from "./calendar-time";
 
 const timezone = "America/New_York";
+const batchSize = 20;
 const connectors = new ReplitConnectors();
 type Calendar = { id: string; summary: string; primary?: boolean; accessRole: string };
 
@@ -63,6 +64,10 @@ function statusOf(error: unknown): number | undefined {
   return error instanceof Error ? (error as Error & { status?: number }).status : undefined;
 }
 
+export function retryDelayMs(attempts: number) {
+  return Math.min(60, 2 ** Math.min(attempts - 1, 6)) * 60_000;
+}
+
 // A fixed Google event ID makes creation safe even if Google accepts the request but
 // the response or subsequent database write fails.
 export async function syncAppointment(appointmentId: number) {
@@ -102,7 +107,9 @@ export async function syncAppointment(appointmentId: number) {
             if (statusOf(error) !== 404 && statusOf(error) !== 410) throw error;
           }
         }
-        await db.update(appointmentCalendarSyncTable).set({ status: "removed", error: null, syncedAt: new Date() })
+        await db.update(appointmentCalendarSyncTable).set({
+          status: "removed", error: null, syncedAt: new Date(), attempts: 0, nextRetryAt: null,
+        })
           .where(eq(appointmentCalendarSyncTable.appointmentId, appointmentId));
         return;
       }
@@ -121,11 +128,15 @@ export async function syncAppointment(appointmentId: number) {
           await calendarRequest(path, { method: "PATCH", body: JSON.stringify(body) });
         }
       }
-      await db.update(appointmentCalendarSyncTable).set({ status: "synced", error: null, syncedAt: new Date(), deleted: false })
+      await db.update(appointmentCalendarSyncTable).set({
+        status: "synced", error: null, syncedAt: new Date(), deleted: false, attempts: 0, nextRetryAt: null,
+      })
         .where(eq(appointmentCalendarSyncTable.appointmentId, appointmentId));
     } catch (error) {
+      const attempts = record.attempts + 1;
       await db.update(appointmentCalendarSyncTable).set({
         status: "failed", error: error instanceof Error ? error.message.slice(0, 400) : "Unknown calendar error",
+        attempts, nextRetryAt: new Date(Date.now() + retryDelayMs(attempts)),
       }).where(eq(appointmentCalendarSyncTable.appointmentId, appointmentId));
       throw error;
     }
@@ -144,40 +155,89 @@ export async function trySyncAppointment(appointmentId: number) {
 
 export async function calendarSyncHealth() {
   const destination = await selectedCalendar();
-  const rows = await db.select().from(appointmentCalendarSyncTable);
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const rows = await db.select({
+    sync: appointmentCalendarSyncTable,
+    appointment: { status: appointmentsTable.status, appointmentDate: appointmentsTable.appointmentDate },
+  }).from(appointmentCalendarSyncTable).leftJoin(appointmentsTable,
+    eq(appointmentCalendarSyncTable.appointmentId, appointmentsTable.id));
+  const today = localToday();
   const upcoming = await db.select({ id: appointmentsTable.id }).from(appointmentsTable)
     .where(and(gte(appointmentsTable.appointmentDate, today), inArray(appointmentsTable.status, ["pending", "confirmed"])));
-  const unsynced = upcoming.filter((item) => !rows.some((row) => row.appointmentId === item.id));
+  const unsynced = upcoming.filter((item) => !rows.some((row) => row.sync.appointmentId === item.id));
+  const failed = rows.filter(({ sync }) => sync.status === "failed").length;
+  const queued = unsynced.length + rows.filter(({ sync, appointment }) =>
+    sync.status === "pending" ||
+    (sync.status === "synced" && (sync.deleted || appointment?.status === "cancelled" || sync.calendarId !== destination)) ||
+    (sync.status === "removed" && !sync.deleted && appointment &&
+      appointment.appointmentDate >= today && (appointment.status === "pending" || appointment.status === "confirmed"))
+  ).length;
   try {
     const calendars = await writableCalendars();
     return {
-      connected: true, calendarId: destination, calendars, failed: rows.filter((row) => row.status === "failed").length,
+      connected: true, calendarId: destination, calendars, failed, queued,
       unsynced: unsynced.length,
       error: calendars.some((item) => item.id === destination || (destination === "primary" && item.primary))
         ? null : "Selected calendar is no longer writable.",
     };
   } catch (error) {
     return {
-      connected: false, calendarId: destination, calendars: [], failed: rows.filter((row) => row.status === "failed").length,
+      connected: false, calendarId: destination, calendars: [], failed, queued,
       unsynced: unsynced.length, error: error instanceof Error ? error.message : "Calendar connection unavailable",
     };
   }
 }
 
-export async function retryCalendarSync() {
+function localToday() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+}
+
+async function reconciliationIds(force: boolean) {
   const destination = await selectedCalendar();
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-  const upcoming = await db.select({ id: appointmentsTable.id }).from(appointmentsTable)
-    .where(and(gte(appointmentsTable.appointmentDate, today), inArray(appointmentsTable.status, ["pending", "confirmed"])));
-  const rows = await db.select().from(appointmentCalendarSyncTable);
-  const ids = new Set([
-    ...upcoming.map((item) => item.id),
-    ...rows.filter((row) => row.status === "failed" || (row.status === "synced" && row.calendarId !== destination)).map((row) => row.appointmentId),
-  ]);
+  const active = and(gte(appointmentsTable.appointmentDate, localToday()),
+    inArray(appointmentsTable.status, ["pending", "confirmed"]));
+  const due = force ? undefined : or(isNull(appointmentCalendarSyncTable.nextRetryAt),
+    lte(appointmentCalendarSyncTable.nextRetryAt, new Date()));
+  const existing = await db.select({ id: appointmentCalendarSyncTable.appointmentId })
+    .from(appointmentCalendarSyncTable)
+    .leftJoin(appointmentsTable, eq(appointmentCalendarSyncTable.appointmentId, appointmentsTable.id))
+    .where(or(
+      and(inArray(appointmentCalendarSyncTable.status, ["pending", "failed"]), due),
+      and(eq(appointmentCalendarSyncTable.status, "synced"), or(
+        eq(appointmentCalendarSyncTable.deleted, true), eq(appointmentsTable.status, "cancelled"),
+        ne(appointmentCalendarSyncTable.calendarId, destination),
+      )),
+      and(eq(appointmentCalendarSyncTable.status, "removed"), eq(appointmentCalendarSyncTable.deleted, false), active),
+    ))
+    .orderBy(appointmentCalendarSyncTable.appointmentId).limit(batchSize);
+  const missing = existing.length === batchSize ? [] : await db.select({ id: appointmentsTable.id })
+    .from(appointmentsTable)
+    .leftJoin(appointmentCalendarSyncTable, eq(appointmentsTable.id, appointmentCalendarSyncTable.appointmentId))
+    .where(and(active, isNull(appointmentCalendarSyncTable.appointmentId)))
+    .orderBy(appointmentsTable.id).limit(batchSize - existing.length);
+  return [...existing, ...missing].map((row) => row.id);
+}
+
+export async function retryCalendarSync(force = true) {
+  const ids = await reconciliationIds(force);
   let failed = 0;
   for (const id of ids) {
     try { await syncAppointment(id); } catch { failed += 1; }
   }
-  return { processed: ids.size, failed };
+  return { processed: ids.length, failed };
+}
+
+// One worker per database, including when multiple API processes are running.
+export async function reconcileCalendarInBackground() {
+  const client = await pool.connect();
+  let locked = false;
+  try {
+    const result = await client.query<{ locked: boolean }>("SELECT pg_try_advisory_lock($1, $2) AS locked", [57311, 0]);
+    locked = result.rows[0]?.locked ?? false;
+    if (!locked) return;
+    const outcome = await retryCalendarSync(false);
+    if (outcome.processed || outcome.failed) logger.info(outcome, "Calendar reconciliation completed");
+  } finally {
+    if (locked) await client.query("SELECT pg_advisory_unlock($1, $2)", [57311, 0]).finally(() => client.release());
+    else client.release();
+  }
 }

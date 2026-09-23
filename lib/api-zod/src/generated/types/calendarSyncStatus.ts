@@ -12,6 +12,7 @@ export interface CalendarSyncStatus {
   calendarId: string;
   calendars: WritableCalendar[];
   failed: number;
+  queued: number;
   unsynced: number;
   /** @nullable */
   error: string | null;
