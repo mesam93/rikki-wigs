@@ -3,3 +3,4 @@
 - [Historical order review](historical-order-review.md) — preserve incomplete spreadsheet rows without invented values; require owner review before receipts.
 - [Optional query codegen collision](optional-query-codegen-collision.md) — optional query parameters can collide across generated Zod and type barrels.
 - [Isolated calendar sync checks](calendar-sync-testing.md) — test pure timezone and payload logic separately from connected server dependencies.
+- [One-time importer bundling](one-time-importer-bundling.md) — bundle workspace and runtime dependencies together when running standalone TypeScript importers.

@@ -1,4 +1,5 @@
-import { Router, type IRouter, type Request, type Response } from "express";
+import { createHash, timingSafeEqual } from "node:crypto";
+import { Router, raw, type IRouter, type Request, type Response } from "express";
 import { desc, eq } from "drizzle-orm";
 import { db, wigOrdersTable, wigReceiptsTable } from "@workspace/db";
 import {
@@ -7,11 +8,14 @@ import {
 } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/requireAdmin";
 import { normalizeOrder } from "../lib/wig-orders";
+import { parseHistoricalWorkbook } from "../lib/wig-import";
+import { applyHistoricalImport, inspectHistoricalImport } from "../lib/wig-import-run";
 import { sendReceiptPdf } from "../lib/wig-receipt-pdf";
 
 const router: IRouter = Router();
 router.use("/admin/orders", requireAdmin);
 
+const historicalWorkbookHash = "ee0c0d25fc52e7748b9022ef91dc68c20d9986f730671980c8cb297da1d1b09f";
 function validDay(day: string) {
   const parsed = new Date(`${day}T00:00:00.000Z`);
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === day;
@@ -54,6 +58,34 @@ router.get("/admin/orders", async (_req, res): Promise<void> => {
   res.json(ListWigOrdersResponse.parse(orders.map(orderResponse)));
 });
 
+router.post("/admin/orders/historical-import", raw({ type: "application/octet-stream", limit: "1mb" }),
+  async (req, res): Promise<void> => {
+    const expectedHash = Buffer.from(historicalWorkbookHash, "hex");
+    if (!Buffer.isBuffer(req.body) ||
+        !timingSafeEqual(createHash("sha256").update(req.body).digest(), expectedHash)) {
+      res.status(400).json({ error: "The uploaded workbook does not match the authorized historical source" });
+      return;
+    }
+    const orders = await parseHistoricalWorkbook(req.body);
+    if (req.query.apply !== "true") {
+      res.json(await inspectHistoricalImport(orders));
+      return;
+    }
+    if (req.get("x-confirm-historical-import") !== "184-source-rows") {
+      res.status(400).json({ error: "Explicit import confirmation is required" });
+      return;
+    }
+    try {
+      res.json(await applyHistoricalImport(orders));
+    } catch (error) {
+      if (error instanceof Error && /Import stopped for review|Source row reconciliation failed|Could not save/.test(error.message)) {
+        res.status(409).json({ error: error.message });
+        return;
+      }
+      throw error;
+    }
+  });
+
 router.post("/admin/orders", async (req, res): Promise<void> => {
   const parsed = parseOrder(req.body);
   if (!parsed.ok) { res.status(400).json({ error: parsed.error }); return; }
@@ -89,7 +121,7 @@ router.patch("/admin/orders/:id", async (req, res): Promise<void> => {
 router.get("/admin/orders/:id/receipts", async (req, res): Promise<void> => {
   const id = idParam(req.params.id);
   if (!id) { res.status(400).json({ error: "Invalid order ID" }); return; }
-  const [order] = await db.select({ id: wigOrdersTable.id }).from(wigOrdersTable).where(eq(wigOrdersTable.id, id));
+  const [order] = await db.select().from(wigOrdersTable).where(eq(wigOrdersTable.id, id));
   if (!order) { res.status(404).json({ error: "Order not found" }); return; }
   const receipts = await db.select().from(wigReceiptsTable).where(eq(wigReceiptsTable.orderId, id)).orderBy(desc(wigReceiptsTable.id));
   res.json(ListWigReceiptsResponse.parse(receipts.map(receiptResponse)));
@@ -100,6 +132,10 @@ router.post("/admin/orders/:id/receipts", async (req, res): Promise<void> => {
   if (!id) { res.status(400).json({ error: "Invalid order ID" }); return; }
   const [order] = await db.select().from(wigOrdersTable).where(eq(wigOrdersTable.id, id));
   if (!order) { res.status(404).json({ error: "Order not found" }); return; }
+  if (order.needsReview || !order.itemCode || !order.customerName || !order.orderDate ||
+      order.priceCents === null || order.amountPaidCents === null || order.totalCents === null) {
+    res.status(409).json({ error: "Complete and save this order before issuing a receipt" }); return;
+  }
   const [receipt] = await db.insert(wigReceiptsTable).values({ orderId: id, snapshot: order }).returning();
   res.status(201).json(IssueWigReceiptResponse.parse(receiptResponse(receipt)));
 });
