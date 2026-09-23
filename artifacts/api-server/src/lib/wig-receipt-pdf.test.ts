@@ -50,6 +50,29 @@ test("download keeps the same descriptive filename as an attachment", async () =
   await done;
 });
 
+test("a reviewed order with complete details still renders", async () => {
+  const { done } = render(true, { needsReview: true, reviewIssues: ["Check imported order details"] });
+  assert.equal(pageCount(await done), 1);
+});
+
+test("view and download render a reviewed order with missing details without inventing values", async () => {
+  const partial: Partial<WigOrder> = {
+    needsReview: true, customerName: null, itemCode: null, orderDate: null,
+    priceCents: null, taxCents: null, totalCents: null,
+    amountPaidCents: null, amountDueCents: null,
+  };
+  const viewed = render(true, partial);
+  const downloaded = render(false, partial);
+  assert.equal(viewed.headers.get("Content-Disposition"), 'inline; filename="Not-recorded-Not-recorded-RW-7.pdf"');
+  assert.equal(downloaded.headers.get("Content-Disposition"), 'attachment; filename="Not-recorded-Not-recorded-RW-7.pdf"');
+  const [viewBody, downloadBody] = await Promise.all([viewed.done, downloaded.done]);
+  assert.equal(pageCount(viewBody), 1);
+  assert.equal(pageCount(downloadBody), 1);
+  if (process.env.RECEIPT_PDF_PREVIEW_DIR) {
+    await writeFile(join(process.env.RECEIPT_PDF_PREVIEW_DIR, "partial-receipt.pdf"), viewBody);
+  }
+});
+
 test("a normally populated custom order and its notes fit on one page", async () => {
   const { done } = render(true, {
     kind: "custom",

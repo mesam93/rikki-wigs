@@ -11,6 +11,10 @@ import {
   WigOrderInput,
 } from '@workspace/api-client-react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Plus, Search, Download, Eye, ChevronDown, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -239,6 +243,23 @@ function OrderDetails({ order, onEdit }: { order: WigOrder; onEdit: () => void }
   const { data: receipts, isLoading, refetch } = useListWigReceipts(order.id);
   const issueReceipt = useIssueWigReceipt();
   const { toast } = useToast();
+  const [confirmIssueOpen, setConfirmIssueOpen] = useState(false);
+  const missingReceiptFields = [
+    { label: 'Customer name', missing: !order.customerName?.trim() },
+    { label: 'Item code', missing: !order.itemCode?.trim() },
+    { label: 'Order date', missing: !order.orderDate },
+    { label: 'Price', missing: order.priceCents === null },
+    { label: 'Tax', missing: order.taxCents === null },
+    { label: 'Total', missing: order.totalCents === null },
+    { label: 'Amount paid', missing: order.amountPaidCents === null },
+    { label: 'Amount due', missing: order.amountDueCents === null },
+  ].filter(field => field.missing).map(field => field.label);
+  const receiptConcerns = [
+    ...order.reviewIssues,
+    ...missingReceiptFields.map(label => `${label}: Not recorded`),
+    ...(order.needsReview && order.reviewIssues.length === 0 ? ['This order is marked Needs review.'] : []),
+  ];
+  const needsConfirmation = order.needsReview || receiptConcerns.length > 0;
   const wigSpecs = [
     ['Style', order.style],
     ['Cap size', order.capSize],
@@ -251,7 +272,8 @@ function OrderDetails({ order, onEdit }: { order: WigOrder; onEdit: () => void }
     ['Highlights', order.highlights],
   ].filter(([, value]) => Boolean(value?.trim()));
 
-  const handleIssue = () => {
+  const issueNow = () => {
+    if (issueReceipt.isPending) return;
     issueReceipt.mutate({ id: order.id }, {
       onSuccess: () => {
         refetch();
@@ -262,14 +284,18 @@ function OrderDetails({ order, onEdit }: { order: WigOrder; onEdit: () => void }
       }
     });
   };
+  const handleIssue = () => {
+    if (needsConfirmation) setConfirmIssueOpen(true);
+    else issueNow();
+  };
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <div className="space-y-4">
         {order.needsReview && <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950" role="alert">
-          <strong>Needs review before a receipt can be issued.</strong>
+          <strong>This order needs review.</strong>
           <ul className="mt-2 list-disc pl-5">{order.reviewIssues.map((issue, i) => <li key={i}>{issue}</li>)}</ul>
-          <p className="mt-2">Use Edit Order to complete missing details and save.</p>
+          <p className="mt-2">You can edit the order first, or approve a receipt with the details currently recorded.</p>
         </div>}
         <section className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 sm:p-5" aria-labelledby={`order-customer-${order.id}`}>
           <h4 id={`order-customer-${order.id}`} className="mb-4 border-b border-[hsl(var(--border))] pb-3 font-mono-ui text-[11px] uppercase tracking-[0.16em] text-[hsl(var(--muted-foreground))]">Customer information</h4>
@@ -327,7 +353,7 @@ function OrderDetails({ order, onEdit }: { order: WigOrder; onEdit: () => void }
          <div className="pt-2">
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-xs font-mono-ui uppercase tracking-wide opacity-50">Receipts</h4>
-               <button onClick={handleIssue} disabled={issueReceipt.isPending || order.needsReview} title={order.needsReview ? 'Complete this order before issuing a receipt' : undefined} className="text-xs text-[hsl(var(--primary))] hover:underline flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-40">
+                <button onClick={handleIssue} disabled={issueReceipt.isPending} className="text-xs text-[hsl(var(--primary))] hover:underline flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-40">
                  <Plus size={12} /> {issueReceipt.isPending ? 'Issuing...' : 'Issue New'}
               </button>
             </div>
@@ -355,6 +381,23 @@ function OrderDetails({ order, onEdit }: { order: WigOrder; onEdit: () => void }
             )}
          </div>
       </div>
+      <AlertDialog open={confirmIssueOpen} onOpenChange={setConfirmIssueOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Issue this receipt with details needing review?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The receipt will save the details currently on this order. Missing values will say “Not recorded,” not $0.00. It will not change the order or clear its review status.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ul className="max-h-48 list-disc space-y-1 overflow-y-auto pl-5 text-sm text-[hsl(var(--foreground))]">
+            {receiptConcerns.map((concern, index) => <li key={`${index}-${concern}`}>{concern}</li>)}
+          </ul>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={issueNow}>Issue receipt anyway</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

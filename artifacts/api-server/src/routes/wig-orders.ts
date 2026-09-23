@@ -100,10 +100,6 @@ router.post("/admin/orders/:id/receipts", async (req, res): Promise<void> => {
   if (!id) { res.status(400).json({ error: "Invalid order ID" }); return; }
   const [order] = await db.select().from(wigOrdersTable).where(eq(wigOrdersTable.id, id));
   if (!order) { res.status(404).json({ error: "Order not found" }); return; }
-  if (order.needsReview || !order.itemCode || !order.customerName || !order.orderDate ||
-      order.priceCents === null || order.amountPaidCents === null || order.totalCents === null) {
-    res.status(409).json({ error: "Complete and save this order before issuing a receipt" }); return;
-  }
   const [receipt] = await db.insert(wigReceiptsTable).values({ orderId: id, snapshot: order }).returning();
   res.status(201).json(IssueWigReceiptResponse.parse(receiptResponse(receipt)));
 });

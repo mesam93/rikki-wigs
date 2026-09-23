@@ -14,7 +14,8 @@ const right = 560;
 const bottom = 710;
 const logoPath = fileURLToPath(new URL("./assets/rikki-logo-official.png", import.meta.url));
 
-const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+const recorded = (value: string | null) => value?.trim() ? value : "Not recorded";
+const dollars = (cents: number | null) => cents === null ? "Not recorded" : `$${(cents / 100).toFixed(2)}`;
 
 function filenamePart(value: string): string {
   return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
@@ -25,15 +26,15 @@ export function sendReceiptPdf(res: Response, receipt: {
   id: number; issuedAt: Date; snapshot: WigOrder;
 }, inline = false) {
   const order = receipt.snapshot;
-  if (order.needsReview || order.customerName === null || order.itemCode === null ||
-      order.orderDate === null || order.priceCents === null || order.taxCents === null ||
-      order.totalCents === null || order.amountPaidCents === null || order.amountDueCents === null) {
-    throw new Error("A receipt cannot be generated for an incomplete order");
-  }
   const pdf = new PDFDocument({ size: "LETTER", margin: 0, bufferPages: true });
-  const title = `${order.customerName} — ${order.itemCode}`;
+  const customerName = recorded(order.customerName);
+  const itemCode = recorded(order.itemCode);
+  const incomplete = !order.customerName?.trim() || !order.itemCode?.trim() || !order.orderDate ||
+    [order.priceCents, order.taxCents, order.totalCents, order.amountPaidCents, order.amountDueCents]
+      .some(value => value === null);
+  const title = `${customerName} — ${itemCode}`;
   pdf.info.Title = title;
-  const filename = `${filenamePart(order.customerName)}-${filenamePart(order.itemCode)}-RW-${receipt.id}.pdf`;
+  const filename = `${filenamePart(customerName)}-${filenamePart(itemCode)}-RW-${receipt.id}.pdf`;
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Cache-Control", "private, no-store");
   res.setHeader("Content-Disposition", `${inline ? "inline" : "attachment"}; filename="${filename}"`);
@@ -93,7 +94,7 @@ export function sendReceiptPdf(res: Response, receipt: {
     y += 25;
   };
   const row = (label: string, value: string) => {
-    const lines = wrapped(value || "—", 9.5, 379);
+    const lines = wrapped(value || "Not recorded", 9.5, 379);
     space(20);
     pdf.font("Helvetica-Bold").fontSize(8.5).fillColor(muted).text(label, left, y + 2, { width: 121 });
     for (const line of lines) {
@@ -117,15 +118,15 @@ export function sendReceiptPdf(res: Response, receipt: {
 
   pdf.font("Helvetica-Bold").fontSize(8.5).fillColor(muted).text("PREPARED FOR", left, y);
   y += 15;
-  heroLine(order.customerName, 19, 23, ink);
+  heroLine(customerName, 19, 23, ink);
   y += 3;
   pdf.font("Helvetica-Bold").fontSize(8.5).fillColor(muted).text("ORDER ITEM CODE", left, y);
   y += 12;
-  heroLine(order.itemCode, 11, 15, ink);
+  heroLine(itemCode, 11, 15, ink);
   y += 5;
   space(15);
   pdf.font("Helvetica").fontSize(8.5).fillColor(muted)
-    .text(`Order date  ${order.orderDate}`, left, y);
+    .text(`Order date  ${recorded(order.orderDate)}`, left, y);
   y += 18;
 
   section("CUSTOMER DETAILS");
@@ -171,7 +172,9 @@ export function sendReceiptPdf(res: Response, receipt: {
     pdf.moveTo(left, 728).lineTo(right, 728).lineWidth(0.8).strokeColor(rule).stroke();
     pdf.font("Helvetica").fontSize(8).fillColor(muted)
       .text("427 Denison St.  |  Highland Park, NJ  |  (732) 742-4559", left, 739, { width: 460 });
-    pdf.text("Thank you for choosing Rikki Wigs. This receipt records the payment and balance at the time it was issued.",
+    pdf.text(incomplete
+      ? "Thank you for choosing Rikki Wigs. Missing details were not recorded when this receipt was issued."
+      : "Thank you for choosing Rikki Wigs. This receipt records the payment and balance at the time it was issued.",
       left, 755, { width: 440, lineBreak: false });
     pdf.text(`${page - pages.start + 1} / ${pages.count}`, right - 46, 755, { width: 46, align: "right" });
   }
