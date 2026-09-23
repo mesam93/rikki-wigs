@@ -239,6 +239,17 @@ function OrderDetails({ order, onEdit }: { order: WigOrder; onEdit: () => void }
   const { data: receipts, isLoading, refetch } = useListWigReceipts(order.id);
   const issueReceipt = useIssueWigReceipt();
   const { toast } = useToast();
+  const wigSpecs = [
+    ['Style', order.style],
+    ['Cap size', order.capSize],
+    ['Length', order.lengthInch],
+    ['Color', order.color],
+    ['Hair type', order.hairType],
+    ['Part', order.part],
+    ['Layers', order.layers],
+    ['Density', order.density],
+    ['Highlights', order.highlights],
+  ].filter(([, value]) => Boolean(value?.trim()));
 
   const handleIssue = () => {
     issueReceipt.mutate({ id: order.id }, {
@@ -260,37 +271,33 @@ function OrderDetails({ order, onEdit }: { order: WigOrder; onEdit: () => void }
           <ul className="mt-2 list-disc pl-5">{order.reviewIssues.map((issue, i) => <li key={i}>{issue}</li>)}</ul>
           <p className="mt-2">Use Edit Order to complete missing details and save.</p>
         </div>}
-        {order.sourceSheet && <div className="text-xs text-[hsl(var(--muted-foreground))]">
-          Original workbook: {order.sourceSheet}, row {order.sourceRowNumber}
-          {order.sourceValues && <details className="mt-2"><summary className="cursor-pointer underline">View original spreadsheet fields</summary>
-            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-              {Object.entries(order.sourceValues).map(([column, value]) => <React.Fragment key={column}><dt>Column {column}</dt><dd className="break-words">{value}</dd></React.Fragment>)}
+        <section className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 sm:p-5" aria-labelledby={`order-customer-${order.id}`}>
+          <h4 id={`order-customer-${order.id}`} className="mb-4 border-b border-[hsl(var(--border))] pb-3 font-mono-ui text-[11px] uppercase tracking-[0.16em] text-[hsl(var(--muted-foreground))]">Customer information</h4>
+          <p className="font-editorial text-xl leading-tight text-[hsl(var(--foreground))] break-words">{order.customerName || <span className="text-[hsl(var(--muted-foreground))]">Name needed</span>}</p>
+          {(order.phone || order.email) ? (
+            <dl className="mt-5 grid gap-4 border-t border-[hsl(var(--border))] pt-4 sm:grid-cols-2">
+              {order.phone && <div className="min-w-0">
+                <dt className="mb-1 text-[11px] font-medium uppercase tracking-wide text-[hsl(var(--muted-foreground))]">Phone</dt>
+                <dd className="break-words text-sm text-[hsl(var(--foreground))]">{order.phone}</dd>
+              </div>}
+              {order.email && <div className="min-w-0">
+                <dt className="mb-1 text-[11px] font-medium uppercase tracking-wide text-[hsl(var(--muted-foreground))]">Email</dt>
+                <dd className="break-all text-sm text-[hsl(var(--foreground))]">{order.email}</dd>
+              </div>}
             </dl>
-          </details>}
-        </div>}
-        <div>
-          <h4 className="text-xs font-mono-ui uppercase tracking-wide opacity-50 mb-2">Customer</h4>
-          <p className="text-sm">{order.customerName || 'Name needed'}</p>
-          {(order.phone || order.email) && (
-            <p className="text-sm text-[hsl(var(--muted-foreground))] mt-1">
-              {order.phone} {order.phone && order.email && '·'} {order.email}
-            </p>
-          )}
-        </div>
-        <div>
-          <h4 className="text-xs font-mono-ui uppercase tracking-wide opacity-50 mb-2">Wig Specs</h4>
-          <ul className="text-sm space-y-1 text-[hsl(var(--muted-foreground))]">
-            {order.style && <li><strong className="text-[hsl(var(--foreground))] font-normal">Style:</strong> {order.style}</li>}
-            {order.capSize && <li><strong className="text-[hsl(var(--foreground))] font-normal">Cap Size:</strong> {order.capSize}</li>}
-            {order.lengthInch && <li><strong className="text-[hsl(var(--foreground))] font-normal">Length:</strong> {order.lengthInch}</li>}
-            {order.color && <li><strong className="text-[hsl(var(--foreground))] font-normal">Color:</strong> {order.color}</li>}
-            {order.hairType && <li><strong className="text-[hsl(var(--foreground))] font-normal">Hair Type:</strong> {order.hairType}</li>}
-            {order.part && <li><strong className="text-[hsl(var(--foreground))] font-normal">Part:</strong> {order.part}</li>}
-            {order.layers && <li><strong className="text-[hsl(var(--foreground))] font-normal">Layers:</strong> {order.layers}</li>}
-            {order.density && <li><strong className="text-[hsl(var(--foreground))] font-normal">Density:</strong> {order.density}</li>}
-            {order.highlights && <li><strong className="text-[hsl(var(--foreground))] font-normal">Highlights:</strong> {order.highlights}</li>}
-          </ul>
-        </div>
+          ) : <p className="mt-3 text-sm text-[hsl(var(--muted-foreground))]">No contact details recorded.</p>}
+        </section>
+        <section className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 sm:p-5" aria-labelledby={`order-specs-${order.id}`}>
+          <h4 id={`order-specs-${order.id}`} className="mb-4 border-b border-[hsl(var(--border))] pb-3 font-mono-ui text-[11px] uppercase tracking-[0.16em] text-[hsl(var(--muted-foreground))]">Wig specifications</h4>
+          {wigSpecs.length > 0 ? (
+            <dl className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
+              {wigSpecs.map(([label, value]) => <div key={label} className="min-w-0">
+                <dt className="mb-1 text-[11px] font-medium uppercase tracking-wide text-[hsl(var(--muted-foreground))]">{label}</dt>
+                <dd className="break-words text-sm font-medium leading-relaxed text-[hsl(var(--foreground))]">{value}</dd>
+              </div>)}
+            </dl>
+          ) : <p className="text-sm text-[hsl(var(--muted-foreground))]">No wig specifications recorded.</p>}
+        </section>
         {order.notes && (
           <div>
             <h4 className="text-xs font-mono-ui uppercase tracking-wide opacity-50 mb-2">Notes</h4>
