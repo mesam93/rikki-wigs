@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { Appointment } from "@workspace/db";
 import {
+  buildGmailRaw,
   getEmailDeliveryStatus,
   notificationEventForUpdate,
   renderAppointmentEmail,
@@ -85,4 +86,17 @@ test("defaults to disabled delivery when the client has not configured SMTP", ()
     if (originalMode === undefined) delete process.env.EMAIL_DELIVERY_MODE;
     else process.env.EMAIL_DELIVERY_MODE = originalMode;
   }
+});
+
+test("builds a Gmail message with readable headers and encoded HTML", () => {
+  const message = renderAppointmentEmail("confirmed", appointment);
+  const raw = Buffer.from(
+    buildGmailRaw("Rikki Wigs <sender@example.com>", message),
+    "base64url",
+  ).toString("utf8");
+  assert.match(raw, /^From: Rikki Wigs <sender@example\.com>\r\nTo: ana@example\.com\r\nSubject: Your Rikki Wigs appointment is confirmed/m);
+  assert.match(raw, /Content-Type: multipart\/alternative/);
+  assert.match(raw, /Content-Type: text\/html; charset="UTF-8"/);
+  assert.doesNotMatch(raw, /Ana <script>/);
+  assert.match(raw, /Content-Transfer-Encoding: base64/);
 });

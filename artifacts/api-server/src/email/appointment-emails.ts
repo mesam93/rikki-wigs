@@ -7,7 +7,7 @@ import {
   type Appointment,
 } from "@workspace/db";
 
-export type EmailDeliveryMode = "disabled" | "test" | "smtp" | "resend";
+export type EmailDeliveryMode = "disabled" | "test" | "smtp" | "resend" | "gmail";
 export type AppointmentEmailEvent =
   | "request_received"
   | "confirmed"
@@ -46,11 +46,12 @@ export type NotificationResult = {
   outcome: "delivered" | "tested" | "disabled" | "duplicate" | "failed";
   eventType: AppointmentEmailEvent;
   error?: string;
+  recordError?: string;
 };
 
 function parseMode(value: string | undefined): EmailDeliveryMode {
   if (!value) return "disabled";
-  if (value === "disabled" || value === "test" || value === "smtp" || value === "resend") return value;
+  if (value === "disabled" || value === "test" || value === "smtp" || value === "resend" || value === "gmail") return value;
   return "disabled";
 }
 
@@ -103,6 +104,16 @@ export function getEmailDeliveryStatus(): EmailDeliveryStatus {
       label: configured
         ? "Resend is selected; check delivery results for sender verification"
         : "Resend needs a verified sender address in EMAIL_FROM",
+    };
+  }
+  if (config.mode === "gmail") {
+    const configured = Boolean(process.env.EMAIL_FROM?.trim());
+    return {
+      mode: config.mode,
+      configured,
+      label: configured
+        ? "Gmail is selected for confirmation emails"
+        : "Gmail needs EMAIL_FROM set to the connected account address",
     };
   }
   const configured = Boolean(
@@ -164,7 +175,7 @@ function templateCopy(event: AppointmentEmailEvent): {
         eyebrow: "Appointment confirmed",
         heading: "Your time is reserved.",
         message:
-          "Your appointment has been approved. We look forward to seeing you.",
+          "Your appointment is confirmed. We look forward to seeing you.",
       };
     case "cancelled":
       return {
@@ -311,7 +322,50 @@ async function sendWithResend(config: EmailConfig, message: EmailMessage, eventK
   }
 }
 
+export function buildGmailRaw(from: string, message: EmailMessage, replyTo?: string) {
+  const safeHeader = (value: string) => value.replace(/[\r\n]/g, " ");
+  const boundary = `rikki-appointment-${crypto.randomUUID()}`;
+  const encodedPart = (value: string) => Buffer.from(value, "utf8").toString("base64").match(/.{1,76}/g)?.join("\r\n") ?? "";
+  const raw = [
+    `From: ${safeHeader(from)}`,
+    `To: ${safeHeader(message.to)}`,
+    ...(replyTo ? [`Reply-To: ${safeHeader(replyTo)}`] : []),
+    `Subject: ${safeHeader(message.subject)}`,
+    "MIME-Version: 1.0",
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    "",
+    `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    encodedPart(message.text),
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    encodedPart(message.html),
+    `--${boundary}--`,
+    "",
+  ].join("\r\n");
+  return Buffer.from(raw, "utf8").toString("base64url");
+}
+
+async function sendWithGmail(config: EmailConfig, message: EmailMessage) {
+  if (!process.env.EMAIL_FROM?.trim()) throw new Error("Gmail needs EMAIL_FROM set to the connected account address");
+  const response = await new ReplitConnectors().proxy("google-mail", "/gmail/v1/users/me/messages/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ raw: buildGmailRaw(config.from, message, config.replyTo) }),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null) as { error?: { message?: string }; message?: string } | null;
+    throw new Error(error?.error?.message ?? error?.message ?? `Gmail returned ${response.status}`);
+  }
+}
+
 async function sendWithRetry(config: EmailConfig, message: EmailMessage, eventKey: string) {
+  // Gmail has no idempotency key for messages/send, so retrying an ambiguous failure can send duplicates.
+  if (config.mode === "gmail") return sendWithGmail(config, message);
   let lastError: unknown;
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     try {
@@ -354,8 +408,9 @@ export async function sendAppointmentNotification(
   const config = getEmailConfig();
   const message = renderAppointmentEmail(event, appointment, config.timezone);
   const eventKey = appointmentEmailEventKey(appointment, event);
+  const canSend = config.mode !== "disabled" && (config.mode !== "gmail" || event === "confirmed");
   const initialStatus =
-    config.mode === "disabled"
+    !canSend
       ? "disabled"
       : config.mode === "test"
         ? "tested"
@@ -376,7 +431,7 @@ export async function sendAppointmentNotification(
     .returning({ eventKey: appointmentEmailNotificationsTable.eventKey });
 
   if (!inserted.length) return { outcome: "duplicate", eventType: event };
-  if (config.mode === "disabled") return { outcome: "disabled", eventType: event };
+  if (!canSend) return { outcome: "disabled", eventType: event };
   if (config.mode === "test") return { outcome: "tested", eventType: event };
 
   const deliveryStatus = getEmailDeliveryStatus();
@@ -391,6 +446,25 @@ export async function sendAppointmentNotification(
 
   try {
     await sendWithRetry(config, message, eventKey);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown email delivery error";
+    try {
+      await db
+        .update(appointmentEmailNotificationsTable)
+        .set({ deliveryStatus: "failed", errorMessage })
+        .where(eq(appointmentEmailNotificationsTable.eventKey, eventKey));
+    } catch (recordError) {
+      return {
+        outcome: "failed",
+        eventType: event,
+        error: errorMessage,
+        recordError: recordError instanceof Error ? recordError.message : "Could not record delivery failure",
+      };
+    }
+    return { outcome: "failed", eventType: event, error: errorMessage };
+  }
+
+  try {
     await db
       .update(appointmentEmailNotificationsTable)
       .set({
@@ -399,16 +473,14 @@ export async function sendAppointmentNotification(
         deliveredAt: new Date(),
       })
       .where(eq(appointmentEmailNotificationsTable.eventKey, eventKey));
-    return { outcome: "delivered", eventType: event };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown email delivery error";
-    await db
-      .update(appointmentEmailNotificationsTable)
-      .set({ deliveryStatus: "failed", errorMessage })
-      .where(eq(appointmentEmailNotificationsTable.eventKey, eventKey));
-    return { outcome: "failed", eventType: event, error: errorMessage };
+    return {
+      outcome: "delivered",
+      eventType: event,
+      recordError: error instanceof Error ? error.message : "Could not record delivery success",
+    };
   }
+  return { outcome: "delivered", eventType: event };
 }
 
 export function notificationEventForUpdate(

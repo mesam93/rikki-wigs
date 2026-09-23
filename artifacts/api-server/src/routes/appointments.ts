@@ -39,8 +39,11 @@ async function deliverAppointmentEmail(
       eventType: result.eventType,
       outcome: result.outcome,
       error: result.error,
+      recordError: result.recordError,
     };
-    if (result.outcome === "failed") {
+    if (result.recordError) {
+      req.log.error(details, "Appointment email outcome could not be recorded");
+    } else if (result.outcome === "failed") {
       req.log.error(details, "Appointment email delivery failed");
     } else {
       req.log.info(details, "Appointment email processed");
@@ -283,35 +286,40 @@ router.patch("/appointments/:id", requireAdmin, async (req, res): Promise<void> 
   const nextDate = body.data.appointmentDate ? toDateString(body.data.appointmentDate) : current.appointmentDate;
   const nextTime = body.data.appointmentTime ?? current.appointmentTime;
   const nextStatus = body.data.status ?? current.status;
-  if (nextStatus === "pending" || nextStatus === "confirmed") {
-    const start = toMinutes(nextTime);
-    const end = start + current.serviceDurationMinutes;
-    const conflicts = await db.select({ time: appointmentsTable.appointmentTime, durationMinutes: appointmentsTable.serviceDurationMinutes })
-      .from(appointmentsTable)
-      .where(and(
-        ne(appointmentsTable.id, current.id),
-        eq(appointmentsTable.appointmentDate, nextDate),
-        inArray(appointmentsTable.status, ["pending", "confirmed"]),
-      ));
-    if (conflicts.some((item) => {
-      const otherStart = toMinutes(item.time);
-      return overlaps(start, end, otherStart, otherStart + item.durationMinutes);
-    })) {
-      res.status(409).json({ error: "That time overlaps another active appointment." });
-      return;
-    }
-  }
-
   const { appointmentDate, ...otherUpdates } = body.data;
   const update = appointmentDate
     ? { ...otherUpdates, appointmentDate: toDateString(appointmentDate) }
     : otherUpdates;
 
-  const [appointment] = await db
-    .update(appointmentsTable)
-    .set(update)
-    .where(eq(appointmentsTable.id, params.data.id))
-    .returning();
+  const result = await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${nextDate}))`);
+    if (nextStatus === "pending" || nextStatus === "confirmed") {
+      const start = toMinutes(nextTime);
+      const end = start + current.serviceDurationMinutes;
+      const conflicts = await tx.select({ time: appointmentsTable.appointmentTime, durationMinutes: appointmentsTable.serviceDurationMinutes })
+        .from(appointmentsTable)
+        .where(and(
+          ne(appointmentsTable.id, current.id),
+          eq(appointmentsTable.appointmentDate, nextDate),
+          inArray(appointmentsTable.status, ["pending", "confirmed"]),
+        ));
+      if (conflicts.some((item) => {
+        const otherStart = toMinutes(item.time);
+        return overlaps(start, end, otherStart, otherStart + item.durationMinutes);
+      })) return { conflict: true as const };
+    }
+    const [appointment] = await tx
+      .update(appointmentsTable)
+      .set(update)
+      .where(eq(appointmentsTable.id, params.data.id))
+      .returning();
+    return { appointment };
+  });
+  if ("conflict" in result) {
+    res.status(409).json({ error: "That time overlaps another active appointment." });
+    return;
+  }
+  const { appointment } = result;
 
   if (!appointment) {
     res.status(404).json({ error: "Appointment not found" });

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   getGetAdminAvailabilityQueryKey,
   useCreateAdminAppointment,
@@ -7,7 +8,7 @@ import {
 } from '@workspace/api-client-react';
 
 type EmailOutcome = 'delivered' | 'tested' | 'disabled' | 'duplicate' | 'failed';
-type EmailStatus = { mode: 'disabled' | 'test' | 'smtp' | 'resend'; configured: boolean; label: string };
+type EmailStatus = { mode: 'disabled' | 'test' | 'smtp' | 'resend' | 'gmail'; configured: boolean; label: string };
 
 function businessToday() {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -40,6 +41,7 @@ export function AdminAppointmentForm({
     name: '', phone: '', email: '', notes: '',
   });
   const [error, setError] = useState('');
+  const queryClient = useQueryClient();
   const { data: services, isLoading: servicesLoading, isError: servicesError } = useListServices();
   const bookableServices = services?.filter((service) => service.isBookable && !service.isArchived) ?? [];
   const { data: availableDays, isLoading: availabilityLoading, isError: availabilityError } =
@@ -79,6 +81,10 @@ export function AdminAppointmentForm({
       });
       onCreated(result.appointment.name, result.email.outcome, result.email.error);
     } catch (cause) {
+      if (cause && typeof cause === 'object' && 'status' in cause && cause.status === 409) {
+        setForm((current) => ({ ...current, appointmentTime: '' }));
+        void queryClient.invalidateQueries({ queryKey: getGetAdminAvailabilityQueryKey({ service: form.service }) });
+      }
       setError(cause instanceof Error ? cause.message : 'Could not create this appointment.');
     }
   };

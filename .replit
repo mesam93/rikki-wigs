@@ -21,3 +21,9 @@ timeoutMs = 20000
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+EMAIL_DELIVERY_MODE = "gmail"
+EMAIL_FROM = "Rikki Wigs <rikkisamel@gmail.com>"

@@ -734,7 +734,7 @@ components:
       properties:
         mode:
           type: string
-          enum: [disabled, test, smtp, resend]
+          enum: [disabled, test, smtp, resend, gmail]
         configured:
           type: boolean
         label:

@@ -465,7 +465,7 @@ export const GetAppointmentSummaryResponse = zod.object({
  * @summary Get appointment email delivery status
  */
 export const GetEmailStatusResponse = zod.object({
-  "mode": zod.enum(['disabled', 'test', 'smtp', 'resend']),
+  "mode": zod.enum(['disabled', 'test', 'smtp', 'resend', 'gmail']),
   "configured": zod.boolean(),
   "label": zod.string()
 })
