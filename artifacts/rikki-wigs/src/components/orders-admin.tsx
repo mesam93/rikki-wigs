@@ -233,7 +233,7 @@ function WigOrderForm({ initial, onSave, onCancel, busy }: { initial?: WigOrder;
 
       <div className="flex items-center gap-3 pt-4 border-t border-[hsl(var(--border))]">
         <button type="button" onClick={onCancel} className="btn-quiet flex-1" data-testid="button-cancel-order">Cancel</button>
-        <button type="submit" disabled={busy || !ready} className="btn-primary flex-1" data-testid="button-save-order">{busy ? 'Saving...' : 'Save Order'}</button>
+        <button type="submit" disabled={busy || !ready} className="btn-primary flex-1" data-testid="button-save-order">{busy ? 'Saving...' : initial ? 'Save Order' : 'Save & Issue Receipt'}</button>
       </div>
     </form>
   )
@@ -444,11 +444,14 @@ export function OrdersAdmin() {
         onError: () => toast({ title: "Failed to update order.", variant: "destructive" })
       });
     } else {
-      createOrder.mutate({ data: savedData }, {
-        onSuccess: () => {
+       createOrder.mutate({ data: savedData }, {
+         onSuccess: (created) => {
           queryClient.invalidateQueries({ queryKey: getListWigOrdersQueryKey() });
           setIsFormOpen(false);
-          toast({ title: "Order created successfully." });
+           setSearch('');
+           setKindFilter('all');
+           setExpandedId(created.id);
+           toast({ title: "Order saved and receipt issued." });
         },
         onError: () => toast({ title: "Failed to create order.", variant: "destructive" })
       });
@@ -554,7 +557,7 @@ export function OrdersAdmin() {
         <SheetContent side="right" className="flex h-[100dvh] !w-full !max-w-none flex-col bg-[hsl(var(--background))] p-0 sm:!max-w-md md:!max-w-lg">
           <SheetHeader className="border-b border-[hsl(var(--border))] p-6 pr-14 text-left">
             <SheetTitle className="font-editorial text-2xl">{editingOrder ? 'Edit Order' : 'New Order'}</SheetTitle>
-            <SheetDescription>{editingOrder ? 'Update the wig order details.' : 'Record a new stock or custom wig order.'}</SheetDescription>
+           <SheetDescription>{editingOrder ? 'Update the wig order details.' : 'Saving a new stock or custom wig order also issues its first receipt.'}</SheetDescription>
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-y-auto p-6">
             {isFormOpen && (

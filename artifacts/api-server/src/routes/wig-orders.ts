@@ -89,7 +89,12 @@ router.post("/admin/orders/historical-import", raw({ type: "application/octet-st
 router.post("/admin/orders", async (req, res): Promise<void> => {
   const parsed = parseOrder(req.body);
   if (!parsed.ok) { res.status(400).json({ error: parsed.error }); return; }
-  const [created] = await db.insert(wigOrdersTable).values(parsed.value).onConflictDoNothing().returning();
+  const created = await db.transaction(async (tx) => {
+    const [order] = await tx.insert(wigOrdersTable).values(parsed.value).onConflictDoNothing().returning();
+    if (!order) return null;
+    await tx.insert(wigReceiptsTable).values({ orderId: order.id, snapshot: order });
+    return order;
+  });
   if (!created) { res.status(409).json({ error: "This item code already exists for that order type" }); return; }
   res.status(201).json(orderResponse(created));
 });
