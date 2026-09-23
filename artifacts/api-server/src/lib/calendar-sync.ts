@@ -78,6 +78,9 @@ export async function syncAppointment(appointmentId: number) {
     let [record] = await db.select().from(appointmentCalendarSyncTable)
       .where(eq(appointmentCalendarSyncTable.appointmentId, appointmentId));
     if (!appointment && !record) return;
+    // Don't introduce historical appointments to Google on a later admin edit.
+    // Events created while upcoming remain linked so status changes can update them.
+    if (appointment && !record && appointment.appointmentDate < localToday()) return;
     const destination = await selectedCalendar();
     if (!record) {
       [record] = await db.insert(appointmentCalendarSyncTable).values({

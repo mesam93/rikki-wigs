@@ -4,4 +4,5 @@
 - [Optional query codegen collision](optional-query-codegen-collision.md) — optional query parameters can collide across generated Zod and type barrels.
 - [Isolated calendar sync checks](calendar-sync-testing.md) — test pure timezone and payload logic separately from connected server dependencies.
 - [Calendar event identity across environments](calendar-event-identity.md) — development and published databases can reuse appointment IDs against one Google Calendar; keep event IDs distinct.
+- [Calendar sync date scope](calendar-sync-date-scope.md) — historical appointments should not be newly added to Google; sync today and future while preserving existing event links.
 - [One-time importer bundling](one-time-importer-bundling.md) — bundle workspace and runtime dependencies together when running standalone TypeScript importers.
