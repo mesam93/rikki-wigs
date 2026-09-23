@@ -20,6 +20,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { GalleryAdmin, GallerySection, TestimonialsAdmin, TestimonialsSection } from '@/components/site-content';
 import { ServicesAdmin } from '@/components/services-admin';
+import { OrdersAdmin } from '@/components/orders-admin';
 import { findNextConfirmedAppointment } from '@/lib/schedule-time';
 import NotFound from '@/pages/not-found';
 
@@ -530,10 +531,10 @@ function ScheduleDashboard() {
 }
 
 type SiteTab = 'services' | 'testimonials' | 'gallery';
-type AdminGroup = 'schedule' | 'site';
+type AdminGroup = 'schedule' | 'orders' | 'site';
 
 const siteTabs = [['services', 'Services'], ['testimonials', 'Testimonials'], ['gallery', 'Gallery']] as const;
-const adminGroups = [['schedule', 'Schedule'], ['site', 'Manage Site']] as const;
+const adminGroups = [['schedule', 'Schedule'], ['orders', 'Orders'], ['site', 'Manage Site']] as const;
 
 function AdminTabs<T extends string>({ items, selected, onSelect, label, idPrefix, panelId, primary = false }: {
   items: readonly (readonly [T, string])[];
@@ -571,6 +572,8 @@ function Manage() {
         <div id="admin-group-panel" role="tabpanel" aria-labelledby={`admin-group-${group}`}>
           {group === 'schedule' ? (
             <ScheduleDashboard />
+          ) : group === 'orders' ? (
+            <OrdersAdmin />
           ) : (
             <>
               <AdminTabs items={siteTabs} selected={siteTab} onSelect={(value: SiteTab) => setSiteTab(value)} label="Manage Site sections" idPrefix="admin-section" panelId="admin-section-panel" />

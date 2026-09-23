@@ -16,7 +16,143 @@ tags:
     description: Public testimonials and gallery content
   - name: services
     description: Public services and admin service management
+  - name: orders
+    description: Private wig orders and receipts
 paths:
+  /admin/orders:
+    get:
+      operationId: listWigOrders
+      tags: [orders]
+      summary: List private wig orders
+      responses:
+        "200":
+          description: Orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/WigOrder" }
+    post:
+      operationId: createWigOrder
+      tags: [orders]
+      summary: Create a wig order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WigOrderInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WigOrder" }
+  /admin/orders/{id}:
+    patch:
+      operationId: updateWigOrder
+      tags: [orders]
+      summary: Update an order or payment total
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WigOrderInput" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WigOrder" }
+  /admin/orders/{id}/receipts:
+    get:
+      operationId: listWigReceipts
+      tags: [orders]
+      summary: List previously issued receipt snapshots
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Receipts
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/WigReceipt" }
+    post:
+      operationId: issueWigReceipt
+      tags: [orders]
+      summary: Issue a receipt from the saved order
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "201":
+          description: Issued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WigReceipt" }
+  /admin/orders/{id}/receipts/{receiptId}/pdf:
+    get:
+      operationId: downloadWigReceipt
+      tags: [orders]
+      summary: Download protected receipt PDF
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: receiptId
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: PDF document
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+  /admin/orders/import/preview:
+    post:
+      operationId: previewWigOrderImport
+      tags: [orders]
+      summary: Preview an XLSX workbook without saving
+      requestBody:
+        required: true
+        content:
+          application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+            schema: { type: string, format: binary }
+      responses:
+        "200":
+          description: Preview and validation issues
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WigImportPreview" }
+  /admin/orders/import/confirm:
+    post:
+      operationId: confirmWigOrderImport
+      tags: [orders]
+      summary: Import reviewed rows
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WigImportConfirmation" }
+      responses:
+        "200":
+          description: Imported rows and skipped duplicates
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WigImportResult" }
   /healthz:
     get:
       operationId: healthCheck
@@ -439,6 +575,89 @@ paths:
           description: Gallery photo removed
 components:
   schemas:
+    WigOrderInput:
+      type: object
+      additionalProperties: false
+      required: [kind, itemCode, orderDate, customerName, priceCents, taxRateMilliPercent, amountPaidCents]
+      properties:
+        kind: { type: string, enum: [stock, custom] }
+        itemCode: { type: string, minLength: 1, maxLength: 100 }
+        orderDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+        customerName: { type: string, minLength: 1, maxLength: 200 }
+        phone: { type: string, maxLength: 100 }
+        email: { type: string, maxLength: 200 }
+        notes: { type: string, maxLength: 3000 }
+        style: { type: string, maxLength: 200 }
+        capSize: { type: string, maxLength: 200 }
+        lengthInch: { type: string, maxLength: 200 }
+        hairType: { type: string, maxLength: 200 }
+        part: { type: string, maxLength: 200 }
+        layers: { type: string, maxLength: 200 }
+        density: { type: string, maxLength: 200 }
+        color: { type: string, maxLength: 200 }
+        highlights: { type: string, maxLength: 500 }
+        priceCents: { type: integer, minimum: 0 }
+        taxRateMilliPercent: { type: integer, minimum: 0, maximum: 100000 }
+        amountPaidCents: { type: integer, minimum: 0 }
+    WigOrder:
+      allOf:
+        - $ref: "#/components/schemas/WigOrderInput"
+        - type: object
+          required: [id, taxCents, totalCents, amountDueCents, createdAt]
+          properties:
+            id: { type: integer }
+            taxCents: { type: integer }
+            totalCents: { type: integer }
+            amountDueCents: { type: integer }
+            createdAt: { type: string, format: date-time }
+    WigReceipt:
+      type: object
+      required: [id, orderId, issuedAt, receiptNumber]
+      properties:
+        id: { type: integer }
+        orderId: { type: integer }
+        issuedAt: { type: string, format: date-time }
+        receiptNumber: { type: string }
+    WigImportRow:
+      type: object
+      required: [sheet, rowNumber, order]
+      properties:
+        sheet: { type: string }
+        rowNumber: { type: integer }
+        order: { $ref: "#/components/schemas/WigOrderInput" }
+    WigImportIssue:
+      type: object
+      required: [sheet, rowNumber, reason]
+      properties:
+        sheet: { type: string }
+        rowNumber: { type: integer }
+        reason: { type: string }
+    WigImportPreview:
+      type: object
+      required: [rows, issues]
+      properties:
+        rows:
+          type: array
+          items: { $ref: "#/components/schemas/WigImportRow" }
+        issues:
+          type: array
+          items: { $ref: "#/components/schemas/WigImportIssue" }
+    WigImportConfirmation:
+      type: object
+      required: [rows]
+      properties:
+        rows:
+          type: array
+          maxItems: 500
+          items: { $ref: "#/components/schemas/WigImportRow" }
+    WigImportResult:
+      type: object
+      required: [imported, skipped]
+      properties:
+        imported: { type: integer }
+        skipped:
+          type: array
+          items: { $ref: "#/components/schemas/WigImportIssue" }
     HealthStatus:
       type: object
       properties:

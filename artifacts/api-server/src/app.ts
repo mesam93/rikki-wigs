@@ -28,6 +28,7 @@ app.use(
 );
 
 app.use(cors({ credentials: true, origin: true }));
+app.use("/api/admin/orders/import/confirm", express.json({ limit: "2mb" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

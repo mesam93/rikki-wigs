@@ -38,7 +38,13 @@ import type {
   ServiceInput,
   ServiceUploadRequest,
   Testimonial,
-  TestimonialInput
+  TestimonialInput,
+  WigImportConfirmation,
+  WigImportPreview,
+  WigImportResult,
+  WigOrder,
+  WigOrderInput,
+  WigReceipt
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -67,6 +73,669 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getListWigOrdersUrl = () => {
+
+
+
+
+  return `/api/admin/orders`
+}
+
+/**
+ * @summary List private wig orders
+ */
+export const listWigOrders = async ( options?: Parameters<typeof customFetch>[1]): Promise<WigOrder[]> => {
+
+  return customFetch<WigOrder[]>(getListWigOrdersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListWigOrdersQueryKey = () => {
+    return [
+    `/api/admin/orders`
+    ] as const;
+    }
+
+
+export const getListWigOrdersQueryOptions = <TData = Awaited<ReturnType<typeof listWigOrders>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWigOrders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListWigOrdersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listWigOrders>>> = ({ signal }) => listWigOrders({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listWigOrders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListWigOrdersQueryResult = NonNullable<Awaited<ReturnType<typeof listWigOrders>>>
+export type ListWigOrdersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List private wig orders
+ */
+
+export function useListWigOrders<TData = Awaited<ReturnType<typeof listWigOrders>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWigOrders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListWigOrdersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateWigOrderUrl = () => {
+
+
+
+
+  return `/api/admin/orders`
+}
+
+/**
+ * @summary Create a wig order
+ */
+export const createWigOrder = async (wigOrderInput: WigOrderInput, options?: Parameters<typeof customFetch>[1]): Promise<WigOrder> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<WigOrder>(getCreateWigOrderUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(wigOrderInput)
+  }
+);}
+
+
+
+
+
+export const getCreateWigOrderMutationKey = () => ['createWigOrder'] as const;
+
+export const getCreateWigOrderMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWigOrder>>, TError,CreateWigOrderMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createWigOrder>>, TError,CreateWigOrderMutationVariables, TContext> => {
+
+const mutationKey = getCreateWigOrderMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createWigOrder>>, CreateWigOrderMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createWigOrder(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateWigOrderMutationResult = NonNullable<Awaited<ReturnType<typeof createWigOrder>>>
+    export type CreateWigOrderMutationBody = BodyType<WigOrderInput>
+    export type CreateWigOrderMutationError = ErrorType<unknown>
+    export type CreateWigOrderMutationVariables = {data: BodyType<WigOrderInput>}
+
+    /**
+ * @summary Create a wig order
+ */
+export const useCreateWigOrder = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWigOrder>>, TError,CreateWigOrderMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createWigOrder>>,
+        TError,
+        CreateWigOrderMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateWigOrderMutationOptions(options));
+    }
+
+export const getUpdateWigOrderUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/orders/${id}`
+}
+
+/**
+ * @summary Update an order or payment total
+ */
+export const updateWigOrder = async (id: number,
+    wigOrderInput: WigOrderInput, options?: Parameters<typeof customFetch>[1]): Promise<WigOrder> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<WigOrder>(getUpdateWigOrderUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(wigOrderInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateWigOrderMutationKey = () => ['updateWigOrder'] as const;
+
+export const getUpdateWigOrderMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWigOrder>>, TError,UpdateWigOrderMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateWigOrder>>, TError,UpdateWigOrderMutationVariables, TContext> => {
+
+const mutationKey = getUpdateWigOrderMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateWigOrder>>, UpdateWigOrderMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateWigOrder(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateWigOrderMutationResult = NonNullable<Awaited<ReturnType<typeof updateWigOrder>>>
+    export type UpdateWigOrderMutationBody = BodyType<WigOrderInput>
+    export type UpdateWigOrderMutationError = ErrorType<unknown>
+    export type UpdateWigOrderMutationVariables = {id: number;data: BodyType<WigOrderInput>}
+
+    /**
+ * @summary Update an order or payment total
+ */
+export const useUpdateWigOrder = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWigOrder>>, TError,UpdateWigOrderMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateWigOrder>>,
+        TError,
+        UpdateWigOrderMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateWigOrderMutationOptions(options));
+    }
+
+export const getListWigReceiptsUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/orders/${id}/receipts`
+}
+
+/**
+ * @summary List previously issued receipt snapshots
+ */
+export const listWigReceipts = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<WigReceipt[]> => {
+
+  return customFetch<WigReceipt[]>(getListWigReceiptsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListWigReceiptsQueryKey = (id: number,) => {
+    return [
+    `/api/admin/orders/${id}/receipts`
+    ] as const;
+    }
+
+
+export const getListWigReceiptsQueryOptions = <TData = Awaited<ReturnType<typeof listWigReceipts>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWigReceipts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListWigReceiptsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listWigReceipts>>> = ({ signal }) => listWigReceipts(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listWigReceipts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListWigReceiptsQueryResult = NonNullable<Awaited<ReturnType<typeof listWigReceipts>>>
+export type ListWigReceiptsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List previously issued receipt snapshots
+ */
+
+export function useListWigReceipts<TData = Awaited<ReturnType<typeof listWigReceipts>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWigReceipts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListWigReceiptsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getIssueWigReceiptUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/orders/${id}/receipts`
+}
+
+/**
+ * @summary Issue a receipt from the saved order
+ */
+export const issueWigReceipt = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<WigReceipt> => {
+
+  return customFetch<WigReceipt>(getIssueWigReceiptUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getIssueWigReceiptMutationKey = () => ['issueWigReceipt'] as const;
+
+export const getIssueWigReceiptMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof issueWigReceipt>>, TError,IssueWigReceiptMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof issueWigReceipt>>, TError,IssueWigReceiptMutationVariables, TContext> => {
+
+const mutationKey = getIssueWigReceiptMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof issueWigReceipt>>, IssueWigReceiptMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  issueWigReceipt(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type IssueWigReceiptMutationResult = NonNullable<Awaited<ReturnType<typeof issueWigReceipt>>>
+
+    export type IssueWigReceiptMutationError = ErrorType<unknown>
+    export type IssueWigReceiptMutationVariables = {id: number}
+
+    /**
+ * @summary Issue a receipt from the saved order
+ */
+export const useIssueWigReceipt = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof issueWigReceipt>>, TError,IssueWigReceiptMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof issueWigReceipt>>,
+        TError,
+        IssueWigReceiptMutationVariables,
+        TContext
+      > => {
+      return useMutation(getIssueWigReceiptMutationOptions(options));
+    }
+
+export const getDownloadWigReceiptUrl = (id: number,
+    receiptId: number,) => {
+
+
+
+
+  return `/api/admin/orders/${id}/receipts/${receiptId}/pdf`
+}
+
+/**
+ * @summary Download protected receipt PDF
+ */
+export const downloadWigReceipt = async (id: number,
+    receiptId: number, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getDownloadWigReceiptUrl(id,receiptId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadWigReceiptQueryKey = (id: number,
+    receiptId: number,) => {
+    return [
+    `/api/admin/orders/${id}/receipts/${receiptId}/pdf`
+    ] as const;
+    }
+
+
+export const getDownloadWigReceiptQueryOptions = <TData = Awaited<ReturnType<typeof downloadWigReceipt>>, TError = ErrorType<unknown>>(id: number,
+    receiptId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadWigReceipt>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadWigReceiptQueryKey(id,receiptId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadWigReceipt>>> = ({ signal }) => downloadWigReceipt(id,receiptId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined && receiptId !== null && receiptId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadWigReceipt>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DownloadWigReceiptQueryResult = NonNullable<Awaited<ReturnType<typeof downloadWigReceipt>>>
+export type DownloadWigReceiptQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Download protected receipt PDF
+ */
+
+export function useDownloadWigReceipt<TData = Awaited<ReturnType<typeof downloadWigReceipt>>, TError = ErrorType<unknown>>(
+ id: number,
+    receiptId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadWigReceipt>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDownloadWigReceiptQueryOptions(id,receiptId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPreviewWigOrderImportUrl = () => {
+
+
+
+
+  return `/api/admin/orders/import/preview`
+}
+
+/**
+ * @summary Preview an XLSX workbook without saving
+ */
+export const previewWigOrderImport = async (previewWigOrderImportBody: Blob, options?: Parameters<typeof customFetch>[1]): Promise<WigImportPreview> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<WigImportPreview>(getPreviewWigOrderImportUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ...getHeaders(options?.headers) },
+    body: previewWigOrderImportBody
+  }
+);}
+
+
+
+
+
+export const getPreviewWigOrderImportMutationKey = () => ['previewWigOrderImport'] as const;
+
+export const getPreviewWigOrderImportMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewWigOrderImport>>, TError,PreviewWigOrderImportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof previewWigOrderImport>>, TError,PreviewWigOrderImportMutationVariables, TContext> => {
+
+const mutationKey = getPreviewWigOrderImportMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof previewWigOrderImport>>, PreviewWigOrderImportMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  previewWigOrderImport(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PreviewWigOrderImportMutationResult = NonNullable<Awaited<ReturnType<typeof previewWigOrderImport>>>
+    export type PreviewWigOrderImportMutationBody = BodyType<Blob>
+    export type PreviewWigOrderImportMutationError = ErrorType<unknown>
+    export type PreviewWigOrderImportMutationVariables = {data: BodyType<Blob>}
+
+    /**
+ * @summary Preview an XLSX workbook without saving
+ */
+export const usePreviewWigOrderImport = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewWigOrderImport>>, TError,PreviewWigOrderImportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof previewWigOrderImport>>,
+        TError,
+        PreviewWigOrderImportMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPreviewWigOrderImportMutationOptions(options));
+    }
+
+export const getConfirmWigOrderImportUrl = () => {
+
+
+
+
+  return `/api/admin/orders/import/confirm`
+}
+
+/**
+ * @summary Import reviewed rows
+ */
+export const confirmWigOrderImport = async (wigImportConfirmation: WigImportConfirmation, options?: Parameters<typeof customFetch>[1]): Promise<WigImportResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<WigImportResult>(getConfirmWigOrderImportUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(wigImportConfirmation)
+  }
+);}
+
+
+
+
+
+export const getConfirmWigOrderImportMutationKey = () => ['confirmWigOrderImport'] as const;
+
+export const getConfirmWigOrderImportMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmWigOrderImport>>, TError,ConfirmWigOrderImportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmWigOrderImport>>, TError,ConfirmWigOrderImportMutationVariables, TContext> => {
+
+const mutationKey = getConfirmWigOrderImportMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmWigOrderImport>>, ConfirmWigOrderImportMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmWigOrderImport(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmWigOrderImportMutationResult = NonNullable<Awaited<ReturnType<typeof confirmWigOrderImport>>>
+    export type ConfirmWigOrderImportMutationBody = BodyType<WigImportConfirmation>
+    export type ConfirmWigOrderImportMutationError = ErrorType<unknown>
+    export type ConfirmWigOrderImportMutationVariables = {data: BodyType<WigImportConfirmation>}
+
+    /**
+ * @summary Import reviewed rows
+ */
+export const useConfirmWigOrderImport = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmWigOrderImport>>, TError,ConfirmWigOrderImportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmWigOrderImport>>,
+        TError,
+        ConfirmWigOrderImportMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfirmWigOrderImportMutationOptions(options));
+    }
 
 export const getHealthCheckUrl = () => {
 

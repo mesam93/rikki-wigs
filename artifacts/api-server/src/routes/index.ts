@@ -4,6 +4,7 @@ import healthRouter from "./health";
 import appointmentsRouter from "./appointments";
 import siteContentRouter from "./site-content";
 import servicesRouter from "./services";
+import wigOrdersRouter from "./wig-orders";
 import {
   ADMIN_SESSION_COOKIE,
   requireAdmin,
@@ -62,5 +63,6 @@ router.get("/admin-session", requireAdmin, (_req, res) => {
 router.use(siteContentRouter);
 router.use(servicesRouter);
 router.use(appointmentsRouter);
+router.use(wigOrdersRouter);
 
 export default router;

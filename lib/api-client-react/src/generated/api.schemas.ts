@@ -5,6 +5,105 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type WigOrderInputKind = typeof WigOrderInputKind[keyof typeof WigOrderInputKind];
+
+
+export const WigOrderInputKind = {
+  stock: 'stock',
+  custom: 'custom',
+} as const;
+
+export interface WigOrderInput {
+  kind: WigOrderInputKind;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  itemCode: string;
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  orderDate: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  customerName: string;
+  /** @maxLength 100 */
+  phone?: string;
+  /** @maxLength 200 */
+  email?: string;
+  /** @maxLength 3000 */
+  notes?: string;
+  /** @maxLength 200 */
+  style?: string;
+  /** @maxLength 200 */
+  capSize?: string;
+  /** @maxLength 200 */
+  lengthInch?: string;
+  /** @maxLength 200 */
+  hairType?: string;
+  /** @maxLength 200 */
+  part?: string;
+  /** @maxLength 200 */
+  layers?: string;
+  /** @maxLength 200 */
+  density?: string;
+  /** @maxLength 200 */
+  color?: string;
+  /** @maxLength 500 */
+  highlights?: string;
+  /** @minimum 0 */
+  priceCents: number;
+  /**
+     * @minimum 0
+     * @maximum 100000
+     */
+  taxRateMilliPercent: number;
+  /** @minimum 0 */
+  amountPaidCents: number;
+}
+
+export type WigOrder = WigOrderInput & {
+  id: number;
+  taxCents: number;
+  totalCents: number;
+  amountDueCents: number;
+  createdAt: string;
+};
+
+export interface WigReceipt {
+  id: number;
+  orderId: number;
+  issuedAt: string;
+  receiptNumber: string;
+}
+
+export interface WigImportRow {
+  sheet: string;
+  rowNumber: number;
+  order: WigOrderInput;
+}
+
+export interface WigImportIssue {
+  sheet: string;
+  rowNumber: number;
+  reason: string;
+}
+
+export interface WigImportPreview {
+  rows: WigImportRow[];
+  issues: WigImportIssue[];
+}
+
+export interface WigImportConfirmation {
+  /** @maxItems 500 */
+  rows: WigImportRow[];
+}
+
+export interface WigImportResult {
+  imported: number;
+  skipped: WigImportIssue[];
+}
+
 export interface HealthStatus {
   status: string;
 }

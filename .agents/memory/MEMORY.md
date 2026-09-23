@@ -1,1 +1,2 @@
 - [JSX generics in dev previews](jsx-cartographer-generics.md) — avoid explicit generic JSX invocations with Cartographer; typecheck can pass while dev transform fails.
+- [Bundled ExcelJS runtime dependency](exceljs-swc-runtime.md) — the API bundle can compile but fail at startup unless an ExcelJS helper is present at runtime.
