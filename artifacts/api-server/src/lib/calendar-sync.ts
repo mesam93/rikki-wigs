@@ -8,7 +8,7 @@ import {
   pool,
 } from "@workspace/db";
 import { logger } from "./logger";
-import { eventForAppointment } from "./calendar-time";
+import { eventForAppointment, eventIdForAppointment } from "./calendar-time";
 
 const timezone = "America/New_York";
 const batchSize = 20;
@@ -81,7 +81,8 @@ export async function syncAppointment(appointmentId: number) {
     const destination = await selectedCalendar();
     if (!record) {
       [record] = await db.insert(appointmentCalendarSyncTable).values({
-        appointmentId, calendarId: destination, eventId: `rikki${appointmentId.toString(32)}`,
+        appointmentId, calendarId: destination,
+        eventId: eventIdForAppointment(appointmentId, process.env.REPLIT_DEPLOYMENT === "1"),
       }).onConflictDoNothing().returning();
       if (!record) [record] = await db.select().from(appointmentCalendarSyncTable)
         .where(eq(appointmentCalendarSyncTable.appointmentId, appointmentId));

@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Appointment } from "@workspace/db";
-import { eventForAppointment, localDateTime } from "./calendar-time";
+import { eventForAppointment, eventIdForAppointment, localDateTime } from "./calendar-time";
+
+test("published and development appointments with the same ID use different stable Google IDs", () => {
+  assert.equal(eventIdForAppointment(5, false), "rikki5");
+  assert.equal(eventIdForAppointment(5, true), "rikkip5");
+  assert.notEqual(eventIdForAppointment(1024, false), eventIdForAppointment(1024, true));
+});
 
 test("New York appointment times use the offset on each side of DST", () => {
   assert.equal(localDateTime("2026-03-07", "10:00 AM"), "2026-03-07T10:00:00-05:00");

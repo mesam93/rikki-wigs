@@ -2,6 +2,13 @@ import type { Appointment } from "@workspace/db";
 
 const timezone = "America/New_York";
 
+// Keep existing development event IDs stable. Published appointments use a
+// separate namespace because development and production databases can assign
+// the same numeric appointment IDs to different bookings.
+export function eventIdForAppointment(appointmentId: number, published: boolean): string {
+  return `rikki${published ? "p" : ""}${appointmentId.toString(32)}`;
+}
+
 // Resolve the offset at the appointment's local wall-clock time, not at UTC midnight.
 // Iteration handles the UTC day on either side of daylight-saving transitions.
 export function localDateTime(date: string, time: string, minutesToAdd = 0): string {
