@@ -142,6 +142,33 @@ export interface EmailDeliveryStatus {
   label: string;
 }
 
+export interface WritableCalendar {
+  id: string;
+  summary: string;
+  primary?: boolean;
+  accessRole: string;
+}
+
+export interface CalendarSyncStatus {
+  connected: boolean;
+  calendarId: string;
+  calendars: WritableCalendar[];
+  failed: number;
+  unsynced: number;
+  /** @nullable */
+  error: string | null;
+}
+
+export interface CalendarSyncSelection {
+  /** @minLength 1 */
+  calendarId: string;
+}
+
+export interface CalendarSyncResult {
+  processed: number;
+  failed: number;
+}
+
 export interface Appointment {
   id: number;
   name: string;
@@ -298,4 +325,3 @@ export type RequestGalleryUploadUrl200 = {
   uploadUrl: string;
   objectPath: string;
 };
-

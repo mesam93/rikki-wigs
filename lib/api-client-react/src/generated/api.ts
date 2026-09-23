@@ -25,6 +25,9 @@ import type {
   AppointmentSummary,
   AppointmentUpdate,
   AvailabilityDay,
+  CalendarSyncResult,
+  CalendarSyncSelection,
+  CalendarSyncStatus,
   EmailDeliveryStatus,
   GalleryPhoto,
   GalleryPhotoInput,
@@ -1206,6 +1209,245 @@ export function useGetEmailStatus<TData = Awaited<ReturnType<typeof getEmailStat
 
 
 
+
+export const getGetCalendarSyncStatusUrl = () => {
+
+
+
+
+  return `/api/calendar-sync`
+}
+
+/**
+ * @summary Check the owner's Google Calendar connection and sync health
+ */
+export const getCalendarSyncStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<CalendarSyncStatus> => {
+
+  return customFetch<CalendarSyncStatus>(getGetCalendarSyncStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCalendarSyncStatusQueryKey = () => {
+    return [
+    `/api/calendar-sync`
+    ] as const;
+    }
+
+
+export const getGetCalendarSyncStatusQueryOptions = <TData = Awaited<ReturnType<typeof getCalendarSyncStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCalendarSyncStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCalendarSyncStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCalendarSyncStatus>>> = ({ signal }) => getCalendarSyncStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCalendarSyncStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCalendarSyncStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getCalendarSyncStatus>>>
+export type GetCalendarSyncStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Check the owner's Google Calendar connection and sync health
+ */
+
+export function useGetCalendarSyncStatus<TData = Awaited<ReturnType<typeof getCalendarSyncStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCalendarSyncStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCalendarSyncStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSelectCalendarSyncDestinationUrl = () => {
+
+
+
+
+  return `/api/calendar-sync`
+}
+
+/**
+ * @summary Select a writable destination calendar
+ */
+export const selectCalendarSyncDestination = async (calendarSyncSelection: CalendarSyncSelection, options?: Parameters<typeof customFetch>[1]): Promise<CalendarSyncStatus> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CalendarSyncStatus>(getSelectCalendarSyncDestinationUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(calendarSyncSelection)
+  }
+);}
+
+
+
+
+
+export const getSelectCalendarSyncDestinationMutationKey = () => ['selectCalendarSyncDestination'] as const;
+
+export const getSelectCalendarSyncDestinationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof selectCalendarSyncDestination>>, TError,SelectCalendarSyncDestinationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof selectCalendarSyncDestination>>, TError,SelectCalendarSyncDestinationMutationVariables, TContext> => {
+
+const mutationKey = getSelectCalendarSyncDestinationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof selectCalendarSyncDestination>>, SelectCalendarSyncDestinationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  selectCalendarSyncDestination(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SelectCalendarSyncDestinationMutationResult = NonNullable<Awaited<ReturnType<typeof selectCalendarSyncDestination>>>
+    export type SelectCalendarSyncDestinationMutationBody = BodyType<CalendarSyncSelection>
+    export type SelectCalendarSyncDestinationMutationError = ErrorType<unknown>
+    export type SelectCalendarSyncDestinationMutationVariables = {data: BodyType<CalendarSyncSelection>}
+
+    /**
+ * @summary Select a writable destination calendar
+ */
+export const useSelectCalendarSyncDestination = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof selectCalendarSyncDestination>>, TError,SelectCalendarSyncDestinationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof selectCalendarSyncDestination>>,
+        TError,
+        SelectCalendarSyncDestinationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSelectCalendarSyncDestinationMutationOptions(options));
+    }
+
+export const getRetryCalendarSyncUrl = () => {
+
+
+
+
+  return `/api/calendar-sync/retry`
+}
+
+/**
+ * @summary Backfill upcoming appointments and retry failed syncs
+ */
+export const retryCalendarSync = async ( options?: Parameters<typeof customFetch>[1]): Promise<CalendarSyncResult> => {
+
+  return customFetch<CalendarSyncResult>(getRetryCalendarSyncUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRetryCalendarSyncMutationKey = () => ['retryCalendarSync'] as const;
+
+export const getRetryCalendarSyncMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryCalendarSync>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof retryCalendarSync>>, TError,void, TContext> => {
+
+const mutationKey = getRetryCalendarSyncMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retryCalendarSync>>, void> = () => {
+
+
+          return  retryCalendarSync(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RetryCalendarSyncMutationResult = NonNullable<Awaited<ReturnType<typeof retryCalendarSync>>>
+
+    export type RetryCalendarSyncMutationError = ErrorType<unknown>
+
+
+    /**
+ * @summary Backfill upcoming appointments and retry failed syncs
+ */
+export const useRetryCalendarSync = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryCalendarSync>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof retryCalendarSync>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRetryCalendarSyncMutationOptions(options));
+    }
 
 export const getGetAvailabilityUrl = (params: GetAvailabilityParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -2669,4 +2911,3 @@ export const useDeleteGalleryPhoto = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getDeleteGalleryPhotoMutationOptions(options));
     }
-

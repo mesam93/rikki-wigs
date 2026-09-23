@@ -428,6 +428,58 @@ export const GetEmailStatusResponse = zod.object({
 
 
 /**
+ * @summary Check the owner's Google Calendar connection and sync health
+ */
+export const GetCalendarSyncStatusResponse = zod.object({
+  "connected": zod.boolean(),
+  "calendarId": zod.string(),
+  "calendars": zod.array(zod.object({
+  "id": zod.string(),
+  "summary": zod.string(),
+  "primary": zod.boolean().optional(),
+  "accessRole": zod.string()
+})),
+  "failed": zod.number().int(),
+  "unsynced": zod.number().int(),
+  "error": zod.string().nullable()
+})
+
+
+/**
+ * @summary Select a writable destination calendar
+ */
+
+
+
+export const SelectCalendarSyncDestinationBody = zod.object({
+  "calendarId": zod.string().min(1)
+})
+
+export const SelectCalendarSyncDestinationResponse = zod.object({
+  "connected": zod.boolean(),
+  "calendarId": zod.string(),
+  "calendars": zod.array(zod.object({
+  "id": zod.string(),
+  "summary": zod.string(),
+  "primary": zod.boolean().optional(),
+  "accessRole": zod.string()
+})),
+  "failed": zod.number().int(),
+  "unsynced": zod.number().int(),
+  "error": zod.string().nullable()
+})
+
+
+/**
+ * @summary Backfill upcoming appointments and retry failed syncs
+ */
+export const RetryCalendarSyncResponse = zod.object({
+  "processed": zod.number().int(),
+  "failed": zod.number().int()
+})
+
+
+/**
  * @summary Get available booking dates and times
  */
 export const GetAvailabilityQueryParams = zod.object({
@@ -976,5 +1028,3 @@ export const DeleteGalleryPhotoParams = zod.object({
 })
 
 export const DeleteGalleryPhotoResponse = zod.void()
-
-

@@ -21,6 +21,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { GalleryAdmin, GallerySection, TestimonialsAdmin, TestimonialsSection } from '@/components/site-content';
 import { ServicesAdmin } from '@/components/services-admin';
 import { OrdersAdmin } from '@/components/orders-admin';
+import { CalendarSyncPanel } from '@/components/calendar-sync-panel';
 import { findNextConfirmedAppointment } from '@/lib/schedule-time';
 import NotFound from '@/pages/not-found';
 
@@ -349,6 +350,7 @@ function ScheduleDashboard() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: getListAppointmentsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetAppointmentSummaryQueryKey() });
+    queryClient.invalidateQueries({ queryKey: ['calendar-sync'] });
   };
   const updateStatus = (appointment: Appointment, status: typeof statuses[number]) => updateAppointment.mutate({ id: appointment.id, data: { status } }, { onSuccess: invalidate });
   const reschedule = (appointment: Appointment, appointmentDate: string, appointmentTime: string) => updateAppointment.mutate({ id: appointment.id, data: { appointmentDate, appointmentTime } }, { onSuccess: invalidate });
@@ -517,6 +519,8 @@ function ScheduleDashboard() {
           </div>
         </div>
       </section>
+
+      <CalendarSyncPanel />
 
       <SidePanel
         open={isSettingsOpen}

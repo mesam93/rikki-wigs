@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request } from "express";
 import { and, asc, eq, gte, inArray, ne, sql } from "drizzle-orm";
-import { appointmentsTable, db, schedulingSettingsTable, type Appointment, type BlockedSlot, type TimeWindow, type WeeklyHours } from "@workspace/db";
+import { appointmentCalendarSyncTable, appointmentsTable, db, schedulingSettingsTable, type Appointment, type BlockedSlot, type TimeWindow, type WeeklyHours } from "@workspace/db";
 import {
   CreateAppointmentBody,
   CreateAppointmentResponse,
@@ -20,6 +20,7 @@ import {
 } from "../email/appointment-emails";
 import { requireAdmin } from "../middlewares/requireAdmin";
 import { ensureServices, getBookableService, weekdays } from "../lib/services";
+import { trySyncAppointment } from "../lib/calendar-sync";
 
 const router: IRouter = Router();
 
@@ -206,6 +207,7 @@ router.post("/appointments", async (req, res): Promise<void> => {
   }
 
   await deliverAppointmentEmail(req, "request_received", appointment);
+  await trySyncAppointment(appointment.id);
 
   res
     .status(201)
@@ -272,6 +274,7 @@ router.patch("/appointments/:id", requireAdmin, async (req, res): Promise<void> 
   if (emailEvent) {
     await deliverAppointmentEmail(req, emailEvent, appointment);
   }
+  await trySyncAppointment(appointment.id);
 
   res.json(
     UpdateAppointmentResponse.parse(serializeAppointment(appointment)),
@@ -285,15 +288,22 @@ router.delete("/appointments/:id", requireAdmin, async (req, res): Promise<void>
     return;
   }
 
-  const [appointment] = await db
-    .delete(appointmentsTable)
-    .where(eq(appointmentsTable.id, params.data.id))
-    .returning({ id: appointmentsTable.id });
+  const [appointment] = await db.transaction(async (tx) => {
+    const deleted = await tx.delete(appointmentsTable)
+      .where(eq(appointmentsTable.id, params.data.id))
+      .returning({ id: appointmentsTable.id });
+    if (deleted.length) {
+      await tx.update(appointmentCalendarSyncTable).set({ deleted: true })
+        .where(eq(appointmentCalendarSyncTable.appointmentId, params.data.id));
+    }
+    return deleted;
+  });
 
   if (!appointment) {
     res.status(404).json({ error: "Appointment not found" });
     return;
   }
+  await trySyncAppointment(appointment.id);
 
   res.sendStatus(204);
 });

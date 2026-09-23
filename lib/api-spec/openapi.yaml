@@ -255,6 +255,47 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmailDeliveryStatus"
+  /calendar-sync:
+    get:
+      operationId: getCalendarSyncStatus
+      tags: [appointments]
+      summary: Check the owner's Google Calendar connection and sync health
+      responses:
+        "200":
+          description: Calendar connection and sync status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarSyncStatus"
+    put:
+      operationId: selectCalendarSyncDestination
+      tags: [appointments]
+      summary: Select a writable destination calendar
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CalendarSyncSelection"
+      responses:
+        "200":
+          description: Selected calendar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarSyncStatus"
+  /calendar-sync/retry:
+    post:
+      operationId: retryCalendarSync
+      tags: [appointments]
+      summary: Backfill upcoming appointments and retry failed syncs
+      responses:
+        "200":
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarSyncResult"
   /availability:
     get:
       operationId: getAvailability
@@ -656,6 +697,38 @@ components:
           type: boolean
         label:
           type: string
+    WritableCalendar:
+      type: object
+      required: [id, summary, accessRole]
+      properties:
+        id: { type: string }
+        summary: { type: string }
+        primary: { type: boolean }
+        accessRole: { type: string }
+    CalendarSyncStatus:
+      type: object
+      required: [connected, calendarId, calendars, failed, unsynced, error]
+      properties:
+        connected: { type: boolean }
+        calendarId: { type: string }
+        calendars:
+          type: array
+          items:
+            $ref: "#/components/schemas/WritableCalendar"
+        failed: { type: integer }
+        unsynced: { type: integer }
+        error: { type: ["string", "null"] }
+    CalendarSyncSelection:
+      type: object
+      required: [calendarId]
+      properties:
+        calendarId: { type: string, minLength: 1 }
+    CalendarSyncResult:
+      type: object
+      required: [processed, failed]
+      properties:
+        processed: { type: integer }
+        failed: { type: integer }
     Appointment:
       type: object
       required: [id, name, phone, email, service, appointmentDate, appointmentTime, status, notes, createdAt]
@@ -856,4 +929,3 @@ components:
       required: [contentType]
       properties:
         contentType: { type: string }
-

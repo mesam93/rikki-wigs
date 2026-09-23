@@ -9,6 +9,7 @@ import {
   ADMIN_SESSION_COOKIE,
   requireAdmin,
 } from "../middlewares/requireAdmin";
+import calendarSyncRouter from "./calendar-sync";
 
 const router: IRouter = Router();
 
@@ -64,5 +65,5 @@ router.use(siteContentRouter);
 router.use(servicesRouter);
 router.use(appointmentsRouter);
 router.use(wigOrdersRouter);
-
+router.use(calendarSyncRouter);
 export default router;
