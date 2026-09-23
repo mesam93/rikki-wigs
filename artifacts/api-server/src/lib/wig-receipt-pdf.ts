@@ -41,22 +41,22 @@ export function sendReceiptPdf(res: Response, receipt: {
   pdf.pipe(res);
 
   const issuedDate = receipt.issuedAt.toLocaleDateString("en-US", { timeZone: "America/New_York" });
-  pdf.rect(0, 0, pageWidth, 155).fill(ink);
-  pdf.rect(0, 155, pageWidth, 3).fill(gold);
-  pdf.image(logoPath, left, 28, { width: 96 });
-  pdf.font("Helvetica-Bold").fontSize(28).fillColor("#ffffff").text("RECEIPT", 174, 54);
-  pdf.font("Helvetica").fontSize(10).fillColor("#dbc9a5")
-    .text(`RW-${receipt.id}   •   Issued ${issuedDate}`, 176, 103, { width: 365 });
+  pdf.rect(0, 0, pageWidth, 106).fill(ink);
+  pdf.rect(0, 106, pageWidth, 2).fill(gold);
+  pdf.image(logoPath, left, 17, { width: 74 });
+  pdf.font("Helvetica-Bold").fontSize(25).fillColor("#ffffff").text("RECEIPT", 147, 27);
+  pdf.font("Helvetica").fontSize(9.5).fillColor("#dbc9a5")
+    .text(`RW-${receipt.id}   •   Issued ${issuedDate}`, 149, 70, { width: 375 });
 
-  let y = 183;
+  let y = 125;
   const continuation = () => {
     pdf.addPage();
-    pdf.rect(0, 0, pageWidth, 83).fill(ink);
-    pdf.rect(0, 83, pageWidth, 2).fill(gold);
-    pdf.image(logoPath, left, 15, { width: 52 });
-    pdf.font("Helvetica-Bold").fontSize(16).fillColor("#ffffff")
-      .text(`RECEIPT  RW-${receipt.id}`, 120, 32, { width: 430 });
-    y = 110;
+    pdf.rect(0, 0, pageWidth, 65).fill(ink);
+    pdf.rect(0, 65, pageWidth, 2).fill(gold);
+    pdf.image(logoPath, left, 12, { width: 41 });
+    pdf.font("Helvetica-Bold").fontSize(15).fillColor("#ffffff")
+      .text(`RECEIPT  RW-${receipt.id}`, 107, 22, { width: 430 });
+    y = 89;
   };
   const space = (height: number) => {
     if (y + height > bottom) continuation();
@@ -86,26 +86,26 @@ export function sendReceiptPdf(res: Response, receipt: {
     }
     return lines;
   };
-  const section = (heading: string, contentHeight = 34) => {
-    space(36 + contentHeight);
+  const section = (heading: string, contentHeight = 26) => {
+    space(25 + contentHeight);
     pdf.moveTo(left, y).lineTo(right, y).lineWidth(0.8).strokeColor(rule).stroke();
-    pdf.font("Helvetica-Bold").fontSize(9).fillColor(muted).text(heading, left, y + 12);
-    y += 36;
+    pdf.font("Helvetica-Bold").fontSize(8.5).fillColor(muted).text(heading, left, y + 8);
+    y += 25;
   };
   const row = (label: string, value: string) => {
-    const lines = wrapped(value || "—", 10, 357);
-    space(25);
-    pdf.font("Helvetica-Bold").fontSize(9).fillColor(muted).text(label, left, y + 2, { width: 130 });
+    const lines = wrapped(value || "—", 9.5, 379);
+    space(20);
+    pdf.font("Helvetica-Bold").fontSize(8.5).fillColor(muted).text(label, left, y + 2, { width: 121 });
     for (const line of lines) {
-      if (y + 15 > bottom) {
+      if (y + 13 > bottom) {
         continuation();
-        pdf.font("Helvetica-Bold").fontSize(9).fillColor(muted)
-          .text(`${label} (continued)`, left, y + 2, { width: 130 });
+        pdf.font("Helvetica-Bold").fontSize(8.5).fillColor(muted)
+          .text(`${label} (continued)`, left, y + 2, { width: 121 });
       }
-      pdf.font("Helvetica").fontSize(10).fillColor(ink).text(line, 197, y, { lineBreak: false });
-      y += 15;
+      pdf.font("Helvetica").fontSize(9.5).fillColor(ink).text(line, 181, y, { lineBreak: false });
+      y += 13;
     }
-    y += 8;
+    y += 5;
   };
   const heroLine = (value: string, size: number, height: number, color: string) => {
     for (const line of wrapped(value, size, right - left)) {
@@ -115,21 +115,20 @@ export function sendReceiptPdf(res: Response, receipt: {
     }
   };
 
-  pdf.font("Helvetica-Bold").fontSize(9).fillColor(muted).text("PREPARED FOR", left, y);
-  y += 20;
-  heroLine(order.customerName, 21, 27, ink);
-  y += 6;
-  pdf.font("Helvetica-Bold").fontSize(9).fillColor(muted).text("ORDER ITEM CODE", left, y);
-  y += 16;
-  heroLine(order.itemCode, 12, 17, ink);
-  y += 10;
-  space(18);
-  pdf.font("Helvetica").fontSize(9).fillColor(muted)
+  pdf.font("Helvetica-Bold").fontSize(8.5).fillColor(muted).text("PREPARED FOR", left, y);
+  y += 15;
+  heroLine(order.customerName, 19, 23, ink);
+  y += 3;
+  pdf.font("Helvetica-Bold").fontSize(8.5).fillColor(muted).text("ORDER ITEM CODE", left, y);
+  y += 12;
+  heroLine(order.itemCode, 11, 15, ink);
+  y += 5;
+  space(15);
+  pdf.font("Helvetica").fontSize(8.5).fillColor(muted)
     .text(`Order date  ${order.orderDate}`, left, y);
-  y += 23;
+  y += 18;
 
   section("CUSTOMER DETAILS");
-  row("Name", order.customerName);
   row("Phone number", order.phone);
   if (order.email) row("Email", order.email);
 
@@ -146,25 +145,25 @@ export function sendReceiptPdf(res: Response, receipt: {
   }
   if (order.notes) row("Notes", order.notes);
 
-  section("PAYMENT SUMMARY", 172);
-  space(172);
+  section("PAYMENT SUMMARY", 126);
+  space(126);
   const cardY = y;
-  pdf.rect(left, cardY, right - left, 155).fill(paperTint);
-  pdf.rect(left, cardY, 3, 155).fill(gold);
+  pdf.rect(left, cardY, right - left, 116).fill(paperTint);
+  pdf.rect(left, cardY, 3, 116).fill(gold);
   const amountRow = (label: string, amount: string, offset: number, emphasized = false) => {
     pdf.font(emphasized ? "Helvetica-Bold" : "Helvetica")
-      .fontSize(emphasized ? 11 : 10).fillColor(emphasized ? ink : muted)
+      .fontSize(emphasized ? 10 : 9.5).fillColor(emphasized ? ink : muted)
       .text(label, left + 20, cardY + offset, { width: 315 });
-    pdf.font("Helvetica-Bold").fontSize(emphasized ? 12 : 10).fillColor(ink)
+    pdf.font("Helvetica-Bold").fontSize(emphasized ? 11 : 9.5).fillColor(ink)
       .text(amount, right - 132, cardY + offset - 1, { width: 112, align: "right" });
   };
-  amountRow("Price", dollars(order.priceCents), 15);
-  amountRow(`Tax (${(order.taxRateMilliPercent / 1000).toFixed(3)}%)`, dollars(order.taxCents), 40);
-  amountRow("Total", dollars(order.totalCents), 65, true);
-  amountRow("Amount paid", dollars(order.amountPaidCents), 91);
-  pdf.moveTo(left + 20, cardY + 118).lineTo(right - 20, cardY + 118)
+  amountRow("Price", dollars(order.priceCents), 9);
+  amountRow(`Tax (${(order.taxRateMilliPercent / 1000).toFixed(3)}%)`, dollars(order.taxCents), 28);
+  amountRow("Total", dollars(order.totalCents), 48, true);
+  amountRow("Amount paid", dollars(order.amountPaidCents), 69);
+  pdf.moveTo(left + 20, cardY + 88).lineTo(right - 20, cardY + 88)
     .lineWidth(0.8).strokeColor(rule).stroke();
-  amountRow("Amount due", dollars(order.amountDueCents), 129, true);
+  amountRow("Amount due", dollars(order.amountDueCents), 96, true);
 
   const pages = pdf.bufferedPageRange();
   for (let page = pages.start; page < pages.start + pages.count; page++) {
