@@ -121,38 +121,6 @@ paths:
           content:
             application/pdf:
               schema: { type: string, format: binary }
-  /admin/orders/import/preview:
-    post:
-      operationId: previewWigOrderImport
-      tags: [orders]
-      summary: Preview an XLSX workbook without saving
-      requestBody:
-        required: true
-        content:
-          application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
-            schema: { type: string, format: binary }
-      responses:
-        "200":
-          description: Preview and validation issues
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/WigImportPreview" }
-  /admin/orders/import/confirm:
-    post:
-      operationId: confirmWigOrderImport
-      tags: [orders]
-      summary: Import reviewed rows
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/WigImportConfirmation" }
-      responses:
-        "200":
-          description: Imported rows and skipped duplicates
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/WigImportResult" }
   /healthz:
     get:
       operationId: healthCheck
@@ -600,16 +568,43 @@ components:
         taxRateMilliPercent: { type: integer, minimum: 0, maximum: 100000 }
         amountPaidCents: { type: integer, minimum: 0 }
     WigOrder:
-      allOf:
-        - $ref: "#/components/schemas/WigOrderInput"
-        - type: object
-          required: [id, taxCents, totalCents, amountDueCents, createdAt]
-          properties:
-            id: { type: integer }
-            taxCents: { type: integer }
-            totalCents: { type: integer }
-            amountDueCents: { type: integer }
-            createdAt: { type: string, format: date-time }
+      type: object
+      required: [id, kind, itemCode, orderDate, customerName, phone, email, notes, style, capSize, lengthInch, hairType, part, layers, density, color, highlights, priceCents, taxRateMilliPercent, amountPaidCents, taxCents, totalCents, amountDueCents, needsReview, reviewIssues, sourceSheet, sourceRowNumber, sourceValues, createdAt]
+      properties:
+        id: { type: integer }
+        kind: { type: string, enum: [stock, custom] }
+        itemCode: { type: string, nullable: true }
+        orderDate: { type: string, nullable: true }
+        customerName: { type: string, nullable: true }
+        phone: { type: string }
+        email: { type: string }
+        notes: { type: string }
+        style: { type: string }
+        capSize: { type: string }
+        lengthInch: { type: string }
+        hairType: { type: string }
+        part: { type: string }
+        layers: { type: string }
+        density: { type: string }
+        color: { type: string }
+        highlights: { type: string }
+        priceCents: { type: integer, nullable: true }
+        taxRateMilliPercent: { type: integer }
+        amountPaidCents: { type: integer, nullable: true }
+        taxCents: { type: integer, nullable: true }
+        totalCents: { type: integer, nullable: true }
+        amountDueCents: { type: integer, nullable: true }
+        needsReview: { type: boolean }
+        reviewIssues:
+          type: array
+          items: { type: string }
+        sourceSheet: { type: string, nullable: true }
+        sourceRowNumber: { type: integer, nullable: true }
+        sourceValues:
+          type: object
+          nullable: true
+          additionalProperties: { type: string }
+        createdAt: { type: string, format: date-time }
     WigReceipt:
       type: object
       required: [id, orderId, issuedAt, receiptNumber]
@@ -618,46 +613,6 @@ components:
         orderId: { type: integer }
         issuedAt: { type: string, format: date-time }
         receiptNumber: { type: string }
-    WigImportRow:
-      type: object
-      required: [sheet, rowNumber, order]
-      properties:
-        sheet: { type: string }
-        rowNumber: { type: integer }
-        order: { $ref: "#/components/schemas/WigOrderInput" }
-    WigImportIssue:
-      type: object
-      required: [sheet, rowNumber, reason]
-      properties:
-        sheet: { type: string }
-        rowNumber: { type: integer }
-        reason: { type: string }
-    WigImportPreview:
-      type: object
-      required: [rows, issues]
-      properties:
-        rows:
-          type: array
-          items: { $ref: "#/components/schemas/WigImportRow" }
-        issues:
-          type: array
-          items: { $ref: "#/components/schemas/WigImportIssue" }
-    WigImportConfirmation:
-      type: object
-      required: [rows]
-      properties:
-        rows:
-          type: array
-          maxItems: 500
-          items: { $ref: "#/components/schemas/WigImportRow" }
-    WigImportResult:
-      type: object
-      required: [imported, skipped]
-      properties:
-        imported: { type: integer }
-        skipped:
-          type: array
-          items: { $ref: "#/components/schemas/WigImportIssue" }
     HealthStatus:
       type: object
       properties:

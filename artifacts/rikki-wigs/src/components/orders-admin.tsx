@@ -7,27 +7,26 @@ import {
   useUpdateWigOrder,
   useListWigReceipts,
   useIssueWigReceipt,
-  useConfirmWigOrderImport,
   WigOrder,
   WigOrderInput,
-  WigImportPreview
 } from '@workspace/api-client-react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Plus, Search, Download, ChevronDown, FileUp, X } from 'lucide-react';
+import { Plus, Search, Download, ChevronDown, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-function formatDay(value: string | Date, options?: Intl.DateTimeFormatOptions): string {
+function formatDay(value: string | Date | null, options?: Intl.DateTimeFormatOptions): string {
+  if (!value) return 'Date needed';
   const d = new Date(value);
   return d.toLocaleDateString(undefined, { timeZone: 'UTC', ...(options || { month: 'short', day: 'numeric', year: 'numeric' }) });
 }
 
-function formatMoney(cents: number) {
-  return `$${(cents / 100).toFixed(2)}`;
+function formatMoney(cents: number | null) {
+  return cents === null ? 'Needs review' : `$${(cents / 100).toFixed(2)}`;
 }
 
-const MoneyInput = ({ valueCents, onChange, label, id }: { valueCents: number, onChange: (cents: number) => void, label: string, id: string }) => {
-  const [val, setVal] = useState((valueCents / 100).toFixed(2));
-  React.useEffect(() => { setVal((valueCents / 100).toFixed(2)); }, [valueCents]);
+const MoneyInput = ({ valueCents, onChange, label, id }: { valueCents: number | null, onChange: (cents: number | null) => void, label: string, id: string }) => {
+  const [val, setVal] = useState(valueCents === null ? '' : (valueCents / 100).toFixed(2));
+  React.useEffect(() => { setVal(valueCents === null ? '' : (valueCents / 100).toFixed(2)); }, [valueCents]);
   return (
     <label className="field-label" htmlFor={id}>
       {label}
@@ -48,8 +47,8 @@ const MoneyInput = ({ valueCents, onChange, label, id }: { valueCents: number, o
               onChange(cents);
               setVal((cents / 100).toFixed(2));
             } else {
-              onChange(0);
-              setVal('0.00');
+              onChange(null);
+              setVal('');
             }
           }}
         />
@@ -113,12 +112,17 @@ const defaultOrder: WigOrderInput = {
   amountPaidCents: 0
 };
 
+type OrderFormValues = Omit<WigOrderInput, 'priceCents' | 'amountPaidCents'> & {
+  priceCents: number | null;
+  amountPaidCents: number | null;
+};
+
 function WigOrderForm({ initial, onSave, onCancel, busy }: { initial?: WigOrder; onSave: (data: WigOrderInput) => void; onCancel: () => void; busy: boolean }) {
-  const [form, setForm] = useState<WigOrderInput>(initial ? {
+  const [form, setForm] = useState<OrderFormValues>(initial ? {
     kind: initial.kind,
-    itemCode: initial.itemCode,
-    orderDate: initial.orderDate.split('T')[0],
-    customerName: initial.customerName,
+    itemCode: initial.itemCode ?? '',
+    orderDate: initial.orderDate?.split('T')[0] ?? '',
+    customerName: initial.customerName ?? '',
     phone: initial.phone ?? '',
     email: initial.email ?? '',
     notes: initial.notes ?? '',
@@ -136,10 +140,20 @@ function WigOrderForm({ initial, onSave, onCancel, busy }: { initial?: WigOrder;
     amountPaidCents: initial.amountPaidCents
   } : defaultOrder);
 
-  const update = (field: keyof WigOrderInput, value: any) => setForm(f => ({ ...f, [field]: value }));
+  const update = (field: keyof OrderFormValues, value: string | number | null) => setForm(f => ({ ...f, [field]: value }));
+  const taxCents = form.priceCents === null ? null : Math.round(form.priceCents * form.taxRateMilliPercent / 100000);
+  const totalCents = form.priceCents === null || taxCents === null ? null : form.priceCents + taxCents;
+  const amountDueCents = totalCents === null || form.amountPaidCents === null ? null : totalCents - form.amountPaidCents;
+  const invalidPayment = amountDueCents !== null && amountDueCents < 0;
+  const ready = form.priceCents !== null && form.amountPaidCents !== null && !invalidPayment;
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSave(form); }} className="flex flex-col gap-6">
+    <form onSubmit={(e) => {
+      e.preventDefault();
+      if (form.priceCents !== null && form.amountPaidCents !== null && !invalidPayment) {
+        onSave({ ...form, priceCents: form.priceCents, amountPaidCents: form.amountPaidCents });
+      }
+    }} className="flex flex-col gap-6">
       <div className="grid gap-4 md:grid-cols-2">
         <label className="field-label">Kind
           <select value={form.kind} onChange={(e) => update('kind', e.target.value)} className="field-input mt-1" data-testid="select-order-kind">
@@ -199,12 +213,13 @@ function WigOrderForm({ initial, onSave, onCancel, busy }: { initial?: WigOrder;
         <PercentInput id="tax" label="Tax Rate" valueMilli={form.taxRateMilliPercent} onChange={(m) => update('taxRateMilliPercent', m)} />
         <MoneyInput id="paid" label="Amount Paid" valueCents={form.amountPaidCents} onChange={(c) => update('amountPaidCents', c)} />
         <div className="md:col-span-2 rounded-xl bg-[hsl(var(--secondary))] p-4 text-sm" data-testid="summary-order-amounts">
-          <span>Tax ${(Math.round(form.priceCents * form.taxRateMilliPercent / 100000) / 100).toFixed(2)}</span>
+          <span>Tax {formatMoney(taxCents)}</span>
           <span className="mx-3">·</span>
-          <strong>Total ${((form.priceCents + Math.round(form.priceCents * form.taxRateMilliPercent / 100000)) / 100).toFixed(2)}</strong>
+          <strong>Total {formatMoney(totalCents)}</strong>
           <span className="mx-3">·</span>
-          <span>Due ${((form.priceCents + Math.round(form.priceCents * form.taxRateMilliPercent / 100000) - form.amountPaidCents) / 100).toFixed(2)}</span>
-          {form.amountPaidCents > form.priceCents + Math.round(form.priceCents * form.taxRateMilliPercent / 100000) && <p role="alert" className="mt-2 text-[hsl(var(--destructive))]">Amount paid cannot exceed the total.</p>}
+          <span>Due {formatMoney(amountDueCents)}</span>
+          {invalidPayment && <p role="alert" className="mt-2 text-[hsl(var(--destructive))]">Amount paid cannot exceed the total.</p>}
+          {!ready && !invalidPayment && <p className="mt-2 text-[hsl(var(--destructive))]">Enter the missing price and amount paid before saving.</p>}
         </div>
         
         <label className="field-label md:col-span-2">Notes
@@ -214,7 +229,7 @@ function WigOrderForm({ initial, onSave, onCancel, busy }: { initial?: WigOrder;
 
       <div className="flex items-center gap-3 pt-4 border-t border-[hsl(var(--border))]">
         <button type="button" onClick={onCancel} className="btn-quiet flex-1" data-testid="button-cancel-order">Cancel</button>
-        <button type="submit" disabled={busy || form.amountPaidCents > form.priceCents + Math.round(form.priceCents * form.taxRateMilliPercent / 100000)} className="btn-primary flex-1" data-testid="button-save-order">{busy ? 'Saving...' : 'Save Order'}</button>
+        <button type="submit" disabled={busy || !ready} className="btn-primary flex-1" data-testid="button-save-order">{busy ? 'Saving...' : 'Save Order'}</button>
       </div>
     </form>
   )
@@ -240,9 +255,22 @@ function OrderDetails({ order, onEdit }: { order: WigOrder; onEdit: () => void }
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <div className="space-y-4">
+        {order.needsReview && <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950" role="alert">
+          <strong>Needs review before a receipt can be issued.</strong>
+          <ul className="mt-2 list-disc pl-5">{order.reviewIssues.map((issue, i) => <li key={i}>{issue}</li>)}</ul>
+          <p className="mt-2">Use Edit Order to complete missing details and save.</p>
+        </div>}
+        {order.sourceSheet && <div className="text-xs text-[hsl(var(--muted-foreground))]">
+          Original workbook: {order.sourceSheet}, row {order.sourceRowNumber}
+          {order.sourceValues && <details className="mt-2"><summary className="cursor-pointer underline">View original spreadsheet fields</summary>
+            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+              {Object.entries(order.sourceValues).map(([column, value]) => <React.Fragment key={column}><dt>Column {column}</dt><dd className="break-words">{value}</dd></React.Fragment>)}
+            </dl>
+          </details>}
+        </div>}
         <div>
           <h4 className="text-xs font-mono-ui uppercase tracking-wide opacity-50 mb-2">Customer</h4>
-          <p className="text-sm">{order.customerName}</p>
+          <p className="text-sm">{order.customerName || 'Name needed'}</p>
           {(order.phone || order.email) && (
             <p className="text-sm text-[hsl(var(--muted-foreground))] mt-1">
               {order.phone} {order.phone && order.email && '·'} {order.email}
@@ -284,15 +312,15 @@ function OrderDetails({ order, onEdit }: { order: WigOrder; onEdit: () => void }
               <span className="text-right font-semibold mt-1">{formatMoney(order.totalCents)}</span>
               <span className="text-[hsl(var(--muted-foreground))] mt-2 border-t border-[hsl(var(--border))] pt-2">Paid</span>
               <span className="text-right mt-2 border-t border-[hsl(var(--border))] pt-2">{formatMoney(order.amountPaidCents)}</span>
-              <span className={`font-semibold ${order.amountDueCents > 0 ? 'text-[hsl(var(--destructive))]' : 'text-[hsl(150_35%_40%)]'}`}>Due</span>
-              <span className={`text-right font-semibold ${order.amountDueCents > 0 ? 'text-[hsl(var(--destructive))]' : 'text-[hsl(150_35%_40%)]'}`}>{formatMoney(order.amountDueCents)}</span>
+               <span className={`font-semibold ${(order.amountDueCents ?? 0) > 0 ? 'text-[hsl(var(--destructive))]' : 'text-[hsl(150_35%_40%)]'}`}>Due</span>
+               <span className={`text-right font-semibold ${(order.amountDueCents ?? 0) > 0 ? 'text-[hsl(var(--destructive))]' : 'text-[hsl(150_35%_40%)]'}`}>{formatMoney(order.amountDueCents)}</span>
             </div>
          </div>
          
          <div className="pt-2">
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-xs font-mono-ui uppercase tracking-wide opacity-50">Receipts</h4>
-              <button onClick={handleIssue} disabled={issueReceipt.isPending} className="text-xs text-[hsl(var(--primary))] hover:underline flex items-center gap-1">
+               <button onClick={handleIssue} disabled={issueReceipt.isPending || order.needsReview} title={order.needsReview ? 'Complete this order before issuing a receipt' : undefined} className="text-xs text-[hsl(var(--primary))] hover:underline flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-40">
                  <Plus size={12} /> {issueReceipt.isPending ? 'Issuing...' : 'Issue New'}
               </button>
             </div>
@@ -319,97 +347,6 @@ function OrderDetails({ order, onEdit }: { order: WigOrder; onEdit: () => void }
   );
 }
 
-function ImportOrders({ onDone }: { onDone: () => void }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<WigImportPreview | null>(null);
-  const [previewing, setPreviewing] = useState(false);
-  const [error, setError] = useState('');
-  const confirm = useConfirmWigOrderImport();
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  const handlePreview = async () => {
-    if (!file) return;
-    setPreviewing(true);
-    setError('');
-    try {
-      const res = await fetch('/api/admin/orders/import/preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-        body: file
-      });
-      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Failed to preview import');
-      const data = await res.json();
-      setPreview(data);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setPreviewing(false);
-    }
-  };
-
-  const handleConfirm = () => {
-    if (!preview) return;
-    confirm.mutate({ data: { rows: preview.rows } }, {
-      onSuccess: (result) => {
-        queryClient.invalidateQueries({ queryKey: getListWigOrdersQueryKey() });
-        toast({ title: `${result.imported} orders imported${result.skipped.length ? `; ${result.skipped.length} skipped` : ''}.` });
-        if (result.skipped.length) {
-          setPreview({ rows: [], issues: result.skipped });
-        } else {
-          onDone();
-        }
-      },
-      onError: (e) => {
-        setError(e.message || 'Import failed');
-      }
-    });
-  };
-
-  return (
-    <div className="flex flex-col gap-6">
-       {!preview ? (
-         <div className="flex flex-col gap-4">
-           <p className="text-sm text-[hsl(var(--muted-foreground))]">Upload an Excel spreadsheet containing wig orders.</p>
-           <label className="field-label">Spreadsheet File (.xlsx)
-              <input type="file" accept=".xlsx" onChange={(e) => setFile(e.target.files?.[0] || null)} className="field-input mt-1" data-testid="input-order-workbook" />
-           </label>
-           {error && <div className="text-sm text-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/.1)] p-3 rounded">{error}</div>}
-            <button onClick={handlePreview} disabled={!file || previewing} className="btn-primary mt-2" data-testid="button-preview-import">{previewing ? 'Reading...' : 'Preview Import'}</button>
-         </div>
-       ) : (
-         <div className="flex flex-col gap-4">
-           <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
-               <h3 className="font-semibold text-lg">{preview.rows.length} valid orders ready.</h3>
-               <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Review these rows before confirming. Nothing has been saved yet; old receipt links and spreadsheet formulas are not imported.</p>
-               {preview.rows.length > 0 && <div className="mt-4 max-h-64 overflow-auto rounded-lg border border-[hsl(var(--border))]">
-                 <table className="w-full text-left text-xs">
-                   <thead className="sticky top-0 bg-[hsl(var(--secondary))]"><tr><th className="p-2">Source</th><th className="p-2">Item code</th><th className="p-2">Customer</th><th className="p-2 text-right">Price</th></tr></thead>
-                   <tbody>{preview.rows.map((row, i) => <tr key={`${row.sheet}-${row.rowNumber}-${i}`} className="border-t border-[hsl(var(--border))]"><td className="p-2">{row.sheet} · {row.rowNumber}</td><td className="p-2">{row.order.itemCode}</td><td className="p-2">{row.order.customerName}</td><td className="p-2 text-right">{formatMoney(row.order.priceCents)}</td></tr>)}</tbody>
-                 </table>
-               </div>}
-              {preview.issues.length > 0 && (
-                <div className="mt-4 border-t border-[hsl(var(--border))] pt-4">
-                  <h4 className="text-sm font-semibold text-[hsl(var(--destructive))]">{preview.issues.length} issues skipped:</h4>
-                  <ul className="mt-2 text-xs list-disc pl-4 space-y-1 text-[hsl(var(--destructive))]">
-                    {preview.issues.map((issue, i) => (
-                      <li key={i}>{issue.sheet} Row {issue.rowNumber}: {issue.reason}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-           </div>
-           {error && <div className="text-sm text-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/.1)] p-3 rounded">{error}</div>}
-           <div className="flex items-center gap-3">
-             <button type="button" onClick={() => { setPreview(null); setFile(null); }} className="btn-quiet flex-1">Cancel</button>
-              <button type="button" onClick={handleConfirm} disabled={confirm.isPending || preview.rows.length === 0} className="btn-primary flex-1" data-testid="button-confirm-import">{confirm.isPending ? 'Importing...' : 'Confirm Import'}</button>
-           </div>
-         </div>
-       )}
-    </div>
-  );
-}
-
 export function OrdersAdmin() {
   const { data: orders, isLoading, isError } = useListWigOrders();
   const queryClient = useQueryClient();
@@ -422,7 +359,6 @@ export function OrdersAdmin() {
   
   const [editingOrder, setEditingOrder] = useState<WigOrder | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isImportOpen, setIsImportOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const filteredOrders = useMemo(() => {
@@ -430,9 +366,9 @@ export function OrdersAdmin() {
     return orders.filter(o => {
       const matchKind = kindFilter === 'all' || o.kind === kindFilter;
       const matchSearch = search.trim() === '' || 
-        o.customerName.toLowerCase().includes(search.toLowerCase()) || 
-        o.itemCode.toLowerCase().includes(search.toLowerCase()) ||
-        o.orderDate.includes(search.trim());
+        (o.customerName ?? '').toLowerCase().includes(search.toLowerCase()) || 
+        (o.itemCode ?? '').toLowerCase().includes(search.toLowerCase()) ||
+        (o.orderDate ?? '').includes(search.trim());
       return matchKind && matchSearch;
     });
   }, [orders, kindFilter, search]);
@@ -474,12 +410,9 @@ export function OrdersAdmin() {
       {isError && <div className="rounded-xl border border-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/.08)] p-5 text-sm text-[hsl(var(--destructive))]" role="alert">We could not load orders. Refresh the page and try again.</div>}
       
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
            <button onClick={openAdd} className="btn-primary" data-testid="button-add-order">
             <Plus size={16} /> Add Order
-          </button>
-           <button onClick={() => setIsImportOpen(true)} className="btn-quiet !px-4" data-testid="button-import-orders">
-            <FileUp size={16} /> Import
           </button>
         </div>
         
@@ -523,19 +456,20 @@ export function OrdersAdmin() {
                 data-testid={`button-order-${order.id}`}
               >
                  <div className="min-w-0 flex-1">
-                   <h3 className="font-semibold text-lg truncate">{order.customerName}</h3>
+                    <h3 className="font-semibold text-lg truncate">{order.customerName || 'Name needed'}</h3>
                    <div className="text-sm text-[hsl(var(--muted-foreground))] mt-1 flex flex-wrap items-center gap-2">
                      <span className="font-mono-ui uppercase text-[10px] bg-[hsl(var(--secondary))] text-[hsl(var(--foreground))] px-2 py-0.5 rounded">{order.kind}</span>
-                     <span className="font-medium">{order.itemCode}</span>
+                      <span className="font-medium">{order.itemCode || 'Code needed'}</span>
                      <span>·</span>
                      <span>{formatDay(order.orderDate)}</span>
+                      {order.needsReview && <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">Needs review</span>}
                    </div>
                  </div>
                  <div className="flex items-center gap-6 shrink-0">
                    <div className="text-right">
                      <div className="font-semibold">{formatMoney(order.totalCents)}</div>
-                     <div className={`text-xs mt-0.5 ${order.amountDueCents > 0 ? 'text-[hsl(var(--destructive))] font-medium' : 'text-[hsl(150_35%_40%)]'}`}>
-                       {order.amountDueCents > 0 ? `Due: ${formatMoney(order.amountDueCents)}` : 'Paid'}
+                      <div className={`text-xs mt-0.5 ${(order.amountDueCents ?? 0) > 0 ? 'text-[hsl(var(--destructive))] font-medium' : 'text-[hsl(150_35%_40%)]'}`}>
+                        {order.amountDueCents === null ? 'Needs review' : order.amountDueCents > 0 ? `Due: ${formatMoney(order.amountDueCents)}` : 'Paid'}
                      </div>
                    </div>
                    <ChevronDown className={`transition-transform text-[hsl(var(--muted-foreground))] ${expandedId === order.id ? 'rotate-180' : ''}`} size={20} />
@@ -580,19 +514,6 @@ export function OrdersAdmin() {
         </SheetContent>
       </Sheet>
 
-      <Sheet open={isImportOpen} onOpenChange={setIsImportOpen}>
-        <SheetContent side="right" className="flex h-[100dvh] !w-full !max-w-none flex-col bg-[hsl(var(--background))] p-0 sm:!max-w-md">
-          <SheetHeader className="border-b border-[hsl(var(--border))] p-6 pr-14 text-left">
-            <SheetTitle className="font-editorial text-2xl">Import Orders</SheetTitle>
-            <SheetDescription>Upload an Excel spreadsheet (.xlsx) to import multiple orders at once.</SheetDescription>
-          </SheetHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto p-6">
-            {isImportOpen && (
-              <ImportOrders onDone={() => setIsImportOpen(false)} />
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }

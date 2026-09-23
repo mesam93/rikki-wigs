@@ -6,8 +6,4 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface WigImportIssue {
-  sheet: string;
-  rowNumber: number;
-  reason: string;
-}
+export type WigOrderSourceValues = {[key: string]: string} | null;

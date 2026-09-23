@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { calculateAmounts } from "./wig-orders";
-import { previewWorkbook } from "./wig-import";
+import { parseHistoricalWorkbook } from "./wig-import";
 import ExcelJS from "exceljs";
 
 test("tax, total, balance and partial payment use integer cents", () => {
@@ -15,20 +15,20 @@ test("tax, total, balance and partial payment use integer cents", () => {
   assert.throws(() => calculateAmounts(-100, 6625, 0), /valid non-negative/);
 });
 
-test("original workbook produces a private preview, not merged-document metadata", async () => {
+test("original workbook preserves every business-sheet row with source traceability", async () => {
   // The source ZIP contains Orders.xlsx; locate it without extracting private rows to disk.
   const unzipper = await import("node:child_process");
   const buffer = unzipper.execFileSync("unzip", ["-p", "attached_assets/drive-download-20260923T082739Z-1-001_1790152172062.zip", "Orders.xlsx"]);
-  const result = await previewWorkbook(buffer, new Set());
-  assert.ok(result.rows.length > 50);
-  assert.ok(result.rows.some(row => row.sheet === "Stock Wigs"));
-  assert.ok(result.rows.some(row => row.sheet === "Custom Wigs"));
-  assert.ok(result.rows.every(row => row.order.itemCode && !("mergedDocUrl" in row.order)));
-  const duplicate = await previewWorkbook(buffer, new Set([`${result.rows[0].order.kind}:${String(result.rows[0].order.itemCode).toLowerCase()}`]));
-  assert.ok(duplicate.issues.some(issue => issue.reason.includes("Duplicate")));
+  const rows = await parseHistoricalWorkbook(buffer);
+  assert.equal(rows.length, 184);
+  assert.equal(rows.filter(row => row.sourceSheet === "Stock Wigs").length, 19);
+  assert.equal(rows.filter(row => row.sourceSheet === "Custom Wigs").length, 165);
+  assert.ok(rows.some(row => row.needsReview));
+  assert.ok(rows.every(row => row.sourceRowNumber > 1 && !("mergedDocUrl" in row)));
+  assert.ok(rows.every(row => Object.keys(row.sourceValues).length > 0));
 });
 
-test("a preview never promises more than the confirmation limit", async () => {
+test("historical parser does not cap meaningful rows at the old upload limit", async () => {
   const workbook = new ExcelJS.Workbook();
   workbook.addWorksheet("Stock Wigs");
   const custom = workbook.addWorksheet("Custom Wigs");
@@ -39,8 +39,7 @@ test("a preview never promises more than the confirmation limit", async () => {
     custom.getRow(i).getCell(14).value = 100;
   }
   const file = await workbook.xlsx.writeBuffer();
-  await assert.rejects(
-    previewWorkbook(Buffer.from(file), new Set()),
-    /more than 500 valid orders/,
-  );
+  const rows = await parseHistoricalWorkbook(Buffer.from(file));
+  assert.equal(rows.length, 501);
+  assert.equal(rows.filter(row => row.needsReview).length, 501);
 });

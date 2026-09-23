@@ -62,46 +62,53 @@ export interface WigOrderInput {
   amountPaidCents: number;
 }
 
-export type WigOrder = WigOrderInput & {
+export type WigOrderKind = typeof WigOrderKind[keyof typeof WigOrderKind];
+
+
+export const WigOrderKind = {
+  stock: 'stock',
+  custom: 'custom',
+} as const;
+
+export type WigOrderSourceValues = {[key: string]: string} | null;
+
+export interface WigOrder {
   id: number;
-  taxCents: number;
-  totalCents: number;
-  amountDueCents: number;
+  kind: WigOrderKind;
+  itemCode: string | null;
+  orderDate: string | null;
+  customerName: string | null;
+  phone: string;
+  email: string;
+  notes: string;
+  style: string;
+  capSize: string;
+  lengthInch: string;
+  hairType: string;
+  part: string;
+  layers: string;
+  density: string;
+  color: string;
+  highlights: string;
+  priceCents: number | null;
+  taxRateMilliPercent: number;
+  amountPaidCents: number | null;
+  taxCents: number | null;
+  totalCents: number | null;
+  amountDueCents: number | null;
+  needsReview: boolean;
+  reviewIssues: string[];
+  sourceSheet: string | null;
+  sourceRowNumber: number | null;
+  sourceValues: WigOrderSourceValues;
   createdAt: string;
-};
+}
 
 export interface WigReceipt {
   id: number;
   orderId: number;
   issuedAt: string;
   receiptNumber: string;
-}
-
-export interface WigImportRow {
-  sheet: string;
-  rowNumber: number;
-  order: WigOrderInput;
-}
-
-export interface WigImportIssue {
-  sheet: string;
-  rowNumber: number;
-  reason: string;
-}
-
-export interface WigImportPreview {
-  rows: WigImportRow[];
-  issues: WigImportIssue[];
-}
-
-export interface WigImportConfirmation {
-  /** @maxItems 500 */
-  rows: WigImportRow[];
-}
-
-export interface WigImportResult {
-  imported: number;
-  skipped: WigImportIssue[];
 }
 
 export interface HealthStatus {

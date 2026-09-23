@@ -1,13 +1,12 @@
-import express, { Router, type IRouter } from "express";
+import { Router, type IRouter } from "express";
 import { desc, eq } from "drizzle-orm";
 import { db, wigOrdersTable, wigReceiptsTable } from "@workspace/db";
 import {
-  CreateWigOrderBody, UpdateWigOrderBody, ConfirmWigOrderImportBody,
+  CreateWigOrderBody, UpdateWigOrderBody,
   ListWigOrdersResponse, ListWigReceiptsResponse, IssueWigReceiptResponse,
 } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/requireAdmin";
-import { calculateAmounts, normalizeOrder } from "../lib/wig-orders";
-import { previewWorkbook } from "../lib/wig-import";
+import { normalizeOrder } from "../lib/wig-orders";
 import { sendReceiptPdf } from "../lib/wig-receipt-pdf";
 
 const router: IRouter = Router();
@@ -71,7 +70,7 @@ router.patch("/admin/orders/:id", async (req, res): Promise<void> => {
   if (!order.ok) { res.status(400).json({ error: order.error }); return; }
   let updated: typeof wigOrdersTable.$inferSelect | undefined;
   try {
-    [updated] = await db.update(wigOrdersTable).set(order.value)
+    [updated] = await db.update(wigOrdersTable).set({ ...order.value, needsReview: false, reviewIssues: [] })
       .where(eq(wigOrdersTable.id, id)).returning();
   } catch (error) {
     if (typeof error === "object" && error && "code" in error && error.code === "23505") {
@@ -100,6 +99,10 @@ router.post("/admin/orders/:id/receipts", async (req, res): Promise<void> => {
   if (!id) { res.status(400).json({ error: "Invalid order ID" }); return; }
   const [order] = await db.select().from(wigOrdersTable).where(eq(wigOrdersTable.id, id));
   if (!order) { res.status(404).json({ error: "Order not found" }); return; }
+  if (order.needsReview || !order.itemCode || !order.customerName || !order.orderDate ||
+      order.priceCents === null || order.amountPaidCents === null || order.totalCents === null) {
+    res.status(409).json({ error: "Complete and save this order before issuing a receipt" }); return;
+  }
   const [receipt] = await db.insert(wigReceiptsTable).values({ orderId: id, snapshot: order }).returning();
   res.status(201).json(IssueWigReceiptResponse.parse(receiptResponse(receipt)));
 });
@@ -111,53 +114,6 @@ router.get("/admin/orders/:id/receipts/:receiptId/pdf", async (req, res): Promis
   const [receipt] = await db.select().from(wigReceiptsTable).where(eq(wigReceiptsTable.id, receiptId));
   if (!receipt || receipt.orderId !== id) { res.status(404).json({ error: "Receipt not found" }); return; }
   sendReceiptPdf(res, receipt);
-});
-
-router.post("/admin/orders/import/preview",
-  express.raw({ type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", limit: "3mb" }),
-  async (req, res): Promise<void> => {
-    if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
-      res.status(400).json({ error: "Choose an .xlsx workbook" }); return;
-    }
-    const existing = await db.select({ kind: wigOrdersTable.kind, code: wigOrdersTable.itemCode }).from(wigOrdersTable);
-    const keys = new Set(existing.map(row => `${row.kind}:${row.code.toLowerCase()}`));
-    try {
-      res.json(await previewWorkbook(req.body, keys));
-    } catch (error) {
-      req.log.warn({ error }, "Could not preview wig order workbook");
-      res.status(400).json({ error: error instanceof Error && error.message.startsWith("Workbook has more than 500 valid orders")
-        ? error.message : "Could not read the workbook. Choose an Orders.xlsx workbook." });
-    }
-  });
-
-router.post("/admin/orders/import/confirm", express.json({ limit: "2mb" }), async (req, res): Promise<void> => {
-  const parsed = ConfirmWigOrderImportBody.safeParse(req.body);
-  if (!parsed.success || parsed.data.rows.length > 500) {
-    res.status(400).json({ error: "Invalid import selection" }); return;
-  }
-  const skipped: { sheet: string; rowNumber: number; reason: string }[] = [];
-  const accepted: { sheet: string; rowNumber: number; value: ReturnType<typeof normalizeOrder> }[] = [];
-  const seen = new Set<string>();
-  for (const row of parsed.data.rows) {
-    const order = parseOrder(row.order);
-    const kind = row.sheet === "Stock Wigs" ? "stock" : row.sheet === "Custom Wigs" ? "custom" : null;
-    const key = order.ok ? `${kind}:${order.value.itemCode.toLowerCase()}` : "";
-    if (!kind || !order.ok || order.value.kind !== kind || seen.has(key)) {
-      skipped.push({ sheet: row.sheet, rowNumber: row.rowNumber, reason: "Invalid or duplicate row" });
-      continue;
-    }
-    seen.add(key);
-    accepted.push({ sheet: row.sheet, rowNumber: row.rowNumber, value: order.value });
-  }
-  let imported = 0;
-  await db.transaction(async tx => {
-    for (const row of accepted) {
-      const [created] = await tx.insert(wigOrdersTable).values(row.value).onConflictDoNothing().returning({ id: wigOrdersTable.id });
-      if (created) imported++;
-      else skipped.push({ sheet: row.sheet, rowNumber: row.rowNumber, reason: "Item code already exists" });
-    }
-  });
-  res.json({ imported, skipped });
 });
 
 export default router;

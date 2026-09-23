@@ -11,71 +11,37 @@ import * as zod from 'zod';
 /**
  * @summary List private wig orders
  */
-export const listWigOrdersResponseOneItemCodeMax = 100;
-
-export const listWigOrdersResponseOneOrderDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
-export const listWigOrdersResponseOneCustomerNameMax = 200;
-
-export const listWigOrdersResponseOnePhoneMax = 100;
-
-export const listWigOrdersResponseOneEmailMax = 200;
-
-export const listWigOrdersResponseOneNotesMax = 3000;
-
-export const listWigOrdersResponseOneStyleMax = 200;
-
-export const listWigOrdersResponseOneCapSizeMax = 200;
-
-export const listWigOrdersResponseOneLengthInchMax = 200;
-
-export const listWigOrdersResponseOneHairTypeMax = 200;
-
-export const listWigOrdersResponseOnePartMax = 200;
-
-export const listWigOrdersResponseOneLayersMax = 200;
-
-export const listWigOrdersResponseOneDensityMax = 200;
-
-export const listWigOrdersResponseOneColorMax = 200;
-
-export const listWigOrdersResponseOneHighlightsMax = 500;
-
-export const listWigOrdersResponseOnePriceCentsMin = 0;
-
-export const listWigOrdersResponseOneTaxRateMilliPercentMin = 0;
-export const listWigOrdersResponseOneTaxRateMilliPercentMax = 100000;
-
-export const listWigOrdersResponseOneAmountPaidCentsMin = 0;
-
-
-
 export const ListWigOrdersResponseItem = zod.object({
-  "kind": zod.enum(['stock', 'custom']),
-  "itemCode": zod.string().min(1).max(listWigOrdersResponseOneItemCodeMax),
-  "orderDate": zod.string().regex(listWigOrdersResponseOneOrderDateRegExp),
-  "customerName": zod.string().min(1).max(listWigOrdersResponseOneCustomerNameMax),
-  "phone": zod.string().max(listWigOrdersResponseOnePhoneMax).optional(),
-  "email": zod.string().max(listWigOrdersResponseOneEmailMax).optional(),
-  "notes": zod.string().max(listWigOrdersResponseOneNotesMax).optional(),
-  "style": zod.string().max(listWigOrdersResponseOneStyleMax).optional(),
-  "capSize": zod.string().max(listWigOrdersResponseOneCapSizeMax).optional(),
-  "lengthInch": zod.string().max(listWigOrdersResponseOneLengthInchMax).optional(),
-  "hairType": zod.string().max(listWigOrdersResponseOneHairTypeMax).optional(),
-  "part": zod.string().max(listWigOrdersResponseOnePartMax).optional(),
-  "layers": zod.string().max(listWigOrdersResponseOneLayersMax).optional(),
-  "density": zod.string().max(listWigOrdersResponseOneDensityMax).optional(),
-  "color": zod.string().max(listWigOrdersResponseOneColorMax).optional(),
-  "highlights": zod.string().max(listWigOrdersResponseOneHighlightsMax).optional(),
-  "priceCents": zod.number().int().min(listWigOrdersResponseOnePriceCentsMin),
-  "taxRateMilliPercent": zod.number().int().min(listWigOrdersResponseOneTaxRateMilliPercentMin).max(listWigOrdersResponseOneTaxRateMilliPercentMax),
-  "amountPaidCents": zod.number().int().min(listWigOrdersResponseOneAmountPaidCentsMin)
-}).and(zod.object({
   "id": zod.number().int(),
-  "taxCents": zod.number().int(),
-  "totalCents": zod.number().int(),
-  "amountDueCents": zod.number().int(),
+  "kind": zod.enum(['stock', 'custom']),
+  "itemCode": zod.string().nullable(),
+  "orderDate": zod.string().nullable(),
+  "customerName": zod.string().nullable(),
+  "phone": zod.string(),
+  "email": zod.string(),
+  "notes": zod.string(),
+  "style": zod.string(),
+  "capSize": zod.string(),
+  "lengthInch": zod.string(),
+  "hairType": zod.string(),
+  "part": zod.string(),
+  "layers": zod.string(),
+  "density": zod.string(),
+  "color": zod.string(),
+  "highlights": zod.string(),
+  "priceCents": zod.number().int().nullable(),
+  "taxRateMilliPercent": zod.number().int(),
+  "amountPaidCents": zod.number().int().nullable(),
+  "taxCents": zod.number().int().nullable(),
+  "totalCents": zod.number().int().nullable(),
+  "amountDueCents": zod.number().int().nullable(),
+  "needsReview": zod.boolean(),
+  "reviewIssues": zod.array(zod.string()),
+  "sourceSheet": zod.string().nullable(),
+  "sourceRowNumber": zod.number().int().nullable(),
+  "sourceValues": zod.record(zod.string(), zod.string()).nullable(),
   "createdAt": zod.coerce.date()
-}))
+})
 export const ListWigOrdersResponse = zod.array(ListWigOrdersResponseItem)
 
 
@@ -142,71 +108,37 @@ export const CreateWigOrderBody = zod.object({
   "amountPaidCents": zod.number().int().min(createWigOrderBodyAmountPaidCentsMin)
 })
 
-export const createWigOrderResponseOneItemCodeMax = 100;
-
-export const createWigOrderResponseOneOrderDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
-export const createWigOrderResponseOneCustomerNameMax = 200;
-
-export const createWigOrderResponseOnePhoneMax = 100;
-
-export const createWigOrderResponseOneEmailMax = 200;
-
-export const createWigOrderResponseOneNotesMax = 3000;
-
-export const createWigOrderResponseOneStyleMax = 200;
-
-export const createWigOrderResponseOneCapSizeMax = 200;
-
-export const createWigOrderResponseOneLengthInchMax = 200;
-
-export const createWigOrderResponseOneHairTypeMax = 200;
-
-export const createWigOrderResponseOnePartMax = 200;
-
-export const createWigOrderResponseOneLayersMax = 200;
-
-export const createWigOrderResponseOneDensityMax = 200;
-
-export const createWigOrderResponseOneColorMax = 200;
-
-export const createWigOrderResponseOneHighlightsMax = 500;
-
-export const createWigOrderResponseOnePriceCentsMin = 0;
-
-export const createWigOrderResponseOneTaxRateMilliPercentMin = 0;
-export const createWigOrderResponseOneTaxRateMilliPercentMax = 100000;
-
-export const createWigOrderResponseOneAmountPaidCentsMin = 0;
-
-
-
 export const CreateWigOrderResponse = zod.object({
-  "kind": zod.enum(['stock', 'custom']),
-  "itemCode": zod.string().min(1).max(createWigOrderResponseOneItemCodeMax),
-  "orderDate": zod.string().regex(createWigOrderResponseOneOrderDateRegExp),
-  "customerName": zod.string().min(1).max(createWigOrderResponseOneCustomerNameMax),
-  "phone": zod.string().max(createWigOrderResponseOnePhoneMax).optional(),
-  "email": zod.string().max(createWigOrderResponseOneEmailMax).optional(),
-  "notes": zod.string().max(createWigOrderResponseOneNotesMax).optional(),
-  "style": zod.string().max(createWigOrderResponseOneStyleMax).optional(),
-  "capSize": zod.string().max(createWigOrderResponseOneCapSizeMax).optional(),
-  "lengthInch": zod.string().max(createWigOrderResponseOneLengthInchMax).optional(),
-  "hairType": zod.string().max(createWigOrderResponseOneHairTypeMax).optional(),
-  "part": zod.string().max(createWigOrderResponseOnePartMax).optional(),
-  "layers": zod.string().max(createWigOrderResponseOneLayersMax).optional(),
-  "density": zod.string().max(createWigOrderResponseOneDensityMax).optional(),
-  "color": zod.string().max(createWigOrderResponseOneColorMax).optional(),
-  "highlights": zod.string().max(createWigOrderResponseOneHighlightsMax).optional(),
-  "priceCents": zod.number().int().min(createWigOrderResponseOnePriceCentsMin),
-  "taxRateMilliPercent": zod.number().int().min(createWigOrderResponseOneTaxRateMilliPercentMin).max(createWigOrderResponseOneTaxRateMilliPercentMax),
-  "amountPaidCents": zod.number().int().min(createWigOrderResponseOneAmountPaidCentsMin)
-}).and(zod.object({
   "id": zod.number().int(),
-  "taxCents": zod.number().int(),
-  "totalCents": zod.number().int(),
-  "amountDueCents": zod.number().int(),
+  "kind": zod.enum(['stock', 'custom']),
+  "itemCode": zod.string().nullable(),
+  "orderDate": zod.string().nullable(),
+  "customerName": zod.string().nullable(),
+  "phone": zod.string(),
+  "email": zod.string(),
+  "notes": zod.string(),
+  "style": zod.string(),
+  "capSize": zod.string(),
+  "lengthInch": zod.string(),
+  "hairType": zod.string(),
+  "part": zod.string(),
+  "layers": zod.string(),
+  "density": zod.string(),
+  "color": zod.string(),
+  "highlights": zod.string(),
+  "priceCents": zod.number().int().nullable(),
+  "taxRateMilliPercent": zod.number().int(),
+  "amountPaidCents": zod.number().int().nullable(),
+  "taxCents": zod.number().int().nullable(),
+  "totalCents": zod.number().int().nullable(),
+  "amountDueCents": zod.number().int().nullable(),
+  "needsReview": zod.boolean(),
+  "reviewIssues": zod.array(zod.string()),
+  "sourceSheet": zod.string().nullable(),
+  "sourceRowNumber": zod.number().int().nullable(),
+  "sourceValues": zod.record(zod.string(), zod.string()).nullable(),
   "createdAt": zod.coerce.date()
-}))
+})
 
 
 /**
@@ -276,71 +208,37 @@ export const UpdateWigOrderBody = zod.object({
   "amountPaidCents": zod.number().int().min(updateWigOrderBodyAmountPaidCentsMin)
 })
 
-export const updateWigOrderResponseOneItemCodeMax = 100;
-
-export const updateWigOrderResponseOneOrderDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
-export const updateWigOrderResponseOneCustomerNameMax = 200;
-
-export const updateWigOrderResponseOnePhoneMax = 100;
-
-export const updateWigOrderResponseOneEmailMax = 200;
-
-export const updateWigOrderResponseOneNotesMax = 3000;
-
-export const updateWigOrderResponseOneStyleMax = 200;
-
-export const updateWigOrderResponseOneCapSizeMax = 200;
-
-export const updateWigOrderResponseOneLengthInchMax = 200;
-
-export const updateWigOrderResponseOneHairTypeMax = 200;
-
-export const updateWigOrderResponseOnePartMax = 200;
-
-export const updateWigOrderResponseOneLayersMax = 200;
-
-export const updateWigOrderResponseOneDensityMax = 200;
-
-export const updateWigOrderResponseOneColorMax = 200;
-
-export const updateWigOrderResponseOneHighlightsMax = 500;
-
-export const updateWigOrderResponseOnePriceCentsMin = 0;
-
-export const updateWigOrderResponseOneTaxRateMilliPercentMin = 0;
-export const updateWigOrderResponseOneTaxRateMilliPercentMax = 100000;
-
-export const updateWigOrderResponseOneAmountPaidCentsMin = 0;
-
-
-
 export const UpdateWigOrderResponse = zod.object({
-  "kind": zod.enum(['stock', 'custom']),
-  "itemCode": zod.string().min(1).max(updateWigOrderResponseOneItemCodeMax),
-  "orderDate": zod.string().regex(updateWigOrderResponseOneOrderDateRegExp),
-  "customerName": zod.string().min(1).max(updateWigOrderResponseOneCustomerNameMax),
-  "phone": zod.string().max(updateWigOrderResponseOnePhoneMax).optional(),
-  "email": zod.string().max(updateWigOrderResponseOneEmailMax).optional(),
-  "notes": zod.string().max(updateWigOrderResponseOneNotesMax).optional(),
-  "style": zod.string().max(updateWigOrderResponseOneStyleMax).optional(),
-  "capSize": zod.string().max(updateWigOrderResponseOneCapSizeMax).optional(),
-  "lengthInch": zod.string().max(updateWigOrderResponseOneLengthInchMax).optional(),
-  "hairType": zod.string().max(updateWigOrderResponseOneHairTypeMax).optional(),
-  "part": zod.string().max(updateWigOrderResponseOnePartMax).optional(),
-  "layers": zod.string().max(updateWigOrderResponseOneLayersMax).optional(),
-  "density": zod.string().max(updateWigOrderResponseOneDensityMax).optional(),
-  "color": zod.string().max(updateWigOrderResponseOneColorMax).optional(),
-  "highlights": zod.string().max(updateWigOrderResponseOneHighlightsMax).optional(),
-  "priceCents": zod.number().int().min(updateWigOrderResponseOnePriceCentsMin),
-  "taxRateMilliPercent": zod.number().int().min(updateWigOrderResponseOneTaxRateMilliPercentMin).max(updateWigOrderResponseOneTaxRateMilliPercentMax),
-  "amountPaidCents": zod.number().int().min(updateWigOrderResponseOneAmountPaidCentsMin)
-}).and(zod.object({
   "id": zod.number().int(),
-  "taxCents": zod.number().int(),
-  "totalCents": zod.number().int(),
-  "amountDueCents": zod.number().int(),
+  "kind": zod.enum(['stock', 'custom']),
+  "itemCode": zod.string().nullable(),
+  "orderDate": zod.string().nullable(),
+  "customerName": zod.string().nullable(),
+  "phone": zod.string(),
+  "email": zod.string(),
+  "notes": zod.string(),
+  "style": zod.string(),
+  "capSize": zod.string(),
+  "lengthInch": zod.string(),
+  "hairType": zod.string(),
+  "part": zod.string(),
+  "layers": zod.string(),
+  "density": zod.string(),
+  "color": zod.string(),
+  "highlights": zod.string(),
+  "priceCents": zod.number().int().nullable(),
+  "taxRateMilliPercent": zod.number().int(),
+  "amountPaidCents": zod.number().int().nullable(),
+  "taxCents": zod.number().int().nullable(),
+  "totalCents": zod.number().int().nullable(),
+  "amountDueCents": zod.number().int().nullable(),
+  "needsReview": zod.boolean(),
+  "reviewIssues": zod.array(zod.string()),
+  "sourceSheet": zod.string().nullable(),
+  "sourceRowNumber": zod.number().int().nullable(),
+  "sourceValues": zod.record(zod.string(), zod.string()).nullable(),
   "createdAt": zod.coerce.date()
-}))
+})
 
 
 /**
@@ -383,162 +281,6 @@ export const DownloadWigReceiptParams = zod.object({
 })
 
 export const DownloadWigReceiptResponse = zod.unknown()
-
-
-/**
- * @summary Preview an XLSX workbook without saving
- */
-export const previewWigOrderImportResponseRowsItemOrderItemCodeMax = 100;
-
-export const previewWigOrderImportResponseRowsItemOrderOrderDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
-export const previewWigOrderImportResponseRowsItemOrderCustomerNameMax = 200;
-
-export const previewWigOrderImportResponseRowsItemOrderPhoneMax = 100;
-
-export const previewWigOrderImportResponseRowsItemOrderEmailMax = 200;
-
-export const previewWigOrderImportResponseRowsItemOrderNotesMax = 3000;
-
-export const previewWigOrderImportResponseRowsItemOrderStyleMax = 200;
-
-export const previewWigOrderImportResponseRowsItemOrderCapSizeMax = 200;
-
-export const previewWigOrderImportResponseRowsItemOrderLengthInchMax = 200;
-
-export const previewWigOrderImportResponseRowsItemOrderHairTypeMax = 200;
-
-export const previewWigOrderImportResponseRowsItemOrderPartMax = 200;
-
-export const previewWigOrderImportResponseRowsItemOrderLayersMax = 200;
-
-export const previewWigOrderImportResponseRowsItemOrderDensityMax = 200;
-
-export const previewWigOrderImportResponseRowsItemOrderColorMax = 200;
-
-export const previewWigOrderImportResponseRowsItemOrderHighlightsMax = 500;
-
-export const previewWigOrderImportResponseRowsItemOrderPriceCentsMin = 0;
-
-export const previewWigOrderImportResponseRowsItemOrderTaxRateMilliPercentMin = 0;
-export const previewWigOrderImportResponseRowsItemOrderTaxRateMilliPercentMax = 100000;
-
-export const previewWigOrderImportResponseRowsItemOrderAmountPaidCentsMin = 0;
-
-
-
-export const PreviewWigOrderImportResponse = zod.object({
-  "rows": zod.array(zod.object({
-  "sheet": zod.string(),
-  "rowNumber": zod.number().int(),
-  "order": zod.object({
-  "kind": zod.enum(['stock', 'custom']),
-  "itemCode": zod.string().min(1).max(previewWigOrderImportResponseRowsItemOrderItemCodeMax),
-  "orderDate": zod.string().regex(previewWigOrderImportResponseRowsItemOrderOrderDateRegExp),
-  "customerName": zod.string().min(1).max(previewWigOrderImportResponseRowsItemOrderCustomerNameMax),
-  "phone": zod.string().max(previewWigOrderImportResponseRowsItemOrderPhoneMax).optional(),
-  "email": zod.string().max(previewWigOrderImportResponseRowsItemOrderEmailMax).optional(),
-  "notes": zod.string().max(previewWigOrderImportResponseRowsItemOrderNotesMax).optional(),
-  "style": zod.string().max(previewWigOrderImportResponseRowsItemOrderStyleMax).optional(),
-  "capSize": zod.string().max(previewWigOrderImportResponseRowsItemOrderCapSizeMax).optional(),
-  "lengthInch": zod.string().max(previewWigOrderImportResponseRowsItemOrderLengthInchMax).optional(),
-  "hairType": zod.string().max(previewWigOrderImportResponseRowsItemOrderHairTypeMax).optional(),
-  "part": zod.string().max(previewWigOrderImportResponseRowsItemOrderPartMax).optional(),
-  "layers": zod.string().max(previewWigOrderImportResponseRowsItemOrderLayersMax).optional(),
-  "density": zod.string().max(previewWigOrderImportResponseRowsItemOrderDensityMax).optional(),
-  "color": zod.string().max(previewWigOrderImportResponseRowsItemOrderColorMax).optional(),
-  "highlights": zod.string().max(previewWigOrderImportResponseRowsItemOrderHighlightsMax).optional(),
-  "priceCents": zod.number().int().min(previewWigOrderImportResponseRowsItemOrderPriceCentsMin),
-  "taxRateMilliPercent": zod.number().int().min(previewWigOrderImportResponseRowsItemOrderTaxRateMilliPercentMin).max(previewWigOrderImportResponseRowsItemOrderTaxRateMilliPercentMax),
-  "amountPaidCents": zod.number().int().min(previewWigOrderImportResponseRowsItemOrderAmountPaidCentsMin)
-})
-})),
-  "issues": zod.array(zod.object({
-  "sheet": zod.string(),
-  "rowNumber": zod.number().int(),
-  "reason": zod.string()
-}))
-})
-
-
-/**
- * @summary Import reviewed rows
- */
-export const confirmWigOrderImportBodyRowsItemOrderItemCodeMax = 100;
-
-export const confirmWigOrderImportBodyRowsItemOrderOrderDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
-export const confirmWigOrderImportBodyRowsItemOrderCustomerNameMax = 200;
-
-export const confirmWigOrderImportBodyRowsItemOrderPhoneMax = 100;
-
-export const confirmWigOrderImportBodyRowsItemOrderEmailMax = 200;
-
-export const confirmWigOrderImportBodyRowsItemOrderNotesMax = 3000;
-
-export const confirmWigOrderImportBodyRowsItemOrderStyleMax = 200;
-
-export const confirmWigOrderImportBodyRowsItemOrderCapSizeMax = 200;
-
-export const confirmWigOrderImportBodyRowsItemOrderLengthInchMax = 200;
-
-export const confirmWigOrderImportBodyRowsItemOrderHairTypeMax = 200;
-
-export const confirmWigOrderImportBodyRowsItemOrderPartMax = 200;
-
-export const confirmWigOrderImportBodyRowsItemOrderLayersMax = 200;
-
-export const confirmWigOrderImportBodyRowsItemOrderDensityMax = 200;
-
-export const confirmWigOrderImportBodyRowsItemOrderColorMax = 200;
-
-export const confirmWigOrderImportBodyRowsItemOrderHighlightsMax = 500;
-
-export const confirmWigOrderImportBodyRowsItemOrderPriceCentsMin = 0;
-
-export const confirmWigOrderImportBodyRowsItemOrderTaxRateMilliPercentMin = 0;
-export const confirmWigOrderImportBodyRowsItemOrderTaxRateMilliPercentMax = 100000;
-
-export const confirmWigOrderImportBodyRowsItemOrderAmountPaidCentsMin = 0;
-
-export const confirmWigOrderImportBodyRowsMax = 500;
-
-
-
-export const ConfirmWigOrderImportBody = zod.object({
-  "rows": zod.array(zod.object({
-  "sheet": zod.string(),
-  "rowNumber": zod.number().int(),
-  "order": zod.object({
-  "kind": zod.enum(['stock', 'custom']),
-  "itemCode": zod.string().min(1).max(confirmWigOrderImportBodyRowsItemOrderItemCodeMax),
-  "orderDate": zod.string().regex(confirmWigOrderImportBodyRowsItemOrderOrderDateRegExp),
-  "customerName": zod.string().min(1).max(confirmWigOrderImportBodyRowsItemOrderCustomerNameMax),
-  "phone": zod.string().max(confirmWigOrderImportBodyRowsItemOrderPhoneMax).optional(),
-  "email": zod.string().max(confirmWigOrderImportBodyRowsItemOrderEmailMax).optional(),
-  "notes": zod.string().max(confirmWigOrderImportBodyRowsItemOrderNotesMax).optional(),
-  "style": zod.string().max(confirmWigOrderImportBodyRowsItemOrderStyleMax).optional(),
-  "capSize": zod.string().max(confirmWigOrderImportBodyRowsItemOrderCapSizeMax).optional(),
-  "lengthInch": zod.string().max(confirmWigOrderImportBodyRowsItemOrderLengthInchMax).optional(),
-  "hairType": zod.string().max(confirmWigOrderImportBodyRowsItemOrderHairTypeMax).optional(),
-  "part": zod.string().max(confirmWigOrderImportBodyRowsItemOrderPartMax).optional(),
-  "layers": zod.string().max(confirmWigOrderImportBodyRowsItemOrderLayersMax).optional(),
-  "density": zod.string().max(confirmWigOrderImportBodyRowsItemOrderDensityMax).optional(),
-  "color": zod.string().max(confirmWigOrderImportBodyRowsItemOrderColorMax).optional(),
-  "highlights": zod.string().max(confirmWigOrderImportBodyRowsItemOrderHighlightsMax).optional(),
-  "priceCents": zod.number().int().min(confirmWigOrderImportBodyRowsItemOrderPriceCentsMin),
-  "taxRateMilliPercent": zod.number().int().min(confirmWigOrderImportBodyRowsItemOrderTaxRateMilliPercentMin).max(confirmWigOrderImportBodyRowsItemOrderTaxRateMilliPercentMax),
-  "amountPaidCents": zod.number().int().min(confirmWigOrderImportBodyRowsItemOrderAmountPaidCentsMin)
-})
-})).max(confirmWigOrderImportBodyRowsMax)
-})
-
-export const ConfirmWigOrderImportResponse = zod.object({
-  "imported": zod.number().int(),
-  "skipped": zod.array(zod.object({
-  "sheet": zod.string(),
-  "rowNumber": zod.number().int(),
-  "reason": zod.string()
-}))
-})
 
 
 /**

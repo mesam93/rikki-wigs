@@ -5,12 +5,37 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { WigOrderInput } from './wigOrderInput';
+import type { WigOrderKind } from './wigOrderKind';
+import type { WigOrderSourceValues } from './wigOrderSourceValues';
 
-export type WigOrder = WigOrderInput & {
+export interface WigOrder {
   id: number;
-  taxCents: number;
-  totalCents: number;
-  amountDueCents: number;
+  kind: WigOrderKind;
+  itemCode: string | null;
+  orderDate: string | null;
+  customerName: string | null;
+  phone: string;
+  email: string;
+  notes: string;
+  style: string;
+  capSize: string;
+  lengthInch: string;
+  hairType: string;
+  part: string;
+  layers: string;
+  density: string;
+  color: string;
+  highlights: string;
+  priceCents: number | null;
+  taxRateMilliPercent: number;
+  amountPaidCents: number | null;
+  taxCents: number | null;
+  totalCents: number | null;
+  amountDueCents: number | null;
+  needsReview: boolean;
+  reviewIssues: string[];
+  sourceSheet: string | null;
+  sourceRowNumber: number | null;
+  sourceValues: WigOrderSourceValues;
   createdAt: Date;
-};
+}

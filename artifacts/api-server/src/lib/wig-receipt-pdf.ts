@@ -8,6 +8,11 @@ export function sendReceiptPdf(res: Response, receipt: {
   id: number; issuedAt: Date; snapshot: WigOrder;
 }) {
   const order = receipt.snapshot;
+  if (order.needsReview || order.customerName === null || order.itemCode === null ||
+      order.orderDate === null || order.priceCents === null || order.taxCents === null ||
+      order.totalCents === null || order.amountPaidCents === null || order.amountDueCents === null) {
+    throw new Error("A receipt cannot be generated for an incomplete order");
+  }
   const pdf = new PDFDocument({ size: "LETTER", margin: 55 });
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Cache-Control", "private, no-store");
