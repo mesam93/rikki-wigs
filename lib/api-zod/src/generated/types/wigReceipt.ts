@@ -11,4 +11,6 @@ export interface WigReceipt {
   orderId: number;
   issuedAt: Date;
   receiptNumber: string;
+  customerName: string | null;
+  itemCode: string | null;
 }

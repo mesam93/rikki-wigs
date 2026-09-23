@@ -109,6 +109,8 @@ export interface WigReceipt {
   orderId: number;
   issuedAt: string;
   receiptNumber: string;
+  customerName: string | null;
+  itemCode: string | null;
 }
 
 export interface HealthStatus {

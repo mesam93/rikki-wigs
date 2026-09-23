@@ -252,7 +252,9 @@ export const ListWigReceiptsResponseItem = zod.object({
   "id": zod.number().int(),
   "orderId": zod.number().int(),
   "issuedAt": zod.coerce.date(),
-  "receiptNumber": zod.string()
+  "receiptNumber": zod.string(),
+  "customerName": zod.string().nullable(),
+  "itemCode": zod.string().nullable()
 })
 export const ListWigReceiptsResponse = zod.array(ListWigReceiptsResponseItem)
 
@@ -268,7 +270,9 @@ export const IssueWigReceiptResponse = zod.object({
   "id": zod.number().int(),
   "orderId": zod.number().int(),
   "issuedAt": zod.coerce.date(),
-  "receiptNumber": zod.string()
+  "receiptNumber": zod.string(),
+  "customerName": zod.string().nullable(),
+  "itemCode": zod.string().nullable()
 })
 
 
@@ -281,6 +285,17 @@ export const DownloadWigReceiptParams = zod.object({
 })
 
 export const DownloadWigReceiptResponse = zod.unknown()
+
+
+/**
+ * @summary View protected receipt PDF in the browser
+ */
+export const ViewWigReceiptParams = zod.object({
+  "id": zod.coerce.number().int(),
+  "receiptId": zod.coerce.number().int()
+})
+
+export const ViewWigReceiptResponse = zod.unknown()
 
 
 /**

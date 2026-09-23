@@ -558,6 +558,88 @@ export function useDownloadWigReceipt<TData = Awaited<ReturnType<typeof download
 
 
 
+export const getViewWigReceiptUrl = (id: number,
+    receiptId: number,) => {
+
+
+
+
+  return `/api/admin/orders/${id}/receipts/${receiptId}/view`
+}
+
+/**
+ * @summary View protected receipt PDF in the browser
+ */
+export const viewWigReceipt = async (id: number,
+    receiptId: number, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getViewWigReceiptUrl(id,receiptId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getViewWigReceiptQueryKey = (id: number,
+    receiptId: number,) => {
+    return [
+    `/api/admin/orders/${id}/receipts/${receiptId}/view`
+    ] as const;
+    }
+
+
+export const getViewWigReceiptQueryOptions = <TData = Awaited<ReturnType<typeof viewWigReceipt>>, TError = ErrorType<unknown>>(id: number,
+    receiptId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof viewWigReceipt>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getViewWigReceiptQueryKey(id,receiptId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof viewWigReceipt>>> = ({ signal }) => viewWigReceipt(id,receiptId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined && receiptId !== null && receiptId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof viewWigReceipt>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ViewWigReceiptQueryResult = NonNullable<Awaited<ReturnType<typeof viewWigReceipt>>>
+export type ViewWigReceiptQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary View protected receipt PDF in the browser
+ */
+
+export function useViewWigReceipt<TData = Awaited<ReturnType<typeof viewWigReceipt>>, TError = ErrorType<unknown>>(
+ id: number,
+    receiptId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof viewWigReceipt>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getViewWigReceiptQueryOptions(id,receiptId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getHealthCheckUrl = () => {
 
 

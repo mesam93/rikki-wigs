@@ -121,6 +121,26 @@ paths:
           content:
             application/pdf:
               schema: { type: string, format: binary }
+  /admin/orders/{id}/receipts/{receiptId}/view:
+    get:
+      operationId: viewWigReceipt
+      tags: [orders]
+      summary: View protected receipt PDF in the browser
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: receiptId
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Inline PDF document
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
   /healthz:
     get:
       operationId: healthCheck
@@ -607,12 +627,14 @@ components:
         createdAt: { type: string, format: date-time }
     WigReceipt:
       type: object
-      required: [id, orderId, issuedAt, receiptNumber]
+      required: [id, orderId, issuedAt, receiptNumber, customerName, itemCode]
       properties:
         id: { type: integer }
         orderId: { type: integer }
         issuedAt: { type: string, format: date-time }
         receiptNumber: { type: string }
+        customerName: { type: string, nullable: true }
+        itemCode: { type: string, nullable: true }
     HealthStatus:
       type: object
       properties:

@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import { desc, eq } from "drizzle-orm";
 import { db, wigOrdersTable, wigReceiptsTable } from "@workspace/db";
 import {
@@ -30,6 +30,7 @@ function receiptResponse(receipt: typeof wigReceiptsTable.$inferSelect) {
   return {
     id: receipt.id, orderId: receipt.orderId,
     issuedAt: receipt.issuedAt.toISOString(), receiptNumber: `RW-${receipt.id}`,
+    customerName: receipt.snapshot.customerName, itemCode: receipt.snapshot.itemCode,
   };
 }
 
@@ -107,13 +108,21 @@ router.post("/admin/orders/:id/receipts", async (req, res): Promise<void> => {
   res.status(201).json(IssueWigReceiptResponse.parse(receiptResponse(receipt)));
 });
 
-router.get("/admin/orders/:id/receipts/:receiptId/pdf", async (req, res): Promise<void> => {
+async function serveReceiptPdf(req: Request, res: Response, inline: boolean): Promise<void> {
   const id = idParam(req.params.id);
   const receiptId = idParam(req.params.receiptId);
   if (!id || !receiptId) { res.status(400).json({ error: "Invalid receipt ID" }); return; }
   const [receipt] = await db.select().from(wigReceiptsTable).where(eq(wigReceiptsTable.id, receiptId));
   if (!receipt || receipt.orderId !== id) { res.status(404).json({ error: "Receipt not found" }); return; }
-  sendReceiptPdf(res, receipt);
+  sendReceiptPdf(res, receipt, inline);
+}
+
+router.get("/admin/orders/:id/receipts/:receiptId/pdf", async (req, res): Promise<void> => {
+  await serveReceiptPdf(req, res, false);
+});
+
+router.get("/admin/orders/:id/receipts/:receiptId/view", async (req, res): Promise<void> => {
+  await serveReceiptPdf(req, res, true);
 });
 
 export default router;

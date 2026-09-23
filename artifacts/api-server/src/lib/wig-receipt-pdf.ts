@@ -4,9 +4,14 @@ import type { WigOrder } from "@workspace/db";
 
 const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
+function filenamePart(value: string): string {
+  return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "order";
+}
+
 export function sendReceiptPdf(res: Response, receipt: {
   id: number; issuedAt: Date; snapshot: WigOrder;
-}) {
+}, inline = false) {
   const order = receipt.snapshot;
   if (order.needsReview || order.customerName === null || order.itemCode === null ||
       order.orderDate === null || order.priceCents === null || order.taxCents === null ||
@@ -14,15 +19,22 @@ export function sendReceiptPdf(res: Response, receipt: {
     throw new Error("A receipt cannot be generated for an incomplete order");
   }
   const pdf = new PDFDocument({ size: "LETTER", margin: 55 });
+  const title = `${order.customerName} — ${order.itemCode}`;
+  pdf.info.Title = title;
+  const filename = `${filenamePart(order.customerName)}-${filenamePart(order.itemCode)}-RW-${receipt.id}.pdf`;
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Cache-Control", "private, no-store");
-  res.setHeader("Content-Disposition", `attachment; filename="rikki-receipt-${receipt.id}.pdf"`);
+  res.setHeader("Content-Disposition", `${inline ? "inline" : "attachment"}; filename="${filename}"`);
+  res.setHeader("X-Content-Type-Options", "nosniff");
   pdf.pipe(res);
   pdf.font("Helvetica-Bold").fontSize(26).fillColor("#301f28").text("Rikki Wigs");
   pdf.font("Helvetica").fontSize(10).fillColor("#685862")
     .text("427 Denison St.  |  Highland Park, NJ  |  (732) 742-4559");
   pdf.moveDown(1.3);
-  pdf.font("Helvetica-Bold").fontSize(17).fillColor("#301f28").text("RECEIPT");
+  pdf.font("Helvetica-Bold").fontSize(10).fillColor("#685862").text("RECEIPT");
+  pdf.moveDown(0.3);
+  pdf.font("Helvetica-Bold").fontSize(18).fillColor("#301f28").text(title);
+  pdf.moveDown(0.35);
   pdf.font("Helvetica").fontSize(10).text(`Receipt #RW-${receipt.id}    •    Item code ${order.itemCode}`);
   pdf.text(`Issued ${receipt.issuedAt.toLocaleDateString("en-US", { timeZone: "America/New_York" })}    •    Order ${order.orderDate}`);
   pdf.moveDown();

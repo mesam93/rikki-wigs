@@ -11,7 +11,7 @@ import {
   WigOrderInput,
 } from '@workspace/api-client-react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Plus, Search, Download, ChevronDown, X } from 'lucide-react';
+import { Plus, Search, Download, Eye, ChevronDown, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 function formatDay(value: string | Date | null, options?: Intl.DateTimeFormatOptions): string {
@@ -334,13 +334,18 @@ function OrderDetails({ order, onEdit }: { order: WigOrder; onEdit: () => void }
             {isLoading ? <div className="skeleton h-10 w-full" /> : receipts && receipts.length > 0 ? (
               <ul className="space-y-2">
                 {receipts.map(receipt => (
-                  <li key={receipt.id} className="flex items-center justify-between bg-[hsl(var(--background))] border border-[hsl(var(--border))] p-2 rounded-lg text-sm">
-                    <span className="font-mono-ui text-xs">{receipt.receiptNumber}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-[hsl(var(--muted-foreground))]">{formatDay(receipt.issuedAt)}</span>
-                       <a href={`/api/admin/orders/${order.id}/receipts/${receipt.id}/pdf`} download className="p-1.5 rounded bg-[hsl(var(--secondary))] hover:bg-[hsl(var(--primary))] hover:text-[hsl(var(--primary-foreground))] transition-colors" title={`Download ${receipt.receiptNumber} PDF`} aria-label={`Download ${receipt.receiptNumber} PDF`} data-testid={`link-receipt-${receipt.id}`}>
-                        <Download size={14} />
-                      </a>
+                   <li key={receipt.id} className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-3 text-sm">
+                     <div className="min-w-0">
+                       <p className="break-words font-medium text-[hsl(var(--foreground))]">{receipt.customerName || 'Name unavailable'} · {receipt.itemCode || 'Code unavailable'}</p>
+                       <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]"><span className="font-mono-ui">{receipt.receiptNumber}</span> · {formatDay(receipt.issuedAt)}</p>
+                     </div>
+                     <div className="mt-3 flex flex-wrap gap-2">
+                       <a href={`/api/admin/orders/${order.id}/receipts/${receipt.id}/view`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-md border border-[hsl(var(--border))] px-3 py-1.5 text-xs font-medium hover:bg-[hsl(var(--secondary))] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary))]" aria-label={`View receipt for ${receipt.customerName || 'customer'}, ${receipt.itemCode || 'unknown code'}`} data-testid={`link-view-receipt-${receipt.id}`}>
+                         <Eye size={14} aria-hidden="true" /> View
+                       </a>
+                       <a href={`/api/admin/orders/${order.id}/receipts/${receipt.id}/pdf`} className="inline-flex items-center gap-1.5 rounded-md border border-[hsl(var(--border))] px-3 py-1.5 text-xs font-medium hover:bg-[hsl(var(--secondary))] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary))]" aria-label={`Download receipt for ${receipt.customerName || 'customer'}, ${receipt.itemCode || 'unknown code'}`} data-testid={`link-receipt-${receipt.id}`}>
+                         <Download size={14} aria-hidden="true" /> Download
+                       </a>
                     </div>
                   </li>
                 ))}
