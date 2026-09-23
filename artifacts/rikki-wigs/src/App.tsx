@@ -15,10 +15,12 @@ import {
 import type { Appointment } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Calendar } from '@/components/ui/calendar';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { GalleryAdmin, GallerySection, TestimonialsAdmin, TestimonialsSection } from '@/components/site-content';
 import { ServicesAdmin } from '@/components/services-admin';
+import { findNextConfirmedAppointment } from '@/lib/schedule-time';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
@@ -258,7 +260,7 @@ function Book() {
   </main></div>;
 }
 
-function ScheduleSettingsPanel() {
+function ScheduleSettingsForm() {
   const queryClient = useQueryClient();
   const { data, isLoading, isError } = useQuery({ queryKey: ['scheduling-settings'], queryFn: () => apiJson<SchedulingSettings>('/api/scheduling-settings') });
   const { data: emailStatus, isError: emailStatusError } = useQuery({ queryKey: ['email-status'], queryFn: () => apiJson<EmailDeliveryStatus>('/api/email-status') });
@@ -267,45 +269,269 @@ function ScheduleSettingsPanel() {
   const [message, setMessage] = useState('');
   const [block, setBlock] = useState({ date: '', startTime: '10:00', endTime: '11:00', reason: '' });
   useEffect(() => { if (data) setDraft(data); }, [data]);
-  if (isLoading || !draft) return <div className="skeleton mt-8 h-64" />;
-  if (isError) return <div className="mt-8 rounded-xl border border-[hsl(var(--destructive))] p-5 text-[hsl(var(--destructive))]">Scheduling settings could not be loaded.</div>;
+
+  if (isError) return <div className="mt-4 rounded-xl border border-[hsl(var(--destructive))] p-4 text-[hsl(var(--destructive))]">Settings could not be loaded.</div>;
+  if (isLoading || !draft) return <div className="skeleton mt-4 h-64" />;
+
   const save = async (next = draft) => {
     setSaving(true); setMessage('');
     try {
       const saved = await apiJson<SchedulingSettings>('/api/scheduling-settings', { method: 'PUT', body: JSON.stringify(next) });
       setDraft(saved); queryClient.invalidateQueries({ queryKey: ['availability'] }); setMessage('Schedule saved.');
-    } catch { setMessage('Could not save the schedule.'); } finally { setSaving(false); }
+      return true;
+    } catch { setMessage('Could not save the schedule. Please try again.'); return false; } finally { setSaving(false); }
   };
-  const addBlock = () => {
-    if (!block.date || !block.startTime || !block.endTime) return;
+  const addBlock = async () => {
+    if (!block.date || !block.startTime || !block.endTime || saving) return;
     const next = { ...draft, blockedSlots: [...draft.blockedSlots, { ...block, id: `${Date.now()}` }] };
-    setDraft(next); setBlock({ date: '', startTime: '10:00', endTime: '11:00', reason: '' }); void save(next);
+    if (await save(next)) setBlock({ date: '', startTime: '10:00', endTime: '11:00', reason: '' });
   };
-  return <section className="mt-10 space-y-10">
-    <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5">
-      <div className="flex items-start gap-3">
-        <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${emailStatus?.mode === 'smtp' && emailStatus.configured ? 'bg-[hsl(147_35%_45%)]' : emailStatus?.mode === 'test' ? 'bg-[hsl(var(--accent))]' : 'bg-[hsl(var(--muted-foreground))]'}`} />
-        <div>
-          <h2 className="font-editorial text-3xl">Customer emails</h2>
-          <p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">{emailStatusError ? 'Email delivery status could not be loaded.' : emailStatus?.label ?? 'Checking email delivery…'}</p>
-          {emailStatus?.mode !== 'smtp' && <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">Appointments still save normally. Real emails remain off until the client adds their own SMTP settings.</p>}
+
+  return <div className="space-y-10">
+    <section>
+      <h3 className="font-editorial text-2xl">Customer emails</h3>
+      <div className="mt-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
+        <div className="flex items-start gap-3">
+          <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${emailStatus?.mode === 'smtp' && emailStatus.configured ? 'bg-[hsl(147_35%_45%)]' : emailStatus?.mode === 'test' ? 'bg-[hsl(var(--accent))]' : 'bg-[hsl(var(--muted-foreground))]'}`} />
+          <div>
+            <p className="text-sm font-semibold">{emailStatusError ? 'Email status error' : emailStatus?.label ?? 'Checking delivery…'}</p>
+            {!emailStatusError && emailStatus?.mode !== 'smtp' && <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">Appointments save normally. Real emails remain off until SMTP is configured.</p>}
+          </div>
         </div>
       </div>
-    </div>
-    <div>
-      <h2 className="font-editorial text-4xl">Blocked times</h2>
-      <div className="mt-5 grid gap-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 md:grid-cols-4"><input type="date" value={block.date} onChange={(e) => setBlock({ ...block, date: e.target.value })} className="field-input" /><input type="time" value={block.startTime} onChange={(e) => setBlock({ ...block, startTime: e.target.value })} className="field-input" /><input type="time" value={block.endTime} onChange={(e) => setBlock({ ...block, endTime: e.target.value })} className="field-input" /><input placeholder="Reason (optional)" value={block.reason} onChange={(e) => setBlock({ ...block, reason: e.target.value })} className="field-input" /><button onClick={addBlock} className="btn-primary md:col-span-4">Block this time</button></div>
-      <div className="mt-3 space-y-2">{draft.blockedSlots.map((item) => <div key={item.id} className="flex items-center justify-between rounded-lg border border-[hsl(var(--border))] p-3 text-sm"><span>{item.date} · {item.startTime}–{item.endTime} {item.reason && `· ${item.reason}`}</span><button onClick={() => { const next = { ...draft, blockedSlots: draft.blockedSlots.filter((slot) => slot.id !== item.id) }; setDraft(next); void save(next); }} className="text-[hsl(var(--destructive))]">Remove</button></div>)}</div>
-    </div>
-    <div className="flex items-center gap-4"><button onClick={() => void save()} disabled={saving} className="btn-primary">{saving ? 'Saving…' : 'Save blocked times'}</button>{message && <span className="text-sm">{message}</span>}</div>
-  </section>;
+    </section>
+    <section>
+      <h3 className="font-editorial text-2xl">Blocked times</h3>
+      <div className="mt-3 grid gap-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 md:grid-cols-2">
+        <label className="field-label">Date<input type="date" value={block.date} onChange={(e) => setBlock({ ...block, date: e.target.value })} className="field-input" /></label>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="field-label">Start<input type="time" value={block.startTime} onChange={(e) => setBlock({ ...block, startTime: e.target.value })} className="field-input" /></label>
+          <label className="field-label">End<input type="time" value={block.endTime} onChange={(e) => setBlock({ ...block, endTime: e.target.value })} className="field-input" /></label>
+        </div>
+        <label className="field-label md:col-span-2">Reason (optional)<input placeholder="Reason (optional)" value={block.reason} onChange={(e) => setBlock({ ...block, reason: e.target.value })} className="field-input" /></label>
+        <button type="button" onClick={() => void addBlock()} disabled={saving} className="btn-primary md:col-span-2">Block this time</button>
+      </div>
+      <div className="mt-3 space-y-2">{draft.blockedSlots.map((item) => <div key={item.id} className="flex items-center justify-between rounded-lg border border-[hsl(var(--border))] p-3 text-sm"><div><span className="font-semibold">{formatDay(item.date, { month: 'short', day: 'numeric', year: 'numeric' })}</span><span className="ml-2 text-[hsl(var(--muted-foreground))]">{item.startTime}–{item.endTime}</span>{item.reason && <div className="text-[hsl(var(--muted-foreground))]">{item.reason}</div>}</div><button type="button" disabled={saving} onClick={() => void save({ ...draft, blockedSlots: draft.blockedSlots.filter((slot) => slot.id !== item.id) })} className="text-xs text-[hsl(var(--destructive))]">Remove</button></div>)}</div>
+    </section>
+    <div className="flex items-center gap-4 border-t border-[hsl(var(--border))] pt-6"><button onClick={() => void save()} disabled={saving} className="btn-primary w-full">{saving ? 'Saving…' : 'Save changes'}</button></div>
+    {message && <p role="status" className="text-center text-sm font-medium">{message}</p>}
+  </div>;
 }
 
-type ScheduleTab = 'requests' | 'calendar' | 'schedule';
+function SidePanel({ open, onOpenChange, title, description, children }: { open: boolean; onOpenChange: (open: boolean) => void; title: string; description: string; children: React.ReactNode }) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="flex h-[100dvh] !w-full !max-w-none flex-col bg-[hsl(var(--background))] p-0 sm:!max-w-md">
+        <SheetHeader className="border-b border-[hsl(var(--border))] p-6 pr-14 text-left">
+          <SheetTitle className="font-editorial text-2xl">{title}</SheetTitle>
+          <SheetDescription>{description}</SheetDescription>
+        </SheetHeader>
+        <div className="min-h-0 flex-1 overflow-y-auto p-6">{children}</div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function ScheduleDashboard() {
+  const queryClient = useQueryClient();
+  const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'upcoming' | 'completed' | 'cancelled'>('all');
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<Date | undefined>();
+  const [hoveredDateKey, setHoveredDateKey] = useState<string | null>(null);
+  const [chosenDateKey, setChosenDateKey] = useState<string | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+
+  const { data: appointments, isLoading, isError } = useListAppointments();
+
+  const updateAppointment = useUpdateAppointment();
+  const deleteAppointment = useDeleteAppointment();
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: getListAppointmentsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetAppointmentSummaryQueryKey() });
+  };
+  const updateStatus = (appointment: Appointment, status: typeof statuses[number]) => updateAppointment.mutate({ id: appointment.id, data: { status } }, { onSuccess: invalidate });
+  const reschedule = (appointment: Appointment, appointmentDate: string, appointmentTime: string) => updateAppointment.mutate({ id: appointment.id, data: { appointmentDate, appointmentTime } }, { onSuccess: invalidate });
+  const remove = (appointment: Appointment) => { if (window.confirm(`Remove the appointment request from ${appointment.name}?`)) deleteAppointment.mutate({ id: appointment.id }, { onSuccess: invalidate }); };
+
+  const todayKey = toDayKey(new Date());
+
+  const pendingCount = appointments?.filter(a => a.status === 'pending').length ?? 0;
+  const todaysConfirmed = appointments?.filter(a => a.status === 'confirmed' && toDayKey(a.appointmentDate) === todayKey) ?? [];
+  const { appointment: nextAppointment, hasInvalidTimes } = findNextConfirmedAppointment(appointments ?? [], new Date());
+
+  const pendingDates = useMemo(() => appointments?.filter(a => a.status === 'pending').map(a => new Date(`${toDayKey(a.appointmentDate)}T12:00:00`)) ?? [], [appointments]);
+  const confirmedDates = useMemo(() => appointments?.filter(a => a.status === 'confirmed').map(a => new Date(`${toDayKey(a.appointmentDate)}T12:00:00`)) ?? [], [appointments]);
+
+  const filteredAppointments = useMemo(() => (appointments ?? []).filter((appointment) => {
+    const dayKey = toDayKey(appointment.appointmentDate);
+    const matchesStatus = filter === 'all' || (filter === 'upcoming'
+      ? dayKey >= todayKey && (appointment.status === 'pending' || appointment.status === 'confirmed')
+      : appointment.status === filter);
+    return matchesStatus && (!selectedCalendarDay || dayKey === toDayKey(selectedCalendarDay));
+  }), [appointments, filter, selectedCalendarDay, todayKey]);
+
+  const modifiers = {
+    pending: pendingDates,
+    confirmed: confirmedDates,
+    highlighted: hoveredDateKey || chosenDateKey ? [new Date(`${hoveredDateKey ?? chosenDateKey}T12:00:00`)] : [],
+  };
+
+  const modifiersClassNames = {
+    pending: 'after:absolute after:bottom-1 after:left-[calc(50%-9px)] after:h-1.5 after:w-1.5 after:rounded-full after:bg-[hsl(29_70%_50%)]',
+    confirmed: 'before:absolute before:bottom-1 before:right-[calc(50%-9px)] before:h-1.5 before:w-1.5 before:rounded-full before:bg-[hsl(150_35%_40%)]',
+    highlighted: '!bg-[hsl(var(--primary)/.08)] !ring-1 !ring-inset !ring-[hsl(var(--primary))]',
+  };
+
+  const clearDayFilter = () => setSelectedCalendarDay(undefined);
+
+  return (
+    <div className="mt-8 space-y-10">
+      {isError && <div className="rounded-xl border border-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/.08)] p-5 text-sm text-[hsl(var(--destructive))]" role="alert">We could not load appointments. Refresh the page and try again. Availability settings are still accessible below.</div>}
+      <section className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
+          <p className="eyebrow opacity-60">Pending Requests</p>
+           {isLoading ? <div className="skeleton mt-3 h-8 w-16" /> : <div className="mt-2 text-4xl font-editorial">{isError ? '—' : pendingCount}</div>}
+        </div>
+        <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
+          <p className="eyebrow opacity-60">Today's Appointments</p>
+           {isLoading ? <div className="skeleton mt-3 h-8 w-16" /> : <div className="mt-2 text-4xl font-editorial">{isError ? '—' : todaysConfirmed.length}</div>}
+        </div>
+        <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
+          <p className="eyebrow opacity-60">Next Appointment</p>
+           {isLoading ? <div className="skeleton mt-3 h-8 w-full" /> : isError ? <p className="mt-2 text-sm">Unavailable</p> :
+           nextAppointment ? (
+              <div className="mt-2 text-sm">
+               <span className="block font-semibold">{nextAppointment.name}</span>
+               <span className="text-[hsl(var(--muted-foreground))]">{formatDay(nextAppointment.appointmentDate, { month: 'short', day: 'numeric' })} at {nextAppointment.appointmentTime}</span>
+             </div>
+           ) : (
+             <div className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">No upcoming appointments</div>
+           )
+          }
+           {!isLoading && !isError && hasInvalidTimes && <p className="mt-2 text-xs text-[hsl(var(--destructive))]" role="alert">Some appointment times could not be read.</p>}
+        </div>
+      </section>
+
+      <section className="grid items-start gap-8 lg:grid-cols-[380px_minmax(0,1fr)]">
+        <aside className="flex flex-col gap-6 lg:sticky lg:top-6">
+          <div className="flex items-center justify-between">
+            <h2 className="font-editorial text-3xl">Calendar</h2>
+             <button type="button" onClick={() => setIsSettingsOpen(true)} className="text-sm font-medium text-[hsl(var(--primary))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))]">Edit availability</button>
+          </div>
+
+          <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 shadow-sm">
+            <Calendar
+              mode="single"
+              month={calendarMonth}
+              onMonthChange={setCalendarMonth}
+              selected={selectedCalendarDay}
+              onSelect={setSelectedCalendarDay}
+              modifiers={modifiers}
+              modifiersClassNames={modifiersClassNames}
+              className="w-full !bg-transparent !p-0 [--cell-size:clamp(2rem,11vw,3rem)] lg:[--cell-size:2.8rem]"
+              classNames={{
+                root: 'w-full', months: 'w-full', month: 'w-full gap-4',
+                month_caption: 'flex h-10 w-full items-center justify-center px-10 font-editorial text-xl',
+                nav: 'absolute inset-x-0 top-1 flex w-full items-center justify-between',
+                month_grid: 'w-full border-collapse', weekdays: 'flex border-b border-[hsl(var(--border))] pb-2',
+                weekday: 'flex-1 text-center font-mono-ui text-[9px] uppercase tracking-[.14em] text-[hsl(var(--muted-foreground))]',
+                week: 'mt-2 flex w-full',
+                day: 'relative aspect-square h-full flex-1 p-1 text-center text-sm transition-colors hover:bg-[hsl(var(--secondary))] rounded-lg focus:outline-none aria-selected:bg-[hsl(var(--primary))] aria-selected:text-[hsl(var(--primary-foreground))]',
+                today: 'font-bold text-[hsl(var(--primary))]'
+              }}
+            />
+            <div className="mt-4 flex items-center justify-center gap-4 border-t border-[hsl(var(--border))] pt-3 text-xs text-[hsl(var(--muted-foreground))]">
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[hsl(29_70%_50%)]" /> Pending</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[hsl(150_35%_40%)]" /> Confirmed</span>
+            </div>
+          </div>
+        </aside>
+
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <h2 className="font-editorial text-3xl">Appointments</h2>
+              <div className="mt-2 flex items-center gap-3 text-sm text-[hsl(var(--muted-foreground))]">
+                {selectedCalendarDay ? (
+                  <span className="flex items-center gap-2">
+                    Filtering by {formatDay(selectedCalendarDay, { month: 'long', day: 'numeric' })}
+                     <button type="button" onClick={clearDayFilter} aria-label="Clear selected day" className="flex h-6 w-6 items-center justify-center rounded-full bg-[hsl(var(--secondary))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--destructive))] hover:text-white"><X size={12} /></button>
+                  </span>
+                ) : (
+                  <span>Showing all dates</span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex max-w-full overflow-x-auto rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-1 text-sm shadow-sm" aria-label="Filter appointments">
+              {(['all', 'pending', 'confirmed', 'upcoming', 'completed', 'cancelled'] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setFilter(f)}
+                  aria-pressed={filter === f}
+                  className={`capitalize whitespace-nowrap rounded-md px-3 py-1.5 transition-colors ${filter === f ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] font-semibold' : 'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--secondary))] hover:text-[hsl(var(--foreground))]'}`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {isLoading ? (
+              [1, 2, 3].map((item) => <div className="skeleton h-32 w-full" key={item} />)
+             ) : isError ? <p className="text-sm text-[hsl(var(--muted-foreground))]">Appointments are unavailable right now.</p> : filteredAppointments.length ? (
+              filteredAppointments.map((appointment) => (
+                <div
+                  key={appointment.id}
+                   onMouseEnter={() => setHoveredDateKey(toDayKey(appointment.appointmentDate))}
+                   onMouseLeave={() => setHoveredDateKey(null)}
+                   onFocus={() => setHoveredDateKey(toDayKey(appointment.appointmentDate))}
+                   onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setHoveredDateKey(null); }}
+                   onClick={() => { setChosenDateKey(toDayKey(appointment.appointmentDate)); setCalendarMonth(new Date(`${toDayKey(appointment.appointmentDate)}T12:00:00`)); }}
+                   className={chosenDateKey === toDayKey(appointment.appointmentDate) ? 'rounded-xl ring-2 ring-[hsl(var(--primary)/.45)]' : ''}
+                >
+                  <AppointmentRow
+                    appointment={appointment}
+                    onStatus={updateStatus}
+                    onDelete={remove}
+                    onReschedule={reschedule}
+                    busy={updateAppointment.isPending || deleteAppointment.isPending}
+                  />
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border border-dashed border-[hsl(var(--border))] bg-[hsl(var(--card))] px-6 py-16 text-center shadow-sm">
+                <CalendarDays className="mx-auto text-[hsl(var(--primary))]" size={28} strokeWidth={1.3} />
+                <h3 className="mt-4 font-editorial text-2xl">Nothing found</h3>
+                <p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">
+                   No {filter !== 'all' ? filter : ''} appointments match the current view.
+                </p>
+                {selectedCalendarDay && (
+                  <button onClick={clearDayFilter} className="btn-quiet mt-6">View all dates</button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <SidePanel
+        open={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+        title="Schedule settings"
+        description="Review email delivery and block out calendar time."
+      >
+        <ScheduleSettingsForm />
+      </SidePanel>
+    </div>
+  );
+}
+
 type SiteTab = 'services' | 'testimonials' | 'gallery';
 type AdminGroup = 'schedule' | 'site';
 
-const scheduleTabs = [['requests', 'Requests'], ['calendar', 'Calendar'], ['schedule', 'Schedule Settings']] as const;
 const siteTabs = [['services', 'Services'], ['testimonials', 'Testimonials'], ['gallery', 'Gallery']] as const;
 const adminGroups = [['schedule', 'Schedule'], ['site', 'Manage Site']] as const;
 
@@ -337,59 +563,22 @@ function AdminTabs<T extends string>({ items, selected, onSelect, label, idPrefi
 }
 
 function Manage() {
-  const queryClient = useQueryClient();
-  const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'upcoming' | 'completed' | 'cancelled'>('all');
   const [group, setGroup] = useState<AdminGroup>('schedule');
-  const [scheduleTab, setScheduleTab] = useState<ScheduleTab>('requests');
   const [siteTab, setSiteTab] = useState<SiteTab>('services');
-  const tab = group === 'schedule' ? scheduleTab : siteTab;
-  const [calendarMonth, setCalendarMonth] = useState(new Date());
-  const [selectedCalendarDay, setSelectedCalendarDay] = useState<Date>();
-  const { data: summary, isLoading: summaryLoading, isError: summaryError } = useGetAppointmentSummary();
-  const { data: appointments, isLoading, isError } = useListAppointments();
-  const updateAppointment = useUpdateAppointment();
-  const deleteAppointment = useDeleteAppointment();
-  const invalidate = () => { queryClient.invalidateQueries({ queryKey: getListAppointmentsQueryKey() }); queryClient.invalidateQueries({ queryKey: getGetAppointmentSummaryQueryKey() }); };
-  const updateStatus = (appointment: Appointment, status: typeof statuses[number]) => updateAppointment.mutate({ id: appointment.id, data: { status } }, { onSuccess: invalidate });
-  const reschedule = (appointment: Appointment, appointmentDate: string, appointmentTime: string) => updateAppointment.mutate({ id: appointment.id, data: { appointmentDate, appointmentTime } }, { onSuccess: invalidate });
-  const remove = (appointment: Appointment) => { if (window.confirm(`Remove the appointment request from ${appointment.name}?`)) deleteAppointment.mutate({ id: appointment.id }, { onSuccess: invalidate }); };
-  const todayKey = toDayKey(new Date());
-  const filteredAppointments = useMemo(() => (appointments ?? []).filter((appointment) => {
-    if (filter === 'all') return true;
-    if (filter === 'upcoming') return toDayKey(appointment.appointmentDate) >= todayKey && (appointment.status === 'pending' || appointment.status === 'confirmed');
-    return appointment.status === filter;
-  }), [appointments, filter, todayKey]);
-  const confirmedAppointments = useMemo(() => (appointments ?? []).filter((appointment) => appointment.status === 'confirmed'), [appointments]);
-  const confirmedDates = useMemo(() => confirmedAppointments.map((appointment) => new Date(`${toDayKey(appointment.appointmentDate)}T12:00:00`)), [confirmedAppointments]);
-  const selectedDayAppointments = selectedCalendarDay
-    ? confirmedAppointments.filter((appointment) => toDayKey(appointment.appointmentDate) === toDayKey(selectedCalendarDay))
-    : [];
-  const summaryCards = [
-    ['all', 'total', 'All requests'],
-    ['pending', 'pending', 'Needs reply'],
-    ['confirmed', 'confirmed', 'Confirmed'],
-    ['upcoming', 'upcoming', 'Upcoming'],
-    ['completed', 'completed', 'Completed'],
-    ['cancelled', 'cancelled', 'Cancelled'],
-  ] as const;
+
   return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav manage /><main className="bg-[hsl(var(--background))]"><div className="container-rikki py-10 md:py-16"><div className="flex flex-col justify-between gap-6 md:flex-row md:items-end"><div><p className="eyebrow text-[hsl(var(--primary))]">Rikki Wigs / owner view</p><h1 className="display-title mt-4 text-6xl md:text-7xl">Good morning,<br /><em>Rikki.</em></h1></div><div className="flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))]"><span className="status-dot bg-[hsl(147_35%_45%)]" /> Your appointment book</div></div>
         <AdminTabs items={adminGroups} selected={group} onSelect={(value: AdminGroup) => setGroup(value)} label="Owner dashboard sections" idPrefix="admin-group" panelId="admin-group-panel" primary />
         <div id="admin-group-panel" role="tabpanel" aria-labelledby={`admin-group-${group}`}>
-          {group === 'schedule'
-            ? <AdminTabs items={scheduleTabs} selected={scheduleTab} onSelect={(value: ScheduleTab) => setScheduleTab(value)} label="Schedule sections" idPrefix="admin-section" panelId="admin-section-panel" />
-            : <AdminTabs items={siteTabs} selected={siteTab} onSelect={(value: SiteTab) => setSiteTab(value)} label="Manage Site sections" idPrefix="admin-section" panelId="admin-section-panel" />}
-          <div id="admin-section-panel" role="tabpanel" aria-labelledby={`admin-section-${tab}`}>
-         {tab === 'services' ? <ServicesAdmin /> : tab === 'schedule' ? <ScheduleSettingsPanel /> : tab === 'testimonials' ? <TestimonialsAdmin /> : tab === 'gallery' ? <GalleryAdmin /> : tab === 'requests' ? <>
-       {summaryError ? <div className="mt-10 rounded-xl border border-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/.08)] p-4 text-sm text-[hsl(var(--destructive))]" role="alert">Summary is unavailable right now. The appointment list may still load below.</div> : <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">{summaryCards.map(([filterKey, summaryKey, label]) => <button key={filterKey} type="button" onClick={() => setFilter(filterKey)} aria-pressed={filter === filterKey} className={`relative rounded-xl border bg-[hsl(var(--card))] p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--primary))] ${filter === filterKey ? 'border-[hsl(var(--primary))] shadow-[inset_0_0_0_1px_hsl(var(--primary))]' : 'border-[hsl(var(--border))] hover:border-[hsl(var(--primary)/.55)]'}`} data-testid={`button-filter-${filterKey}`}><span className="flex items-center justify-between gap-2"><span className="eyebrow opacity-60">{label}</span>{filter === filterKey && <CheckCircle2 size={16} aria-hidden="true" />}</span>{summaryLoading ? <span className="skeleton mt-3 block h-8 w-14" /> : <span className="mt-2 block font-editorial text-3xl" data-testid={`text-summary-${summaryKey}`}>{summary?.[summaryKey] ?? 0}</span>}<span className="sr-only">{filter === filterKey ? 'Selected filter' : 'Filter requests'}</span></button>)}</div>}
-       <div className="mt-12 border-b border-[hsl(var(--border))] pb-4"><p className="eyebrow opacity-55">appointment requests</p><h2 className="mt-2 font-editorial text-3xl">{summaryCards.find(([key]) => key === filter)?.[2]}</h2></div>
-       {isError ? <div className="mt-8 rounded-xl border border-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/.08)] p-5 text-sm text-[hsl(var(--destructive))]" role="alert">We could not load appointments. Refresh the page and try again.</div> : isLoading ? <div className="mt-5 space-y-3">{[1, 2, 3].map((item) => <div className="skeleton h-24 w-full" key={item} />)}</div> : filteredAppointments.length ? <div className="mt-5 space-y-3">{filteredAppointments.map((appointment) => <AppointmentRow key={appointment.id} appointment={appointment} onStatus={updateStatus} onDelete={remove} onReschedule={reschedule} busy={updateAppointment.isPending || deleteAppointment.isPending} />)}</div> : <div className="mt-8 rounded-xl border border-dashed border-[hsl(var(--border))] bg-[hsl(var(--card))] px-6 py-16 text-center"><CalendarDays className="mx-auto text-[hsl(var(--primary))]" size={28} strokeWidth={1.3} /><h3 className="mt-4 font-editorial text-3xl">Nothing here yet.</h3><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">{filter === 'all' ? 'New appointment requests will appear here.' : `There are no ${summaryCards.find(([key]) => key === filter)?.[2].toLowerCase()} appointments.`}</p></div>}</> : <section className="mt-10">
-         <div><p className="eyebrow opacity-55">confirmed appointments</p><h2 className="mt-2 font-editorial text-4xl">Calendar</h2><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">Choose a marked day to see its confirmed appointments.</p></div>
-         {isError ? <div className="mt-8 rounded-xl border border-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/.08)] p-5 text-sm text-[hsl(var(--destructive))]" role="alert">We could not load the calendar. Refresh the page and try again.</div> : isLoading ? <div className="skeleton mt-8 h-96 w-full" /> : confirmedAppointments.length ? <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(280px,.75fr)]">
-           <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-3 sm:p-6"><Calendar mode="single" month={calendarMonth} onMonthChange={setCalendarMonth} selected={selectedCalendarDay} onSelect={setSelectedCalendarDay} modifiers={{ confirmed: confirmedDates }} modifiersClassNames={{ confirmed: 'after:absolute after:bottom-1 after:left-1/2 after:h-1.5 after:w-1.5 after:-translate-x-1/2 after:rounded-full after:bg-[hsl(var(--primary))]' }} className="w-full !bg-transparent !p-0 [--cell-size:clamp(2.4rem,10vw,4.25rem)]" classNames={{ root: 'w-full', months: 'w-full', month: 'w-full gap-6', month_caption: 'flex h-12 w-full items-center justify-center px-12 font-editorial text-2xl', nav: 'absolute inset-x-0 top-1 flex w-full items-center justify-between', month_grid: 'w-full border-collapse', weekdays: 'flex border-b border-[hsl(var(--border))] pb-3', weekday: 'flex-1 text-center font-mono-ui text-[10px] uppercase tracking-[.14em] text-[hsl(var(--muted-foreground))]', week: 'mt-2 flex w-full', day: 'relative aspect-square h-full flex-1 p-1 text-center', today: 'rounded-full border border-[hsl(var(--accent))]' }} /></div>
-           <aside className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5" aria-live="polite"><p className="eyebrow opacity-55">{selectedCalendarDay ? formatDay(selectedCalendarDay, { weekday: 'long', month: 'long', day: 'numeric' }) : 'Selected day'}</p>{!selectedCalendarDay ? <p className="mt-5 text-sm text-[hsl(var(--muted-foreground))]">Select a day to view appointment details.</p> : selectedDayAppointments.length ? <div className="mt-5 space-y-3">{selectedDayAppointments.map((appointment) => <article key={appointment.id} className="rounded-lg border border-[hsl(var(--border))] p-4"><h3 className="font-semibold">{appointment.name}</h3><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">{appointment.service}</p><p className="mt-3 flex items-center gap-2 text-sm"><Clock3 size={15} />{appointment.appointmentTime}</p></article>)}</div> : <p className="mt-5 text-sm text-[hsl(var(--muted-foreground))]">No confirmed appointments on this day.</p>}</aside>
-         </div> : <div className="mt-8 rounded-xl border border-dashed border-[hsl(var(--border))] bg-[hsl(var(--card))] px-6 py-16 text-center"><CalendarDays className="mx-auto text-[hsl(var(--primary))]" size={28} strokeWidth={1.3} /><h3 className="mt-4 font-editorial text-3xl">No confirmed appointments.</h3><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">Approved appointments will appear on this calendar.</p></div>}
-        </section>}
-          </div>
+          {group === 'schedule' ? (
+            <ScheduleDashboard />
+          ) : (
+            <>
+              <AdminTabs items={siteTabs} selected={siteTab} onSelect={(value: SiteTab) => setSiteTab(value)} label="Manage Site sections" idPrefix="admin-section" panelId="admin-section-panel" />
+              <div id="admin-section-panel" role="tabpanel" aria-labelledby={`admin-section-${siteTab}`}>
+                {siteTab === 'services' ? <ServicesAdmin /> : siteTab === 'testimonials' ? <TestimonialsAdmin /> : <GalleryAdmin />}
+              </div>
+            </>
+          )}
         </div>
     </div></main></div>;
 }
