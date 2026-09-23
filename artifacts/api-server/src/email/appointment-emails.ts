@@ -1,12 +1,13 @@
 import { eq } from "drizzle-orm";
 import nodemailer from "nodemailer";
+import { ReplitConnectors } from "@replit/connectors-sdk";
 import {
   appointmentEmailNotificationsTable,
   db,
   type Appointment,
 } from "@workspace/db";
 
-export type EmailDeliveryMode = "disabled" | "test" | "smtp";
+export type EmailDeliveryMode = "disabled" | "test" | "smtp" | "resend";
 export type AppointmentEmailEvent =
   | "request_received"
   | "confirmed"
@@ -49,7 +50,7 @@ export type NotificationResult = {
 
 function parseMode(value: string | undefined): EmailDeliveryMode {
   if (!value) return "disabled";
-  if (value === "disabled" || value === "test" || value === "smtp") return value;
+  if (value === "disabled" || value === "test" || value === "smtp" || value === "resend") return value;
   return "disabled";
 }
 
@@ -92,6 +93,16 @@ export function getEmailDeliveryStatus(): EmailDeliveryStatus {
       mode: config.mode,
       configured: true,
       label: "Email test mode is active — nothing is sent",
+    };
+  }
+  if (config.mode === "resend") {
+    const configured = Boolean(process.env.EMAIL_FROM?.trim());
+    return {
+      mode: config.mode,
+      configured,
+      label: configured
+        ? "Resend is selected; check delivery results for sender verification"
+        : "Resend needs a verified sender address in EMAIL_FROM",
     };
   }
   const configured = Boolean(
@@ -280,11 +291,35 @@ async function sendWithSmtp(config: EmailConfig, message: EmailMessage) {
   }
 }
 
-async function sendWithRetry(config: EmailConfig, message: EmailMessage) {
+async function sendWithResend(config: EmailConfig, message: EmailMessage, eventKey: string) {
+  if (!process.env.EMAIL_FROM?.trim()) throw new Error("Resend needs a verified EMAIL_FROM address");
+  const response = await new ReplitConnectors().proxy("resend", "/emails", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Idempotency-Key": eventKey },
+    body: JSON.stringify({
+      from: config.from,
+      to: [message.to],
+      reply_to: config.replyTo,
+      subject: message.subject,
+      text: message.text,
+      html: message.html,
+    }),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null) as { message?: string } | null;
+    throw new Error(error?.message ?? `Resend returned ${response.status}`);
+  }
+}
+
+async function sendWithRetry(config: EmailConfig, message: EmailMessage, eventKey: string) {
   let lastError: unknown;
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     try {
-      await sendWithSmtp(config, message);
+      if (config.mode === "resend") {
+        await sendWithResend(config, message, eventKey);
+      } else {
+        await sendWithSmtp(config, message);
+      }
       return;
     } catch (error) {
       lastError = error;
@@ -355,7 +390,7 @@ export async function sendAppointmentNotification(
   }
 
   try {
-    await sendWithRetry(config, message);
+    await sendWithRetry(config, message, eventKey);
     await db
       .update(appointmentEmailNotificationsTable)
       .set({

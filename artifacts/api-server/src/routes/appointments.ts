@@ -1,11 +1,14 @@
-import { Router, type IRouter, type Request } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import { and, asc, eq, gte, inArray, ne, sql } from "drizzle-orm";
 import { appointmentCalendarSyncTable, appointmentsTable, db, schedulingSettingsTable, type Appointment, type BlockedSlot, type TimeWindow, type WeeklyHours } from "@workspace/db";
 import {
+  CreateAdminAppointmentBody,
+  CreateAdminAppointmentResponse,
   CreateAppointmentBody,
   CreateAppointmentResponse,
   DeleteAppointmentParams,
   GetAppointmentSummaryResponse,
+  GetAdminAvailabilityResponse,
   GetAvailabilityResponse,
   ListAppointmentsQueryParams,
   ListAppointmentsResponse,
@@ -28,7 +31,7 @@ async function deliverAppointmentEmail(
   req: Request,
   event: Parameters<typeof sendAppointmentNotification>[0],
   appointment: Appointment,
-) {
+): Promise<Awaited<ReturnType<typeof sendAppointmentNotification>>> {
   try {
     const result = await sendAppointmentNotification(event, appointment);
     const details = {
@@ -42,6 +45,7 @@ async function deliverAppointmentEmail(
     } else {
       req.log.info(details, "Appointment email processed");
     }
+    return result;
   } catch (error) {
     req.log.error(
       {
@@ -51,6 +55,11 @@ async function deliverAppointmentEmail(
       },
       "Appointment saved but its email notification could not be recorded",
     );
+    return {
+      outcome: "failed",
+      eventType: event,
+      error: error instanceof Error ? error.message : "Notification could not be recorded",
+    };
   }
 }
 
@@ -114,6 +123,75 @@ function overlaps(startA: number, endA: number, startB: number, endB: number) {
   return startA < endB && endA > startB;
 }
 
+function businessNow(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(now);
+  const part = (type: string) => parts.find((value) => value.type === type)?.value ?? "";
+  return {
+    date: `${part("year")}-${part("month")}-${part("day")}`,
+    minutes: Number(part("hour")) * 60 + Number(part("minute")),
+  };
+}
+
+async function reserveAppointment(
+  data: ReturnType<typeof CreateAppointmentBody.parse>,
+  asAdmin: boolean,
+): Promise<{ appointment: Appointment } | { status: 400 | 409; error: string }> {
+  const service = await getBookableService(data.service);
+  if (!service) return { status: 400, error: "Choose a service that is currently available for booking." };
+  const settings = await getSettings();
+  const requestedStart = toMinutes(data.appointmentTime);
+  const requestedEnd = requestedStart + service.durationMinutes;
+  const requestedDate = toDateString(data.appointmentDate);
+  const requestedWeekday = weekdays[data.appointmentDate.getUTCDay()];
+  const insideServiceHours = (service.weeklyHours[requestedWeekday] ?? []).some((window) =>
+    requestedStart >= toMinutes(window.start) && requestedEnd <= toMinutes(window.end)
+  );
+  const conflictsWithBlock = settings.blockedSlots.some((slot) =>
+    slot.date === requestedDate
+    && overlaps(requestedStart, requestedEnd, toMinutes(slot.startTime), toMinutes(slot.endTime))
+  );
+  const now = businessNow();
+  const outOfDate = asAdmin
+    ? requestedDate < now.date || (requestedDate === now.date && requestedStart <= now.minutes)
+    : requestedDate <= toDateString(new Date());
+  if (outOfDate || !insideServiceHours || conflictsWithBlock) {
+    return { status: 409, error: "That time is not available. Please choose another." };
+  }
+  const appointment = await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${requestedDate}))`);
+    const existing = await tx
+      .select({ time: appointmentsTable.appointmentTime, durationMinutes: appointmentsTable.serviceDurationMinutes })
+      .from(appointmentsTable)
+      .where(and(
+        eq(appointmentsTable.appointmentDate, requestedDate),
+        inArray(appointmentsTable.status, ["pending", "confirmed"]),
+      ));
+    if (existing.some((item) => {
+      const start = toMinutes(item.time);
+      return overlaps(requestedStart, requestedEnd, start, start + item.durationMinutes);
+    })) return null;
+
+    const [created] = await tx
+      .insert(appointmentsTable)
+      .values({
+        ...data,
+        serviceId: service.id,
+        serviceDurationMinutes: service.durationMinutes,
+        appointmentDate: requestedDate,
+        notes: data.notes ?? "",
+        status: asAdmin ? "confirmed" : "pending",
+      })
+      .returning();
+    return created;
+  });
+  if (!appointment) return { status: 409, error: "That time was just booked. Please choose another." };
+  return { appointment };
+}
+
 router.get("/appointments", requireAdmin, async (req, res): Promise<void> => {
   const parsed = ListAppointmentsQueryParams.safeParse(req.query);
   if (!parsed.success) {
@@ -151,67 +229,37 @@ router.post("/appointments", async (req, res): Promise<void> => {
     return;
   }
 
-  const service = await getBookableService(parsed.data.service);
-  if (!service) {
-    res.status(400).json({ error: "Choose a service that is currently available for booking." });
+  const result = await reserveAppointment(parsed.data, false);
+  if ("error" in result) {
+    res.status(result.status).json({ error: result.error });
     return;
   }
-  const settings = await getSettings();
-  const requestedStart = toMinutes(parsed.data.appointmentTime);
-  const requestedEnd = requestedStart + service.durationMinutes;
-  const requestedDate = toDateString(parsed.data.appointmentDate);
-  const requestedWeekday = weekdays[parsed.data.appointmentDate.getUTCDay()];
-  const insideServiceHours = (service.weeklyHours[requestedWeekday] ?? []).some((window) =>
-    requestedStart >= toMinutes(window.start) && requestedEnd <= toMinutes(window.end)
-  );
-  const conflictsWithBlock = settings.blockedSlots.some((slot) =>
-    slot.date === requestedDate
-    && overlaps(requestedStart, requestedEnd, toMinutes(slot.startTime), toMinutes(slot.endTime))
-  );
-  if (requestedDate <= toDateString(new Date()) || !insideServiceHours || conflictsWithBlock) {
-    res.status(409).json({ error: "That time is not available. Please choose another." });
-    return;
-  }
-  const appointment = await db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${requestedDate}))`);
-    const existing = await tx
-      .select({ time: appointmentsTable.appointmentTime, durationMinutes: appointmentsTable.serviceDurationMinutes })
-      .from(appointmentsTable)
-      .where(
-        and(
-          eq(appointmentsTable.appointmentDate, requestedDate),
-          inArray(appointmentsTable.status, ["pending", "confirmed"]),
-        ),
-      );
-    if (existing.some((item) => {
-      const start = toMinutes(item.time);
-      return overlaps(requestedStart, requestedEnd, start, start + item.durationMinutes);
-    })) return null;
-
-    const [created] = await tx
-      .insert(appointmentsTable)
-      .values({
-        ...parsed.data,
-        serviceId: service.id,
-        serviceDurationMinutes: service.durationMinutes,
-        appointmentDate: requestedDate,
-        notes: parsed.data.notes ?? "",
-      })
-      .returning();
-    return created;
-  });
-
-  if (!appointment) {
-    res.status(409).json({ error: "That time was just booked. Please choose another." });
-    return;
-  }
-
+  const { appointment } = result;
   await deliverAppointmentEmail(req, "request_received", appointment);
   await trySyncAppointment(appointment.id);
 
   res
     .status(201)
     .json(CreateAppointmentResponse.parse(serializeAppointment(appointment)));
+});
+
+router.post("/admin/appointments", requireAdmin, async (req, res): Promise<void> => {
+  const parsed = CreateAdminAppointmentBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const result = await reserveAppointment(parsed.data, true);
+  if ("error" in result) {
+    res.status(result.status).json({ error: result.error });
+    return;
+  }
+  const email = await deliverAppointmentEmail(req, "confirmed", result.appointment);
+  await trySyncAppointment(result.appointment.id);
+  res.status(201).json(CreateAdminAppointmentResponse.parse({
+    appointment: serializeAppointment(result.appointment),
+    email,
+  }));
 });
 
 router.patch("/appointments/:id", requireAdmin, async (req, res): Promise<void> => {
@@ -359,7 +407,7 @@ router.put("/scheduling-settings", requireAdmin, async (req, res): Promise<void>
   res.json(settings);
 });
 
-router.get("/availability", async (req, res): Promise<void> => {
+async function sendAvailability(req: Request, res: Response, includeToday: boolean): Promise<void> {
   const settings = await getSettings();
   const serviceName = typeof req.query.service === "string" ? req.query.service : "";
   const service = await getBookableService(serviceName);
@@ -368,7 +416,8 @@ router.get("/availability", async (req, res): Promise<void> => {
     return;
   }
   const requestedDuration = service.durationMinutes;
-  const today = new Date();
+  const now = businessNow();
+  const today = includeToday ? new Date(`${now.date}T12:00:00Z`) : new Date();
   const lastDay = new Date(today);
   lastDay.setUTCDate(lastDay.getUTCDate() + 180);
   const start = today.toISOString().slice(0, 10);
@@ -389,7 +438,7 @@ router.get("/availability", async (req, res): Promise<void> => {
     );
 
   const availability = [];
-  for (let offset = 1; offset <= 180; offset += 1) {
+  for (let offset = includeToday ? 0 : 1; offset <= 180; offset += 1) {
     const day = new Date(today);
     day.setUTCDate(day.getUTCDate() + offset);
     const weekday = weekdays[day.getUTCDay()];
@@ -404,6 +453,7 @@ router.get("/availability", async (req, res): Promise<void> => {
       const open = toMinutes(window.start);
       const close = toMinutes(window.end);
       for (let startTime = open; startTime + requestedDuration <= close; startTime += 30) {
+        if (includeToday && date === now.date && startTime <= now.minutes) continue;
         const endTime = startTime + requestedDuration;
         const conflictsWithBooking = dayBookings.some((slot) => {
           const bookedStart = toMinutes(slot.time);
@@ -419,7 +469,15 @@ router.get("/availability", async (req, res): Promise<void> => {
     if (times.length > 0) availability.push({ date, times });
   }
 
-  res.json(GetAvailabilityResponse.parse(availability));
+  res.json((includeToday ? GetAdminAvailabilityResponse : GetAvailabilityResponse).parse(availability));
+}
+
+router.get("/availability", async (req, res): Promise<void> => {
+  await sendAvailability(req, res, false);
+});
+
+router.get("/admin/availability", requireAdmin, async (req, res): Promise<void> => {
+  await sendAvailability(req, res, true);
 });
 
 export default router;

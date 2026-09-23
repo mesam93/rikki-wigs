@@ -367,6 +367,50 @@ export const CreateAppointmentResponse = zod.object({
 
 
 /**
+ * @summary Create and confirm an appointment as an admin
+ */
+export const createAdminAppointmentBodyNameMin = 2;
+
+export const createAdminAppointmentBodyPhoneMin = 7;
+
+export const createAdminAppointmentBodyServiceMin = 2;
+
+export const createAdminAppointmentBodyAppointmentTimeMin = 3;
+
+export const createAdminAppointmentBodyNotesDefault = ``;
+
+export const CreateAdminAppointmentBody = zod.object({
+  "name": zod.string().min(createAdminAppointmentBodyNameMin),
+  "phone": zod.string().min(createAdminAppointmentBodyPhoneMin),
+  "email": zod.string().email(),
+  "service": zod.string().min(createAdminAppointmentBodyServiceMin),
+  "appointmentDate": zod.coerce.date(),
+  "appointmentTime": zod.string().min(createAdminAppointmentBodyAppointmentTimeMin),
+  "notes": zod.string().default(createAdminAppointmentBodyNotesDefault)
+})
+
+export const CreateAdminAppointmentResponse = zod.object({
+  "appointment": zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "phone": zod.string(),
+  "email": zod.string().email(),
+  "service": zod.string(),
+  "appointmentDate": zod.coerce.date(),
+  "appointmentTime": zod.string(),
+  "status": zod.enum(['pending', 'confirmed', 'completed', 'cancelled']),
+  "notes": zod.string(),
+  "createdAt": zod.coerce.date()
+}),
+  "email": zod.object({
+  "outcome": zod.enum(['delivered', 'tested', 'disabled', 'duplicate', 'failed']),
+  "eventType": zod.enum(['request_received', 'confirmed', 'cancelled', 'rescheduled', 'completed']),
+  "error": zod.string().optional()
+})
+})
+
+
+/**
  * @summary Update an appointment
  */
 export const UpdateAppointmentParams = zod.object({
@@ -421,7 +465,7 @@ export const GetAppointmentSummaryResponse = zod.object({
  * @summary Get appointment email delivery status
  */
 export const GetEmailStatusResponse = zod.object({
-  "mode": zod.enum(['disabled', 'test', 'smtp']),
+  "mode": zod.enum(['disabled', 'test', 'smtp', 'resend']),
   "configured": zod.boolean(),
   "label": zod.string()
 })
@@ -493,6 +537,20 @@ export const GetAvailabilityResponseItem = zod.object({
   "times": zod.array(zod.string())
 })
 export const GetAvailabilityResponse = zod.array(GetAvailabilityResponseItem)
+
+
+/**
+ * @summary Available appointment dates and times including today for admins
+ */
+export const GetAdminAvailabilityQueryParams = zod.object({
+  "service": zod.coerce.string()
+})
+
+export const GetAdminAvailabilityResponseItem = zod.object({
+  "date": zod.coerce.date(),
+  "times": zod.array(zod.string())
+})
+export const GetAdminAvailabilityResponse = zod.array(GetAdminAvailabilityResponseItem)
 
 
 /**
@@ -1030,3 +1088,5 @@ export const DeleteGalleryPhotoParams = zod.object({
 })
 
 export const DeleteGalleryPhotoResponse = zod.void()
+
+

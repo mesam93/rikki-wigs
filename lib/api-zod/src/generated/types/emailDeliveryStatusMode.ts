@@ -13,4 +13,5 @@ export const EmailDeliveryStatusMode = {
   disabled: 'disabled',
   test: 'test',
   smtp: 'smtp',
+  resend: 'resend',
 } as const;

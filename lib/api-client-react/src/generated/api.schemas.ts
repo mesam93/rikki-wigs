@@ -134,6 +134,7 @@ export const EmailDeliveryStatusMode = {
   disabled: 'disabled',
   test: 'test',
   smtp: 'smtp',
+  resend: 'resend',
 } as const;
 
 export interface EmailDeliveryStatus {
@@ -195,6 +196,39 @@ export interface AppointmentInput {
   /** @minLength 3 */
   appointmentTime: string;
   notes?: string;
+}
+
+export type AppointmentEmailOutcomeOutcome = typeof AppointmentEmailOutcomeOutcome[keyof typeof AppointmentEmailOutcomeOutcome];
+
+
+export const AppointmentEmailOutcomeOutcome = {
+  delivered: 'delivered',
+  tested: 'tested',
+  disabled: 'disabled',
+  duplicate: 'duplicate',
+  failed: 'failed',
+} as const;
+
+export type AppointmentEmailOutcomeEventType = typeof AppointmentEmailOutcomeEventType[keyof typeof AppointmentEmailOutcomeEventType];
+
+
+export const AppointmentEmailOutcomeEventType = {
+  request_received: 'request_received',
+  confirmed: 'confirmed',
+  cancelled: 'cancelled',
+  rescheduled: 'rescheduled',
+  completed: 'completed',
+} as const;
+
+export interface AppointmentEmailOutcome {
+  outcome: AppointmentEmailOutcomeOutcome;
+  eventType: AppointmentEmailOutcomeEventType;
+  error?: string;
+}
+
+export interface AdminAppointmentResult {
+  appointment: Appointment;
+  email: AppointmentEmailOutcome;
 }
 
 export interface AppointmentUpdate {
@@ -317,6 +351,10 @@ export type GetAvailabilityParams = {
 service: string;
 };
 
+export type GetAdminAvailabilityParams = {
+service: string;
+};
+
 export type RequestServiceUploadUrl200 = {
   uploadUrl: string;
   objectPath: string;
@@ -326,3 +364,4 @@ export type RequestGalleryUploadUrl200 = {
   uploadUrl: string;
   objectPath: string;
 };
+

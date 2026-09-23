@@ -6,7 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './adminAppointmentResult';
 export * from './appointment';
+export * from './appointmentEmailOutcome';
+export * from './appointmentEmailOutcomeEventType';
+export * from './appointmentEmailOutcomeOutcome';
 export * from './appointmentInput';
 export * from './appointmentStatus';
 export * from './appointmentSummary';
@@ -20,6 +24,7 @@ export * from './emailDeliveryStatusMode';
 export * from './galleryPhoto';
 export * from './galleryPhotoInput';
 export * from './galleryUploadRequest';
+export * from './getAdminAvailabilityParams';
 export * from './getAvailabilityParams';
 export * from './healthStatus';
 export * from './listAppointmentsParams';

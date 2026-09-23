@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminAppointmentResult,
   Appointment,
   AppointmentInput,
   AppointmentSummary,
@@ -32,6 +33,7 @@ import type {
   GalleryPhoto,
   GalleryPhotoInput,
   GalleryUploadRequest,
+  GetAdminAvailabilityParams,
   GetAvailabilityParams,
   HealthStatus,
   ListAppointmentsParams,
@@ -893,6 +895,94 @@ export const useCreateAppointment = <TError = ErrorType<unknown>,
       return useMutation(getCreateAppointmentMutationOptions(options));
     }
 
+export const getCreateAdminAppointmentUrl = () => {
+
+
+
+
+  return `/api/admin/appointments`
+}
+
+/**
+ * @summary Create and confirm an appointment as an admin
+ */
+export const createAdminAppointment = async (appointmentInput: AppointmentInput, options?: Parameters<typeof customFetch>[1]): Promise<AdminAppointmentResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AdminAppointmentResult>(getCreateAdminAppointmentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(appointmentInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminAppointmentMutationKey = () => ['createAdminAppointment'] as const;
+
+export const getCreateAdminAppointmentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminAppointment>>, TError,CreateAdminAppointmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminAppointment>>, TError,CreateAdminAppointmentMutationVariables, TContext> => {
+
+const mutationKey = getCreateAdminAppointmentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminAppointment>>, CreateAdminAppointmentMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminAppointment(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminAppointmentMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminAppointment>>>
+    export type CreateAdminAppointmentMutationBody = BodyType<AppointmentInput>
+    export type CreateAdminAppointmentMutationError = ErrorType<void>
+    export type CreateAdminAppointmentMutationVariables = {data: BodyType<AppointmentInput>}
+
+    /**
+ * @summary Create and confirm an appointment as an admin
+ */
+export const useCreateAdminAppointment = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminAppointment>>, TError,CreateAdminAppointmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminAppointment>>,
+        TError,
+        CreateAdminAppointmentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateAdminAppointmentMutationOptions(options));
+    }
+
 export const getUpdateAppointmentUrl = (id: number,) => {
 
 
@@ -1521,6 +1611,90 @@ export function useGetAvailability<TData = Awaited<ReturnType<typeof getAvailabi
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAvailabilityQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminAvailabilityUrl = (params: GetAdminAvailabilityParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/availability?${stringifiedParams}` : `/api/admin/availability`
+}
+
+/**
+ * @summary Available appointment dates and times including today for admins
+ */
+export const getAdminAvailability = async (params: GetAdminAvailabilityParams, options?: Parameters<typeof customFetch>[1]): Promise<AvailabilityDay[]> => {
+
+  return customFetch<AvailabilityDay[]>(getGetAdminAvailabilityUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminAvailabilityQueryKey = (params?: GetAdminAvailabilityParams,) => {
+    return [
+    `/api/admin/availability`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminAvailabilityQueryOptions = <TData = Awaited<ReturnType<typeof getAdminAvailability>>, TError = ErrorType<unknown>>(params: GetAdminAvailabilityParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAvailability>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminAvailabilityQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminAvailability>>> = ({ signal }) => getAdminAvailability(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminAvailability>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminAvailabilityQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminAvailability>>>
+export type GetAdminAvailabilityQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Available appointment dates and times including today for admins
+ */
+
+export function useGetAdminAvailability<TData = Awaited<ReturnType<typeof getAdminAvailability>>, TError = ErrorType<unknown>>(
+ params: GetAdminAvailabilityParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAvailability>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminAvailabilityQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -2911,3 +3085,4 @@ export const useDeleteGalleryPhoto = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getDeleteGalleryPhotoMutationOptions(options));
     }
+

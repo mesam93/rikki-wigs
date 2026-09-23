@@ -22,6 +22,7 @@ import { GalleryAdmin, GallerySection, TestimonialsAdmin, TestimonialsSection } 
 import { ServicesAdmin } from '@/components/services-admin';
 import { OrdersAdmin } from '@/components/orders-admin';
 import { CalendarSyncPanel } from '@/components/calendar-sync-panel';
+import { AdminAppointmentForm } from '@/components/admin-appointment-form';
 import { findNextConfirmedAppointment } from '@/lib/schedule-time';
 import NotFound from '@/pages/not-found';
 
@@ -39,7 +40,7 @@ function WhatsAppIcon({ size = 16 }: { size?: number }) {
 }
 type BlockedSlot = { id: string; date: string; startTime: string; endTime: string; reason: string };
 type SchedulingSettings = { blockedSlots: BlockedSlot[] };
-type EmailDeliveryStatus = { mode: 'disabled' | 'test' | 'smtp'; configured: boolean; label: string };
+type EmailDeliveryStatus = { mode: 'disabled' | 'test' | 'smtp' | 'resend'; configured: boolean; label: string };
 
 async function apiJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...options?.headers } });
@@ -294,10 +295,10 @@ function ScheduleSettingsForm() {
       <h3 className="font-editorial text-2xl">Customer emails</h3>
       <div className="mt-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
         <div className="flex items-start gap-3">
-          <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${emailStatus?.mode === 'smtp' && emailStatus.configured ? 'bg-[hsl(147_35%_45%)]' : emailStatus?.mode === 'test' ? 'bg-[hsl(var(--accent))]' : 'bg-[hsl(var(--muted-foreground))]'}`} />
+          <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${(emailStatus?.mode === 'smtp' || emailStatus?.mode === 'resend') && emailStatus.configured ? 'bg-[hsl(147_35%_45%)]' : emailStatus?.mode === 'test' ? 'bg-[hsl(var(--accent))]' : 'bg-[hsl(var(--muted-foreground))]'}`} />
           <div>
             <p className="text-sm font-semibold">{emailStatusError ? 'Email status error' : emailStatus?.label ?? 'Checking delivery…'}</p>
-            {!emailStatusError && emailStatus?.mode !== 'smtp' && <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">Appointments save normally. Real emails remain off until SMTP is configured.</p>}
+            {!emailStatusError && !emailStatus?.configured && <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">Appointments save normally. Real emails remain off until a verified sender is configured.</p>}
           </div>
         </div>
       </div>
@@ -341,9 +342,16 @@ function ScheduleDashboard() {
   const [hoveredDateKey, setHoveredDateKey] = useState<string | null>(null);
   const [chosenDateKey, setChosenDateKey] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createMessage, setCreateMessage] = useState('');
   const [calendarMonth, setCalendarMonth] = useState(new Date());
 
   const { data: appointments, isLoading, isError } = useListAppointments();
+  const { data: emailStatus } = useQuery({
+    queryKey: ['email-status'],
+    queryFn: () => apiJson<EmailDeliveryStatus>('/api/email-status'),
+    enabled: isCreateOpen,
+  });
 
   const updateAppointment = useUpdateAppointment();
   const deleteAppointment = useDeleteAppointment();
@@ -386,9 +394,20 @@ function ScheduleDashboard() {
   };
 
   const clearDayFilter = () => setSelectedCalendarDay(undefined);
+  const appointmentCreated = (name: string, outcome: string, emailError?: string) => {
+    invalidate();
+    queryClient.invalidateQueries({ queryKey: ['availability'] });
+    setIsCreateOpen(false);
+    setFilter('all');
+    setSelectedCalendarDay(undefined);
+    setCreateMessage(outcome === 'delivered'
+      ? `${name}'s appointment is confirmed. The confirmation email was submitted to the email provider.`
+      : `${name}'s appointment is confirmed, but the confirmation email was not sent${emailError ? `: ${emailError}` : '. Check email delivery settings.'}`);
+  };
 
   return (
     <div className="mt-8 space-y-10">
+      {createMessage && <div role="status" className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 text-sm">{createMessage}</div>}
       {isError && <div className="rounded-xl border border-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/.08)] p-5 text-sm text-[hsl(var(--destructive))]" role="alert">We could not load appointments. Refresh the page and try again. Availability settings are still accessible below.</div>}
       <section className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-sm">
@@ -466,6 +485,7 @@ function ScheduleDashboard() {
               </div>
             </div>
 
+            <button type="button" onClick={() => { setCreateMessage(''); setIsCreateOpen(true); }} className="btn-primary self-start whitespace-nowrap">New appointment</button>
             <div className="flex max-w-full overflow-x-auto rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-1 text-sm shadow-sm" aria-label="Filter appointments">
               {(['all', 'pending', 'confirmed', 'upcoming', 'completed', 'cancelled'] as const).map((f) => (
                 <button
@@ -521,6 +541,20 @@ function ScheduleDashboard() {
       </section>
 
       <CalendarSyncPanel />
+
+      <SidePanel
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        title="New appointment"
+        description="Choose an open time and confirm it for a customer."
+      >
+        {isCreateOpen && <AdminAppointmentForm
+          initialDay={selectedCalendarDay ? toDayKey(selectedCalendarDay) : undefined}
+          emailStatus={emailStatus}
+          onCancel={() => setIsCreateOpen(false)}
+          onCreated={appointmentCreated}
+        />}
+      </SidePanel>
 
       <SidePanel
         open={isSettingsOpen}

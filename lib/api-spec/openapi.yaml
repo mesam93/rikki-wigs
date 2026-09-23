@@ -190,6 +190,28 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Appointment"
+  /admin/appointments:
+    post:
+      operationId: createAdminAppointment
+      tags: [appointments]
+      summary: Create and confirm an appointment as an admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppointmentInput"
+      responses:
+        "201":
+          description: Confirmed appointment and customer email outcome
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAppointmentResult"
+        "400":
+          description: Invalid appointment
+        "409":
+          description: Time is unavailable
   /appointments/{id}:
     patch:
       operationId: updateAppointment
@@ -301,6 +323,26 @@ paths:
       operationId: getAvailability
       tags: [appointments]
       summary: Get available booking dates and times
+      parameters:
+        - in: query
+          name: service
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Available dates and times
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AvailabilityDay"
+  /admin/availability:
+    get:
+      operationId: getAdminAvailability
+      tags: [appointments]
+      summary: Available appointment dates and times including today for admins
       parameters:
         - in: query
           name: service
@@ -692,7 +734,7 @@ components:
       properties:
         mode:
           type: string
-          enum: [disabled, test, smtp]
+          enum: [disabled, test, smtp, resend]
         configured:
           type: boolean
         label:
@@ -782,6 +824,26 @@ components:
         notes:
           type: string
           default: ""
+    AdminAppointmentResult:
+      type: object
+      required: [appointment, email]
+      properties:
+        appointment:
+          $ref: "#/components/schemas/Appointment"
+        email:
+          $ref: "#/components/schemas/AppointmentEmailOutcome"
+    AppointmentEmailOutcome:
+      type: object
+      required: [outcome, eventType]
+      properties:
+        outcome:
+          type: string
+          enum: [delivered, tested, disabled, duplicate, failed]
+        eventType:
+          type: string
+          enum: [request_received, confirmed, cancelled, rescheduled, completed]
+        error:
+          type: string
     AppointmentUpdate:
       type: object
       properties:
