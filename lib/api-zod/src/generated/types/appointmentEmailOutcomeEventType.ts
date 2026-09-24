@@ -15,4 +15,5 @@ export const AppointmentEmailOutcomeEventType = {
   cancelled: 'cancelled',
   rescheduled: 'rescheduled',
   completed: 'completed',
+  owner_new_appointment: 'owner_new_appointment',
 } as const;

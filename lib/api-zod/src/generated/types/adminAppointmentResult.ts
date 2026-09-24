@@ -11,4 +11,5 @@ import type { AppointmentEmailOutcome } from './appointmentEmailOutcome';
 export interface AdminAppointmentResult {
   appointment: Appointment;
   email: AppointmentEmailOutcome;
+  ownerEmail: AppointmentEmailOutcome;
 }

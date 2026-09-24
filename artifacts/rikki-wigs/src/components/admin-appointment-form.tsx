@@ -8,7 +8,7 @@ import {
 } from '@workspace/api-client-react';
 
 type EmailOutcome = 'delivered' | 'tested' | 'disabled' | 'duplicate' | 'failed';
-type EmailStatus = { mode: 'disabled' | 'test' | 'smtp' | 'resend' | 'gmail'; configured: boolean; label: string };
+type EmailStatus = { mode: 'disabled' | 'test' | 'smtp' | 'gmail'; configured: boolean; label: string };
 
 function businessToday() {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -31,7 +31,7 @@ export function AdminAppointmentForm({
   emailStatus,
 }: {
   initialDay?: string;
-  onCreated: (name: string, outcome: EmailOutcome, emailError?: string) => void;
+  onCreated: (name: string, outcome: EmailOutcome, ownerOutcome: EmailOutcome, emailError?: string, ownerError?: string) => void;
   onCancel: () => void;
   emailStatus?: EmailStatus;
 }) {
@@ -79,7 +79,7 @@ export function AdminAppointmentForm({
       const result = await create.mutateAsync({
         data: { ...form, notes: form.notes.trim() || undefined },
       });
-      onCreated(result.appointment.name, result.email.outcome, result.email.error);
+      onCreated(result.appointment.name, result.email.outcome, result.ownerEmail.outcome, result.email.error, result.ownerEmail.error);
     } catch (cause) {
       if (cause && typeof cause === 'object' && 'status' in cause && cause.status === 409) {
         setForm((current) => ({ ...current, appointmentTime: '' }));

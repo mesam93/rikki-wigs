@@ -238,7 +238,7 @@ router.post("/appointments", async (req, res): Promise<void> => {
     return;
   }
   const { appointment } = result;
-  await deliverAppointmentEmail(req, "request_received", appointment);
+  await deliverAppointmentEmail(req, "owner_new_appointment", appointment);
   await trySyncAppointment(appointment.id);
 
   res
@@ -258,10 +258,12 @@ router.post("/admin/appointments", requireAdmin, async (req, res): Promise<void>
     return;
   }
   const email = await deliverAppointmentEmail(req, "confirmed", result.appointment);
+  const ownerEmail = await deliverAppointmentEmail(req, "owner_new_appointment", result.appointment);
   await trySyncAppointment(result.appointment.id);
   res.status(201).json(CreateAdminAppointmentResponse.parse({
     appointment: serializeAppointment(result.appointment),
     email,
+    ownerEmail,
   }));
 });
 

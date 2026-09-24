@@ -40,7 +40,7 @@ function WhatsAppIcon({ size = 16 }: { size?: number }) {
 }
 type BlockedSlot = { id: string; date: string; startTime: string; endTime: string; reason: string };
 type SchedulingSettings = { blockedSlots: BlockedSlot[] };
-type EmailDeliveryStatus = { mode: 'disabled' | 'test' | 'smtp' | 'resend' | 'gmail'; configured: boolean; label: string };
+type EmailDeliveryStatus = { mode: 'disabled' | 'test' | 'smtp' | 'gmail'; configured: boolean; label: string };
 
 async function apiJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...options?.headers } });
@@ -292,10 +292,10 @@ function ScheduleSettingsForm() {
 
   return <div className="space-y-10">
     <section>
-      <h3 className="font-editorial text-2xl">Customer emails</h3>
+      <h3 className="font-editorial text-2xl">Appointment emails</h3>
       <div className="mt-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
         <div className="flex items-start gap-3">
-          <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${(emailStatus?.mode === 'smtp' || emailStatus?.mode === 'resend' || emailStatus?.mode === 'gmail') && emailStatus.configured ? 'bg-[hsl(147_35%_45%)]' : emailStatus?.mode === 'test' ? 'bg-[hsl(var(--accent))]' : 'bg-[hsl(var(--muted-foreground))]'}`} />
+          <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${(emailStatus?.mode === 'smtp' || emailStatus?.mode === 'gmail') && emailStatus.configured ? 'bg-[hsl(147_35%_45%)]' : emailStatus?.mode === 'test' ? 'bg-[hsl(var(--accent))]' : 'bg-[hsl(var(--muted-foreground))]'}`} />
           <div>
             <p className="text-sm font-semibold">{emailStatusError ? 'Email status error' : emailStatus?.label ?? 'Checking delivery…'}</p>
             {!emailStatusError && !emailStatus?.configured && <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">Appointments save normally. Real emails remain off until a verified sender is configured.</p>}
@@ -394,17 +394,23 @@ function ScheduleDashboard() {
   };
 
   const clearDayFilter = () => setSelectedCalendarDay(undefined);
-  const appointmentCreated = (name: string, outcome: string, emailError?: string) => {
+  const appointmentCreated = (name: string, outcome: string, ownerOutcome: string, emailError?: string, ownerError?: string) => {
     invalidate();
     queryClient.invalidateQueries({ queryKey: ['availability'] });
     setIsCreateOpen(false);
     setFilter('all');
     setSelectedCalendarDay(undefined);
-    setCreateMessage(outcome === 'delivered'
+    const customerMessage = outcome === 'delivered'
       ? `${name}'s appointment is confirmed. The confirmation email was submitted to the email provider.`
       : outcome === 'disabled' || outcome === 'tested'
         ? `${name}'s appointment is confirmed, but no confirmation email was sent. Check email delivery settings.`
-        : `${name}'s appointment is confirmed, but email delivery could not be verified${emailError ? `: ${emailError}` : '. Check the delivery log before trying again.'}`);
+        : `${name}'s appointment is confirmed, but customer email delivery could not be verified${emailError ? `: ${emailError}` : '. Check the delivery log before trying again.'}`;
+    const ownerMessage = ownerOutcome === 'delivered'
+      ? 'Your new-appointment alert was submitted to Gmail.'
+      : ownerOutcome === 'disabled' || ownerOutcome === 'tested'
+        ? 'No owner alert was sent.'
+        : `Your owner alert could not be verified${ownerError ? `: ${ownerError}` : '.'}`;
+    setCreateMessage(`${customerMessage} ${ownerMessage}`);
   };
 
   return (

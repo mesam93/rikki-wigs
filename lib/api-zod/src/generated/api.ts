@@ -404,7 +404,12 @@ export const CreateAdminAppointmentResponse = zod.object({
 }),
   "email": zod.object({
   "outcome": zod.enum(['delivered', 'tested', 'disabled', 'duplicate', 'failed']),
-  "eventType": zod.enum(['request_received', 'confirmed', 'cancelled', 'rescheduled', 'completed']),
+  "eventType": zod.enum(['request_received', 'confirmed', 'cancelled', 'rescheduled', 'completed', 'owner_new_appointment']),
+  "error": zod.string().optional()
+}),
+  "ownerEmail": zod.object({
+  "outcome": zod.enum(['delivered', 'tested', 'disabled', 'duplicate', 'failed']),
+  "eventType": zod.enum(['request_received', 'confirmed', 'cancelled', 'rescheduled', 'completed', 'owner_new_appointment']),
   "error": zod.string().optional()
 })
 })
@@ -465,7 +470,7 @@ export const GetAppointmentSummaryResponse = zod.object({
  * @summary Get appointment email delivery status
  */
 export const GetEmailStatusResponse = zod.object({
-  "mode": zod.enum(['disabled', 'test', 'smtp', 'resend', 'gmail']),
+  "mode": zod.enum(['disabled', 'test', 'smtp', 'gmail']),
   "configured": zod.boolean(),
   "label": zod.string()
 })

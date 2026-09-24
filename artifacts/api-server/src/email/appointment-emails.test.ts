@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { Appointment } from "@workspace/db";
 import {
+  appointmentEmailEventKey,
   buildGmailRaw,
+  canSendNotification,
   getEmailDeliveryStatus,
   notificationEventForUpdate,
   renderAppointmentEmail,
+  renderOwnerBookingEmail,
 } from "./appointment-emails";
 
 const appointment: Appointment = {
@@ -99,4 +102,30 @@ test("builds a Gmail message with readable headers and encoded HTML", () => {
   assert.match(raw, /Content-Type: text\/html; charset="UTF-8"/);
   assert.doesNotMatch(raw, /Ana <script>/);
   assert.match(raw, /Content-Transfer-Encoding: base64/);
+});
+
+test("alerts the sender with contact details for pending and confirmed bookings", () => {
+  const from = "Rikki Wigs <sender@example.com>";
+  const pending = renderOwnerBookingEmail(appointment, from);
+  const confirmed = renderOwnerBookingEmail({ ...appointment, status: "confirmed" }, from);
+  assert.equal(pending.to, "sender@example.com");
+  assert.match(pending.subject, /request/i);
+  assert.match(confirmed.subject, /confirmed/i);
+  assert.match(pending.text, /Email: ana@example\.com/);
+  assert.match(pending.text, /Phone: 555-0100/);
+  assert.match(pending.text, /Thursday, October 15, 2026 at 1:30 PM/);
+  assert.match(pending.html, /Ana &lt;script&gt;/);
+  assert.doesNotMatch(pending.html, /Ana <script>/);
+  assert.equal(
+    appointmentEmailEventKey(appointment, "owner_new_appointment"),
+    appointmentEmailEventKey({ ...appointment, appointmentTime: "2:00 PM" }, "owner_new_appointment"),
+  );
+});
+
+test("never emails clients when they first request a booking", () => {
+  assert.equal(canSendNotification("request_received", "gmail"), false);
+  assert.equal(canSendNotification("request_received", "smtp"), false);
+  assert.equal(canSendNotification("owner_new_appointment", "gmail"), true);
+  assert.equal(canSendNotification("confirmed", "gmail"), true);
+  assert.equal(canSendNotification("cancelled", "gmail"), false);
 });

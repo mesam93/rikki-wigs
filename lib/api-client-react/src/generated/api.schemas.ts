@@ -134,7 +134,6 @@ export const EmailDeliveryStatusMode = {
   disabled: 'disabled',
   test: 'test',
   smtp: 'smtp',
-  resend: 'resend',
   gmail: 'gmail',
 } as const;
 
@@ -219,6 +218,7 @@ export const AppointmentEmailOutcomeEventType = {
   cancelled: 'cancelled',
   rescheduled: 'rescheduled',
   completed: 'completed',
+  owner_new_appointment: 'owner_new_appointment',
 } as const;
 
 export interface AppointmentEmailOutcome {
@@ -230,6 +230,7 @@ export interface AppointmentEmailOutcome {
 export interface AdminAppointmentResult {
   appointment: Appointment;
   email: AppointmentEmailOutcome;
+  ownerEmail: AppointmentEmailOutcome;
 }
 
 export interface AppointmentUpdate {

@@ -7,13 +7,14 @@ import {
   type Appointment,
 } from "@workspace/db";
 
-export type EmailDeliveryMode = "disabled" | "test" | "smtp" | "resend" | "gmail";
+export type EmailDeliveryMode = "disabled" | "test" | "smtp" | "gmail";
 export type AppointmentEmailEvent =
   | "request_received"
   | "confirmed"
   | "cancelled"
   | "rescheduled"
   | "completed";
+export type NotificationEvent = AppointmentEmailEvent | "owner_new_appointment";
 
 type EmailMessage = {
   to: string;
@@ -44,14 +45,14 @@ export type EmailDeliveryStatus = {
 
 export type NotificationResult = {
   outcome: "delivered" | "tested" | "disabled" | "duplicate" | "failed";
-  eventType: AppointmentEmailEvent;
+  eventType: NotificationEvent;
   error?: string;
   recordError?: string;
 };
 
 function parseMode(value: string | undefined): EmailDeliveryMode {
   if (!value) return "disabled";
-  if (value === "disabled" || value === "test" || value === "smtp" || value === "resend" || value === "gmail") return value;
+  if (value === "disabled" || value === "test" || value === "smtp" || value === "gmail") return value;
   return "disabled";
 }
 
@@ -96,23 +97,13 @@ export function getEmailDeliveryStatus(): EmailDeliveryStatus {
       label: "Email test mode is active — nothing is sent",
     };
   }
-  if (config.mode === "resend") {
-    const configured = Boolean(process.env.EMAIL_FROM?.trim());
-    return {
-      mode: config.mode,
-      configured,
-      label: configured
-        ? "Resend is selected; check delivery results for sender verification"
-        : "Resend needs a verified sender address in EMAIL_FROM",
-    };
-  }
   if (config.mode === "gmail") {
     const configured = Boolean(process.env.EMAIL_FROM?.trim());
     return {
       mode: config.mode,
       configured,
       label: configured
-        ? "Gmail is selected for confirmation emails"
+        ? "Gmail is selected for customer confirmations and owner alerts"
         : "Gmail needs EMAIL_FROM set to the connected account address",
     };
   }
@@ -265,6 +256,46 @@ export function renderAppointmentEmail(
   };
 }
 
+function senderAddress(from: string): string {
+  const match = from.trim().match(/<([^<>]+)>\s*$/);
+  const address = (match?.[1] ?? from).trim();
+  if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(address)) {
+    throw new Error("EMAIL_FROM must contain the sender's email address for owner alerts");
+  }
+  return address;
+}
+
+export function renderOwnerBookingEmail(
+  appointment: Appointment,
+  from: string,
+  timezone = getEmailConfig().timezone,
+): EmailMessage {
+  const confirmed = appointment.status === "confirmed";
+  const heading = confirmed ? "New confirmed appointment" : "New appointment request";
+  const date = formatDate(appointment.appointmentDate, timezone);
+  const details = [
+    `Customer: ${appointment.name}`,
+    `Service: ${appointment.service}`,
+    `Date and time: ${date} at ${appointment.appointmentTime} (New York time)`,
+    `Email: ${appointment.email}`,
+    `Phone: ${appointment.phone}`,
+    ...(appointment.notes.trim() ? [`Notes: ${appointment.notes.trim()}`] : []),
+  ];
+  return {
+    to: senderAddress(from),
+    subject: `${heading} - Rikki Wigs`,
+    text: [heading, "", ...details].join("\n"),
+    html: `<!doctype html><html lang="en"><body style="font-family:Arial,sans-serif;color:#35252a;line-height:1.6">
+      <h1 style="font-family:Georgia,serif">${heading}</h1>
+      <p>${confirmed ? "The appointment is confirmed." : "A client submitted a request awaiting confirmation."}</p>
+      <dl>${details.map((line) => {
+        const separator = line.indexOf(": ");
+        return `<dt style="font-weight:bold">${escapeHtml(line.slice(0, separator))}</dt><dd style="margin:0 0 12px">${escapeHtml(line.slice(separator + 2))}</dd>`;
+      }).join("")}</dl>
+    </body></html>`,
+  };
+}
+
 async function sendWithSmtp(config: EmailConfig, message: EmailMessage) {
   if (!config.smtp?.host) throw new Error("SMTP_HOST is required");
   if (!config.from) throw new Error("EMAIL_FROM is required");
@@ -299,26 +330,6 @@ async function sendWithSmtp(config: EmailConfig, message: EmailMessage) {
     });
   } finally {
     transport.close();
-  }
-}
-
-async function sendWithResend(config: EmailConfig, message: EmailMessage, eventKey: string) {
-  if (!process.env.EMAIL_FROM?.trim()) throw new Error("Resend needs a verified EMAIL_FROM address");
-  const response = await new ReplitConnectors().proxy("resend", "/emails", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Idempotency-Key": eventKey },
-    body: JSON.stringify({
-      from: config.from,
-      to: [message.to],
-      reply_to: config.replyTo,
-      subject: message.subject,
-      text: message.text,
-      html: message.html,
-    }),
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => null) as { message?: string } | null;
-    throw new Error(error?.message ?? `Resend returned ${response.status}`);
   }
 }
 
@@ -363,17 +374,13 @@ async function sendWithGmail(config: EmailConfig, message: EmailMessage) {
   }
 }
 
-async function sendWithRetry(config: EmailConfig, message: EmailMessage, eventKey: string) {
+async function sendWithRetry(config: EmailConfig, message: EmailMessage) {
   // Gmail has no idempotency key for messages/send, so retrying an ambiguous failure can send duplicates.
   if (config.mode === "gmail") return sendWithGmail(config, message);
   let lastError: unknown;
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     try {
-      if (config.mode === "resend") {
-        await sendWithResend(config, message, eventKey);
-      } else {
-        await sendWithSmtp(config, message);
-      }
+      await sendWithSmtp(config, message);
       return;
     } catch (error) {
       lastError = error;
@@ -387,10 +394,10 @@ async function sendWithRetry(config: EmailConfig, message: EmailMessage, eventKe
 
 export function appointmentEmailEventKey(
   appointment: Appointment,
-  event: AppointmentEmailEvent,
+  event: NotificationEvent,
 ): string {
-  if (event === "request_received") {
-    return `appointment:${appointment.id}:request_received`;
+  if (event === "request_received" || event === "owner_new_appointment") {
+    return `appointment:${appointment.id}:${event}`;
   }
   return [
     "appointment",
@@ -402,13 +409,15 @@ export function appointmentEmailEventKey(
 }
 
 export async function sendAppointmentNotification(
-  event: AppointmentEmailEvent,
+  event: NotificationEvent,
   appointment: Appointment,
 ): Promise<NotificationResult> {
   const config = getEmailConfig();
-  const message = renderAppointmentEmail(event, appointment, config.timezone);
+  const message = event === "owner_new_appointment"
+    ? renderOwnerBookingEmail(appointment, config.from, config.timezone)
+    : renderAppointmentEmail(event, appointment, config.timezone);
   const eventKey = appointmentEmailEventKey(appointment, event);
-  const canSend = config.mode !== "disabled" && (config.mode !== "gmail" || event === "confirmed");
+  const canSend = canSendNotification(event, config.mode);
   const initialStatus =
     !canSend
       ? "disabled"
@@ -445,7 +454,7 @@ export async function sendAppointmentNotification(
   }
 
   try {
-    await sendWithRetry(config, message, eventKey);
+    await sendWithRetry(config, message);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown email delivery error";
     try {
@@ -481,6 +490,12 @@ export async function sendAppointmentNotification(
     };
   }
   return { outcome: "delivered", eventType: event };
+}
+
+export function canSendNotification(event: NotificationEvent, mode: EmailDeliveryMode): boolean {
+  return mode !== "disabled"
+    && event !== "request_received"
+    && (mode !== "gmail" || event === "confirmed" || event === "owner_new_appointment");
 }
 
 export function notificationEventForUpdate(

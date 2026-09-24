@@ -734,7 +734,7 @@ components:
       properties:
         mode:
           type: string
-          enum: [disabled, test, smtp, resend, gmail]
+          enum: [disabled, test, smtp, gmail]
         configured:
           type: boolean
         label:
@@ -826,11 +826,13 @@ components:
           default: ""
     AdminAppointmentResult:
       type: object
-      required: [appointment, email]
+      required: [appointment, email, ownerEmail]
       properties:
         appointment:
           $ref: "#/components/schemas/Appointment"
         email:
+          $ref: "#/components/schemas/AppointmentEmailOutcome"
+        ownerEmail:
           $ref: "#/components/schemas/AppointmentEmailOutcome"
     AppointmentEmailOutcome:
       type: object
@@ -841,7 +843,7 @@ components:
           enum: [delivered, tested, disabled, duplicate, failed]
         eventType:
           type: string
-          enum: [request_received, confirmed, cancelled, rescheduled, completed]
+          enum: [request_received, confirmed, cancelled, rescheduled, completed, owner_new_appointment]
         error:
           type: string
     AppointmentUpdate:
