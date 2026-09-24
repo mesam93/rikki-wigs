@@ -82,7 +82,13 @@ function SignInPage() {
     <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]">
       <SiteNav />
       <main className="container-rikki flex justify-center py-12 md:py-20">
-        <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} fallbackRedirectUrl={`${basePath}/account`} />
+        <SignIn
+          routing="path"
+          path={`${basePath}/sign-in`}
+          signUpUrl={`${basePath}/sign-up`}
+          fallbackRedirectUrl={`${basePath}/account`}
+          appearance={{ elements: { logoBox: "translate-y-8" } }}
+        />
       </main>
     </div>
   );
