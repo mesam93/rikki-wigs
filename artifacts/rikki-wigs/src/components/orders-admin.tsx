@@ -95,7 +95,7 @@ const PercentInput = ({ valueMilli, onChange, label, id }: { valueMilli: number,
 };
 
 const defaultOrder: WigOrderInput = {
-  kind: 'stock',
+  kind: 'custom',
   itemCode: '',
   orderDate: new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().split('T')[0],
   customerName: '',
@@ -159,12 +159,6 @@ function WigOrderForm({ initial, onSave, onCancel, busy }: { initial?: WigOrder;
       }
     }} className="flex flex-col gap-6">
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="field-label">Kind
-          <select value={form.kind} onChange={(e) => update('kind', e.target.value)} className="field-input mt-1" data-testid="select-order-kind">
-            <option value="stock">Stock</option>
-            <option value="custom">Custom</option>
-          </select>
-        </label>
         <label className="field-label">Item Code
           <input required value={form.itemCode} onChange={(e) => update('itemCode', e.target.value)} className="field-input mt-1" data-testid="input-item-code" />
         </label>
@@ -181,9 +175,9 @@ function WigOrderForm({ initial, onSave, onCancel, busy }: { initial?: WigOrder;
           <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} className="field-input mt-1" />
         </label>
         
-        {form.kind === 'custom' && <div className="col-span-full mt-4 border-b border-[hsl(var(--border))] pb-2"><h3 className="font-editorial text-xl">Custom wig details</h3></div>}
+        <div className="col-span-full mt-4 border-b border-[hsl(var(--border))] pb-2"><h3 className="font-editorial text-xl">Custom wig details</h3></div>
         
-        {form.kind === 'custom' && <><label className="field-label">Style
+        <label className="field-label">Style
           <input value={form.style} onChange={(e) => update('style', e.target.value)} className="field-input mt-1" />
         </label>
         <label className="field-label">Cap Size
@@ -209,7 +203,7 @@ function WigOrderForm({ initial, onSave, onCancel, busy }: { initial?: WigOrder;
         </label>
         <label className="field-label md:col-span-2">Highlights
           <input value={form.highlights} onChange={(e) => update('highlights', e.target.value)} className="field-input mt-1" />
-        </label></>}
+        </label>
 
         <div className="col-span-full mt-4 border-b border-[hsl(var(--border))] pb-2"><h3 className="font-editorial text-xl">Financials</h3></div>
         
@@ -429,12 +423,8 @@ export function OrdersAdmin() {
   }, [orders, kindFilter, search]);
 
   const handleSaveOrder = (data: WigOrderInput) => {
-    const savedData = data.kind === 'stock' ? {
-      ...data, style: '', capSize: '', lengthInch: '', hairType: '', part: '',
-      layers: '', density: '', color: '', highlights: '',
-    } : data;
     if (editingOrder) {
-      updateOrder.mutate({ id: editingOrder.id, data: savedData }, {
+      updateOrder.mutate({ id: editingOrder.id, data }, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListWigOrdersQueryKey() });
           setIsFormOpen(false);
@@ -444,7 +434,7 @@ export function OrdersAdmin() {
         onError: () => toast({ title: "Failed to update order.", variant: "destructive" })
       });
     } else {
-       createOrder.mutate({ data: savedData }, {
+       createOrder.mutate({ data: { ...data, kind: 'custom' } }, {
          onSuccess: (created) => {
           queryClient.invalidateQueries({ queryKey: getListWigOrdersQueryKey() });
           setIsFormOpen(false);
@@ -557,7 +547,7 @@ export function OrdersAdmin() {
         <SheetContent side="right" className="flex h-[100dvh] !w-full !max-w-none flex-col bg-[hsl(var(--background))] p-0 sm:!max-w-md md:!max-w-lg">
           <SheetHeader className="border-b border-[hsl(var(--border))] p-6 pr-14 text-left">
             <SheetTitle className="font-editorial text-2xl">{editingOrder ? 'Edit Order' : 'New Order'}</SheetTitle>
-           <SheetDescription>{editingOrder ? 'Update the wig order details.' : 'Saving a new stock or custom wig order also issues its first receipt.'}</SheetDescription>
+            <SheetDescription>{editingOrder ? 'Update the wig order details.' : 'Saving a new custom wig order also issues its first receipt.'}</SheetDescription>
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-y-auto p-6">
             {isFormOpen && (
