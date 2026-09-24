@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Redirect, Route, Switch, useLocation } from 'wouter';
-import { ArrowRight, CalendarDays, Check, CheckCircle2, ChevronDown, Clock3, Instagram, Mail, Menu, Phone, Trash2, UserRound, X, XCircle } from 'lucide-react';
+import { ArrowRight, CalendarDays, Check, CheckCircle2, ChevronDown, Clock3, Instagram, Mail, Menu, Phone, Trash2, X, XCircle } from 'lucide-react';
 import {
   getGetAdminAvailabilityQueryKey,
   getGetAppointmentSummaryQueryKey,
@@ -63,10 +63,6 @@ function formatDay(value: string | Date, options: Intl.DateTimeFormatOptions): s
 }
 
 
-
-function LoginLanding() {
-  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki flex justify-center py-16 md:py-24"><section className="w-full max-w-md rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-7 md:p-9"><UserRound size={28} strokeWidth={1.5} /><p className="eyebrow mt-7 opacity-55">Rikki Wigs</p><h1 className="mt-3 font-editorial text-4xl">Welcome back</h1><p className="mt-4 text-sm leading-6 text-[hsl(var(--muted-foreground))]">Sign in to see your appointments and receipts. First time here? You can set up your account after continuing.</p><Link href="/client/sign-in" className="mt-8 flex w-full items-center justify-center rounded-full border border-[hsl(var(--primary))] bg-[hsl(var(--primary))] px-5 py-3 text-sm font-semibold !text-[hsl(var(--primary-foreground))] transition-colors hover:bg-black hover:!text-[hsl(var(--primary-foreground))]">Log in</Link></section></main></div>;
-}
 
 function AdminManageRoute() {
   const [accessState, setAccessState] = useState<'checking' | 'allowed' | 'signed-out' | 'client' | 'error'>('checking');
@@ -637,7 +633,7 @@ function AppointmentRow({ appointment, onStatus, onDelete, onReschedule, busy }:
 
 function Router() {
   const [location] = useLocation();
-  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/book" component={PublicBook} /><Route path="/login" component={LoginLanding} /><Route path="/client/*?" component={ClientApp} /><Route path="/account"><Redirect to="/client/account" /></Route><Route path="/sign-in/*?"><Redirect to="/client/sign-in" /></Route><Route path="/manage" component={AdminManageRoute} /><Route component={NotFound} /></Switch></ErrorBoundary>;
+  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/book" component={PublicBook} /><Route path="/login"><Redirect to="/client/sign-in" /></Route><Route path="/client/*?" component={ClientApp} /><Route path="/account"><Redirect to="/client/account" /></Route><Route path="/sign-in/*?"><Redirect to="/client/sign-in" /></Route><Route path="/manage" component={AdminManageRoute} /><Route component={NotFound} /></Switch></ErrorBoundary>;
 }
 
 function App() {

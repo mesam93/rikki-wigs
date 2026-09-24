@@ -29,7 +29,7 @@ export function SiteNav({ manage = false, isClientAccount = false }: { manage?: 
           </>}
         </nav>
         <div className="flex items-center gap-3 md:w-1/3 md:justify-end">
-          {(!manage && !isClientAccount) && <Link href="~/login" className="hidden rounded-full border border-white bg-white px-5 py-2.5 text-sm font-semibold !text-black transition-colors hover:bg-black hover:!text-white sm:inline-flex" data-testid="link-login">Log in</Link>}
+          {(!manage && !isClientAccount) && <Link href="~/client/sign-in" className="hidden rounded-full border border-white bg-white px-5 py-2.5 text-sm font-semibold !text-black transition-colors hover:bg-black hover:!text-white sm:inline-flex" data-testid="link-login">Log in</Link>}
           {manage && <AdminLogoutButton />}
           {isClientAccount && <ClientLogoutButton />}
           <button className="rounded-full border border-current/20 p-2 md:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="Open menu" data-testid="button-mobile-menu"><Menu size={19} /></button>
@@ -37,7 +37,7 @@ export function SiteNav({ manage = false, isClientAccount = false }: { manage?: 
       </div>
       {menuOpen && <div className="container-rikki pb-5 md:hidden">
         <div className="flex flex-col gap-4 border-t border-current/15 pt-4 text-sm">
-          {(!manage && !isClientAccount) && <><a href="/#services" onClick={() => setMenuOpen(false)} data-testid="link-mobile-services">Services</a><a href="/#testimonials" onClick={() => setMenuOpen(false)} data-testid="link-mobile-testimonials">Testimonials</a><a href="/#gallery" onClick={() => setMenuOpen(false)} data-testid="link-mobile-gallery">Gallery</a><Link href="~/book" onClick={() => setMenuOpen(false)} className="w-fit rounded-full bg-[hsl(var(--accent))] px-4 py-2 font-semibold text-[hsl(var(--foreground))]">Book appointment</Link><Link href="~/login" onClick={() => setMenuOpen(false)}>Log in</Link></>}
+          {(!manage && !isClientAccount) && <><a href="/#services" onClick={() => setMenuOpen(false)} data-testid="link-mobile-services">Services</a><a href="/#testimonials" onClick={() => setMenuOpen(false)} data-testid="link-mobile-testimonials">Testimonials</a><a href="/#gallery" onClick={() => setMenuOpen(false)} data-testid="link-mobile-gallery">Gallery</a><Link href="~/book" onClick={() => setMenuOpen(false)} className="w-fit rounded-full bg-[hsl(var(--accent))] px-4 py-2 font-semibold text-[hsl(var(--foreground))]">Book appointment</Link><Link href="~/client/sign-in" onClick={() => setMenuOpen(false)}>Log in</Link></>}
           {(manage || isClientAccount) && <Link href="~/" onClick={() => setMenuOpen(false)} data-testid="link-mobile-action">View public site</Link>}
         </div>
       </div>}
