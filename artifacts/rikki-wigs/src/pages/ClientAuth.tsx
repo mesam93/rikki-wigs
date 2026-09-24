@@ -63,7 +63,7 @@ const clerkAppearance = {
     identityPreviewEditButton: "text-[hsl(32_42%_49%)]",
     formFieldSuccessText: "text-[hsl(150_35%_28%)]",
     alertText: "text-[hsl(3_57%_42%)]",
-    logoBox: "mx-auto h-16 w-16 mb-4",
+    logoBox: "mx-auto h-32 w-32 mb-4",
     logoImage: "w-full h-full object-contain",
     socialButtonsBlockButton: "border border-[hsl(31_19%_78%)] rounded-xl py-3 hover:bg-[hsl(31_28%_87%)]",
     formButtonPrimary: "bg-[hsl(20_10%_8%)] text-white hover:bg-black rounded-full py-3 font-semibold transition-transform hover:-translate-y-0.5",
@@ -202,8 +202,8 @@ function ClientRoutes() {
         localization={{
           signIn: {
             start: {
-              title: "Client Portal",
-              subtitle: "Sign in to access your appointments and receipts",
+              title: "",
+              subtitle: "",
             },
           },
           signUp: {
