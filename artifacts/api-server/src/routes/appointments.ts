@@ -25,6 +25,7 @@ import { requireAdmin } from "../middlewares/requireAdmin";
 import { ensureServices, getBookableService, weekdays } from "../lib/services";
 import { trySyncAppointment } from "../lib/calendar-sync";
 import { availableStarts, toMinutes } from "../lib/availability-slots";
+import { ensureClient, validClientEmail } from "../lib/client-identity";
 
 const router: IRouter = Router();
 
@@ -125,6 +126,8 @@ async function reserveAppointment(
   data: ReturnType<typeof CreateAppointmentBody.parse>,
   asAdmin: boolean,
 ): Promise<{ appointment: Appointment } | { status: 400 | 409; error: string }> {
+  const email = validClientEmail(data.email);
+  if (!email) return { status: 400, error: "Enter a valid email address." };
   const service = await getBookableService(data.service);
   if (!service) return { status: 400, error: "Choose a service that is currently available for booking." };
   const settings = await getSettings();
@@ -164,6 +167,7 @@ async function reserveAppointment(
       .insert(appointmentsTable)
       .values({
         ...data,
+        email,
         serviceId: service.id,
         serviceDurationMinutes: service.durationMinutes,
         appointmentDate: requestedDate,
@@ -171,6 +175,7 @@ async function reserveAppointment(
         status: asAdmin ? "confirmed" : "pending",
       })
       .returning();
+    await ensureClient(tx, email);
     return created;
   });
   if (!appointment) return { status: 409, error: "That time was just booked. Please choose another." };
@@ -272,9 +277,10 @@ router.patch("/appointments/:id", requireAdmin, async (req, res): Promise<void> 
   const nextTime = body.data.appointmentTime ?? current.appointmentTime;
   const nextStatus = body.data.status ?? current.status;
   const { appointmentDate, ...otherUpdates } = body.data;
-  const update = appointmentDate
-    ? { ...otherUpdates, appointmentDate: toDateString(appointmentDate) }
-    : otherUpdates;
+  const update = {
+    ...otherUpdates,
+    ...(appointmentDate ? { appointmentDate: toDateString(appointmentDate) } : {}),
+  };
 
   const result = await db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${nextDate}))`);
@@ -298,6 +304,7 @@ router.patch("/appointments/:id", requireAdmin, async (req, res): Promise<void> 
       .set(update)
       .where(eq(appointmentsTable.id, params.data.id))
       .returning();
+    if (appointment) await ensureClient(tx, appointment.email);
     return { appointment };
   });
   if ("conflict" in result) {

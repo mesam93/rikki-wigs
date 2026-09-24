@@ -19,6 +19,55 @@ tags:
   - name: orders
     description: Private wig orders and receipts
 paths:
+  /client/history:
+    get:
+      operationId: getClientHistory
+      tags: [appointments, orders]
+      summary: Upcoming appointments and issued receipts belonging to the verified client
+      responses:
+        "200":
+          description: Client history
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClientHistory" }
+        "401":
+          description: Verified client sign-in required
+  /client/receipts/{id}/view:
+    get:
+      operationId: viewClientReceipt
+      tags: [orders]
+      summary: View a receipt owned by the verified client
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Receipt PDF
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "404":
+          description: Receipt not found
+  /client/receipts/{id}/pdf:
+    get:
+      operationId: downloadClientReceipt
+      tags: [orders]
+      summary: Download a receipt owned by the verified client
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Receipt PDF
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "404":
+          description: Receipt not found
   /admin/orders:
     get:
       operationId: listWigOrders
@@ -646,6 +695,26 @@ paths:
           description: Gallery photo removed
 components:
   schemas:
+    ClientHistory:
+      type: object
+      required: [email, appointments, receipts]
+      properties:
+        email: { type: string }
+        appointments:
+          type: array
+          items: { $ref: "#/components/schemas/ClientAppointment" }
+        receipts:
+          type: array
+          items: { $ref: "#/components/schemas/WigReceipt" }
+    ClientAppointment:
+      type: object
+      required: [id, service, appointmentDate, appointmentTime, status]
+      properties:
+        id: { type: integer }
+        service: { type: string }
+        appointmentDate: { type: string, format: date }
+        appointmentTime: { type: string }
+        status: { $ref: "#/components/schemas/AppointmentStatus" }
     WigOrderInput:
       type: object
       additionalProperties: false

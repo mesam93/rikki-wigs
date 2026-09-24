@@ -5,6 +5,39 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type AppointmentStatus = typeof AppointmentStatus[keyof typeof AppointmentStatus];
+
+
+export const AppointmentStatus = {
+  pending: 'pending',
+  confirmed: 'confirmed',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface ClientAppointment {
+  id: number;
+  service: string;
+  appointmentDate: string;
+  appointmentTime: string;
+  status: AppointmentStatus;
+}
+
+export interface WigReceipt {
+  id: number;
+  orderId: number;
+  issuedAt: string;
+  receiptNumber: string;
+  customerName: string | null;
+  itemCode: string | null;
+}
+
+export interface ClientHistory {
+  email: string;
+  appointments: ClientAppointment[];
+  receipts: WigReceipt[];
+}
+
 export type WigOrderInputKind = typeof WigOrderInputKind[keyof typeof WigOrderInputKind];
 
 
@@ -106,28 +139,9 @@ export interface WigOrder {
   createdAt: string;
 }
 
-export interface WigReceipt {
-  id: number;
-  orderId: number;
-  issuedAt: string;
-  receiptNumber: string;
-  customerName: string | null;
-  itemCode: string | null;
-}
-
 export interface HealthStatus {
   status: string;
 }
-
-export type AppointmentStatus = typeof AppointmentStatus[keyof typeof AppointmentStatus];
-
-
-export const AppointmentStatus = {
-  pending: 'pending',
-  confirmed: 'confirmed',
-  completed: 'completed',
-  cancelled: 'cancelled',
-} as const;
 
 export type EmailDeliveryStatusMode = typeof EmailDeliveryStatusMode[keyof typeof EmailDeliveryStatusMode];
 

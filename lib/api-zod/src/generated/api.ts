@@ -9,6 +9,49 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Upcoming appointments and issued receipts belonging to the verified client
+ */
+export const GetClientHistoryResponse = zod.object({
+  "email": zod.string(),
+  "appointments": zod.array(zod.object({
+  "id": zod.number().int(),
+  "service": zod.string(),
+  "appointmentDate": zod.coerce.date(),
+  "appointmentTime": zod.string(),
+  "status": zod.enum(['pending', 'confirmed', 'completed', 'cancelled'])
+})),
+  "receipts": zod.array(zod.object({
+  "id": zod.number().int(),
+  "orderId": zod.number().int(),
+  "issuedAt": zod.coerce.date(),
+  "receiptNumber": zod.string(),
+  "customerName": zod.string().nullable(),
+  "itemCode": zod.string().nullable()
+}))
+})
+
+
+/**
+ * @summary View a receipt owned by the verified client
+ */
+export const ViewClientReceiptParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ViewClientReceiptResponse = zod.unknown()
+
+
+/**
+ * @summary Download a receipt owned by the verified client
+ */
+export const DownloadClientReceiptParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DownloadClientReceiptResponse = zod.unknown()
+
+
+/**
  * @summary List private wig orders
  */
 export const listWigOrdersResponseTariffCentsMin = 0;

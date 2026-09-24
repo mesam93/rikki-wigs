@@ -28,6 +28,9 @@ import { findNextConfirmedAppointment } from '@/lib/schedule-time';
 import { isAvailableTime, toDisplayTime, toInputTime } from '@/lib/booking-time';
 import NotFound from '@/pages/not-found';
 
+import { SiteNav } from '@/components/SiteNav';
+import { ClientApp } from '@/pages/ClientAuth';
+
 const queryClient = new QueryClient();
 const statuses = ['pending', 'confirmed', 'completed', 'cancelled'] as const;
 const instagramUrl = 'https://www.instagram.com/rikki_wigs/';
@@ -59,50 +62,10 @@ function formatDay(value: string | Date, options: Intl.DateTimeFormatOptions): s
   return new Date(`${toDayKey(value)}T12:00:00`).toLocaleDateString(undefined, options);
 }
 
-function SiteNav({ manage = false }: { manage?: boolean }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  return (
-    <header className="relative z-20 border-b border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))]">
-      <div className="container-rikki flex items-center justify-between py-4 md:py-3">
-        <Link href="/" className="flex w-24 items-center leading-none md:w-1/3" data-testid="link-home-logo" aria-label="Rikki Wigs home">
-          <img src="/brand/rikki-header-wordmark.svg" alt="" className="w-full object-contain md:max-w-[180px] xl:max-w-[210px]" />
-        </Link>
-        <nav className="hidden items-center justify-center gap-9 md:flex md:flex-1" aria-label="Primary navigation">
-          {manage ? <Link href="/" className="editorial-link text-base opacity-80 hover:opacity-100" data-testid="link-public-site">View public site</Link> : <>
-             <a href="/#services" className="editorial-link text-base" data-testid="link-services">Services</a>
-             <a href="/#testimonials" className="editorial-link text-base" data-testid="link-testimonials">Testimonials</a>
-             <a href="/#gallery" className="editorial-link text-base" data-testid="link-gallery">Gallery</a>
-             <Link href="/book" className="whitespace-nowrap rounded-full bg-[hsl(var(--accent))] px-5 py-2.5 text-sm font-semibold !text-[hsl(var(--foreground))] transition-colors hover:bg-white" data-testid="link-nav-book">Book appointment</Link>
-          </>}
-        </nav>
-        <div className="flex items-center gap-3 md:w-1/3 md:justify-end">
-          {!manage && <Link href="/login" className="hidden rounded-full border border-white bg-white px-5 py-2.5 text-sm font-semibold !text-black transition-colors hover:bg-black hover:!text-white sm:inline-flex" data-testid="link-login">Log in</Link>}
-          {manage && <LogoutButton />}
-          <button className="rounded-full border border-current/20 p-2 md:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="Open menu" data-testid="button-mobile-menu"><Menu size={19} /></button>
-        </div>
-      </div>
-      {menuOpen && <div className="container-rikki pb-5 md:hidden">
-        <div className="flex flex-col gap-4 border-t border-current/15 pt-4 text-sm">
-          {!manage && <><a href="/#services" onClick={() => setMenuOpen(false)} data-testid="link-mobile-services">Services</a><a href="/#testimonials" onClick={() => setMenuOpen(false)} data-testid="link-mobile-testimonials">Testimonials</a><a href="/#gallery" onClick={() => setMenuOpen(false)} data-testid="link-mobile-gallery">Gallery</a><Link href="/book" onClick={() => setMenuOpen(false)} className="w-fit rounded-full bg-[hsl(var(--accent))] px-4 py-2 font-semibold text-[hsl(var(--foreground))]">Book appointment</Link><Link href="/login" onClick={() => setMenuOpen(false)}>Log in</Link></>}
-          {manage && <Link href="/" onClick={() => setMenuOpen(false)} data-testid="link-mobile-action">View public site</Link>}
-        </div>
-      </div>}
-    </header>
-  );
-}
 
-function LogoutButton() {
-  const [, setLocation] = useLocation();
-  const logout = async () => {
-    await fetch('/api/admin-logout', { method: 'POST' });
-    queryClient.clear();
-    setLocation('/');
-  };
-  return <button type="button" onClick={() => void logout()} className="rounded-full border border-white/35 px-4 py-2 text-sm font-semibold text-white hover:bg-white hover:text-black">Log out</button>;
-}
 
 function LoginLanding() {
-  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki py-16 md:py-24"><div className="mx-auto grid max-w-4xl gap-5 md:grid-cols-2"><section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-7 md:p-9"><UserRound size={28} strokeWidth={1.5} /><p className="eyebrow mt-7 opacity-55">Client</p><h2 className="mt-3 font-editorial text-4xl">Client account</h2><p className="mt-4 min-h-12 text-sm leading-6 text-[hsl(var(--muted-foreground))]">Client appointments and account access will be available in the next phase.</p><button type="button" disabled className="mt-8 w-full rounded-full border border-[hsl(var(--border))] px-5 py-3 text-sm font-semibold opacity-45">Coming soon</button></section><section className="rounded-2xl bg-black p-7 text-white md:p-9"><LockKeyhole size={28} strokeWidth={1.5} /><p className="eyebrow mt-7 text-white/55">Admin</p><h2 className="mt-3 font-editorial text-4xl">Rikki’s dashboard</h2><p className="mt-4 min-h-12 text-sm leading-6 text-white/65">Private access for the approved Rikki Wigs administrator only.</p><Link href="/sign-in" className="mt-8 flex w-full items-center justify-center rounded-full border border-white bg-white px-5 py-3 text-sm font-semibold !text-black transition-colors hover:bg-black hover:!text-white">Admin log in</Link></section></div></main></div>;
+  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki py-16 md:py-24"><div className="mx-auto grid max-w-4xl gap-5 md:grid-cols-2"><section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-7 md:p-9"><UserRound size={28} strokeWidth={1.5} /><p className="eyebrow mt-7 opacity-55">Client</p><h2 className="mt-3 font-editorial text-4xl">Client account</h2><p className="mt-4 min-h-12 text-sm leading-6 text-[hsl(var(--muted-foreground))]">See your upcoming appointments and download your receipts. First time here? Verify your email to set up access.</p><Link href="/client/sign-in" className="mt-8 flex w-full items-center justify-center rounded-full border border-[hsl(var(--primary))] bg-[hsl(var(--primary))] px-5 py-3 text-sm font-semibold !text-[hsl(var(--primary-foreground))] transition-colors hover:bg-black hover:!text-[hsl(var(--primary-foreground))]">Client log in</Link></section><section className="rounded-2xl bg-black p-7 text-white md:p-9"><LockKeyhole size={28} strokeWidth={1.5} /><p className="eyebrow mt-7 text-white/55">Admin</p><h2 className="mt-3 font-editorial text-4xl">Rikki’s dashboard</h2><p className="mt-4 min-h-12 text-sm leading-6 text-white/65">Private access for the approved Rikki Wigs administrator only.</p><Link href="/sign-in" className="mt-8 flex w-full items-center justify-center rounded-full border border-white bg-white px-5 py-3 text-sm font-semibold !text-black transition-colors hover:bg-black hover:!text-white">Admin log in</Link></section></div></main></div>;
 }
 
 function SignInPage() {
@@ -700,7 +663,7 @@ function AppointmentRow({ appointment, onStatus, onDelete, onReschedule, busy }:
 
 function Router() {
   const [location] = useLocation();
-  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/book" component={PublicBook} /><Route path="/login" component={LoginLanding} /><Route path="/sign-in/*?" component={SignInPage} /><Route path="/manage" component={AdminManageRoute} /><Route component={NotFound} /></Switch></ErrorBoundary>;
+  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/book" component={PublicBook} /><Route path="/login" component={LoginLanding} /><Route path="/client/*?" component={ClientApp} /><Route path="/account"><Redirect to="/client/account" /></Route><Route path="/sign-in/*?" component={SignInPage} /><Route path="/manage" component={AdminManageRoute} /><Route component={NotFound} /></Switch></ErrorBoundary>;
 }
 
 function App() {

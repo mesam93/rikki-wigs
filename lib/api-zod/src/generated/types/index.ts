@@ -20,6 +20,8 @@ export * from './availableStartRange';
 export * from './calendarSyncResult';
 export * from './calendarSyncSelection';
 export * from './calendarSyncStatus';
+export * from './clientAppointment';
+export * from './clientHistory';
 export * from './emailDeliveryStatus';
 export * from './emailDeliveryStatusMode';
 export * from './galleryPhoto';

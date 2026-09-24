@@ -10,6 +10,7 @@ import {
   requireAdmin,
 } from "../middlewares/requireAdmin";
 import calendarSyncRouter from "./calendar-sync";
+import clientRouter from "./client";
 
 const router: IRouter = Router();
 
@@ -66,4 +67,5 @@ router.use(servicesRouter);
 router.use(appointmentsRouter);
 router.use(wigOrdersRouter);
 router.use(calendarSyncRouter);
+router.use(clientRouter);
 export default router;

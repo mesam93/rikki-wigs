@@ -11,6 +11,7 @@ import { normalizeOrder } from "../lib/wig-orders";
 import { parseHistoricalWorkbook } from "../lib/wig-import";
 import { applyHistoricalImport, inspectHistoricalImport } from "../lib/wig-import-run";
 import { sendReceiptPdf } from "../lib/wig-receipt-pdf";
+import { ensureClient, validClientEmail } from "../lib/client-identity";
 
 const router: IRouter = Router();
 router.use("/admin/orders", requireAdmin);
@@ -46,8 +47,11 @@ function parseOrder(body: unknown, tariffCents: number) {
   if (!data.itemCode.trim() || !data.customerName.trim()) {
     return { ok: false, error: "Item code and customer name are required" } as const;
   }
+  if (data.email?.trim() && !validClientEmail(data.email)) {
+    return { ok: false, error: "Enter a valid customer email address" } as const;
+  }
   try {
-    return { ok: true, value: normalizeOrder({ ...data, tariffCents }) } as const;
+    return { ok: true, value: normalizeOrder({ ...data, email: data.email ? validClientEmail(data.email) ?? "" : "", tariffCents }) } as const;
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Invalid order amounts" } as const;
   }
@@ -93,6 +97,7 @@ router.post("/admin/orders", async (req, res): Promise<void> => {
     const [order] = await tx.insert(wigOrdersTable).values(parsed.value).onConflictDoNothing().returning();
     if (!order) return null;
     await tx.insert(wigReceiptsTable).values({ orderId: order.id, snapshot: order });
+    await ensureClient(tx, order.email);
     return order;
   });
   if (!created) { res.status(409).json({ error: "This item code already exists for that order type" }); return; }
@@ -111,8 +116,12 @@ router.patch("/admin/orders/:id", async (req, res): Promise<void> => {
   if (!order.ok) { res.status(400).json({ error: order.error }); return; }
   let updated: typeof wigOrdersTable.$inferSelect | undefined;
   try {
-    [updated] = await db.update(wigOrdersTable).set({ ...order.value, needsReview: false, reviewIssues: [] })
-      .where(eq(wigOrdersTable.id, id)).returning();
+    updated = await db.transaction(async (tx) => {
+      const [saved] = await tx.update(wigOrdersTable).set({ ...order.value, needsReview: false, reviewIssues: [] })
+        .where(eq(wigOrdersTable.id, id)).returning();
+      if (saved) await ensureClient(tx, saved.email);
+      return saved;
+    });
   } catch (error) {
     if (typeof error === "object" && error && "code" in error && error.code === "23505") {
       res.status(409).json({ error: "This item code already exists for that order type" }); return;

@@ -29,6 +29,7 @@ import type {
   CalendarSyncResult,
   CalendarSyncSelection,
   CalendarSyncStatus,
+  ClientHistory,
   EmailDeliveryStatus,
   GalleryPhoto,
   GalleryPhotoInput,
@@ -75,6 +76,237 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetClientHistoryUrl = () => {
+
+
+
+
+  return `/api/client/history`
+}
+
+/**
+ * @summary Upcoming appointments and issued receipts belonging to the verified client
+ */
+export const getClientHistory = async ( options?: Parameters<typeof customFetch>[1]): Promise<ClientHistory> => {
+
+  return customFetch<ClientHistory>(getGetClientHistoryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetClientHistoryQueryKey = () => {
+    return [
+    `/api/client/history`
+    ] as const;
+    }
+
+
+export const getGetClientHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getClientHistory>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getClientHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetClientHistoryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getClientHistory>>> = ({ signal }) => getClientHistory({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getClientHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetClientHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getClientHistory>>>
+export type GetClientHistoryQueryError = ErrorType<void>
+
+
+/**
+ * @summary Upcoming appointments and issued receipts belonging to the verified client
+ */
+
+export function useGetClientHistory<TData = Awaited<ReturnType<typeof getClientHistory>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getClientHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetClientHistoryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getViewClientReceiptUrl = (id: number,) => {
+
+
+
+
+  return `/api/client/receipts/${id}/view`
+}
+
+/**
+ * @summary View a receipt owned by the verified client
+ */
+export const viewClientReceipt = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getViewClientReceiptUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getViewClientReceiptQueryKey = (id: number,) => {
+    return [
+    `/api/client/receipts/${id}/view`
+    ] as const;
+    }
+
+
+export const getViewClientReceiptQueryOptions = <TData = Awaited<ReturnType<typeof viewClientReceipt>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof viewClientReceipt>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getViewClientReceiptQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof viewClientReceipt>>> = ({ signal }) => viewClientReceipt(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof viewClientReceipt>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ViewClientReceiptQueryResult = NonNullable<Awaited<ReturnType<typeof viewClientReceipt>>>
+export type ViewClientReceiptQueryError = ErrorType<void>
+
+
+/**
+ * @summary View a receipt owned by the verified client
+ */
+
+export function useViewClientReceipt<TData = Awaited<ReturnType<typeof viewClientReceipt>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof viewClientReceipt>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getViewClientReceiptQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDownloadClientReceiptUrl = (id: number,) => {
+
+
+
+
+  return `/api/client/receipts/${id}/pdf`
+}
+
+/**
+ * @summary Download a receipt owned by the verified client
+ */
+export const downloadClientReceipt = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getDownloadClientReceiptUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadClientReceiptQueryKey = (id: number,) => {
+    return [
+    `/api/client/receipts/${id}/pdf`
+    ] as const;
+    }
+
+
+export const getDownloadClientReceiptQueryOptions = <TData = Awaited<ReturnType<typeof downloadClientReceipt>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadClientReceipt>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadClientReceiptQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadClientReceipt>>> = ({ signal }) => downloadClientReceipt(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadClientReceipt>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DownloadClientReceiptQueryResult = NonNullable<Awaited<ReturnType<typeof downloadClientReceipt>>>
+export type DownloadClientReceiptQueryError = ErrorType<void>
+
+
+/**
+ * @summary Download a receipt owned by the verified client
+ */
+
+export function useDownloadClientReceipt<TData = Awaited<ReturnType<typeof downloadClientReceipt>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadClientReceipt>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDownloadClientReceiptQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListWigOrdersUrl = () => {
 
