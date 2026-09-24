@@ -3,11 +3,14 @@ import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tan
 import { Link, Redirect, Route, Switch, useLocation } from 'wouter';
 import { ArrowRight, CalendarDays, Check, CheckCircle2, ChevronDown, Clock3, Instagram, LockKeyhole, Mail, Menu, Phone, Trash2, UserRound, X, XCircle } from 'lucide-react';
 import {
+  getGetAdminAvailabilityQueryKey,
   getGetAppointmentSummaryQueryKey,
   getListAppointmentsQueryKey,
   useListServices,
+  useCreateAdminAppointment,
   useCreateAppointment,
   useDeleteAppointment,
+  useGetAdminAvailability,
   useGetAppointmentSummary,
   useListAppointments,
   useUpdateAppointment,
@@ -22,7 +25,6 @@ import { GalleryAdmin, GallerySection, TestimonialsAdmin, TestimonialsSection } 
 import { ServicesAdmin } from '@/components/services-admin';
 import { OrdersAdmin } from '@/components/orders-admin';
 import { CalendarSyncPanel } from '@/components/calendar-sync-panel';
-import { AdminAppointmentForm } from '@/components/admin-appointment-form';
 import { findNextConfirmedAppointment } from '@/lib/schedule-time';
 import NotFound from '@/pages/not-found';
 
@@ -201,8 +203,14 @@ function Home() {
   </div>;
 }
 
-function Book() {
+function Book({ admin }: { admin?: {
+  initialDay?: string;
+  emailStatus?: EmailDeliveryStatus;
+  onCreated: (name: string, outcome: string, ownerOutcome: string, emailError?: string, ownerError?: string) => void;
+} }) {
   const createAppointment = useCreateAppointment();
+  const createAdminAppointment = useCreateAdminAppointment();
+  const bookingQueryClient = useQueryClient();
   const { data: allServices = [], isLoading: servicesLoading, isError: servicesError } = useListServices();
   const services = allServices.filter((service) => service.isBookable && !service.isArchived);
   const timeSelectorRef = useRef<HTMLDivElement>(null);
@@ -216,25 +224,47 @@ function Book() {
   const { data: availability, isLoading: availabilityLoading, isError: availabilityError } = useQuery({
     queryKey: ['availability', form.service],
     queryFn: () => apiJson<Array<{ date: string; times: string[] }>>(`/api/availability?service=${encodeURIComponent(form.service)}`),
-    enabled: Boolean(form.service),
+    enabled: Boolean(form.service) && !admin,
   });
-  const selectedDay = availability?.find((day) => toDayKey(day.date) === form.appointmentDate);
-  const availableDays = availability ?? [];
+  const { data: adminAvailability, isLoading: adminAvailabilityLoading, isError: adminAvailabilityError } =
+    useGetAdminAvailability({ service: form.service }, { query: {
+      queryKey: getGetAdminAvailabilityQueryKey({ service: form.service }),
+      enabled: Boolean(admin && form.service),
+    } });
+  const availableDays = (admin ? adminAvailability : availability) ?? [];
+  const loadingDays = admin ? adminAvailabilityLoading : availabilityLoading;
+  const daysError = admin ? adminAvailabilityError : availabilityError;
+  const selectedDay = availableDays.find((day) => toDayKey(day.date) === form.appointmentDate);
   const availableDateKeys = new Set(availableDays.map((day) => toDayKey(day.date)));
   const selectedDate = form.appointmentDate ? new Date(`${form.appointmentDate}T12:00:00`) : undefined;
   const bookingHorizon = new Date();
   bookingHorizon.setDate(bookingHorizon.getDate() + 180);
-  const canContinue = step === 1 ? Boolean(form.service) : step === 2 ? Boolean(form.appointmentDate && form.appointmentTime) : Boolean(form.name && form.phone && form.email);
-  const update = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }));
+  const canContinue = step === 1 ? Boolean(form.service) : step === 2
+    ? Boolean(form.appointmentDate && selectedDay?.times.includes(form.appointmentTime))
+    : form.name.trim().length >= 2 && form.phone.trim().length >= 7 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim());
+  const update = (field: keyof typeof form, value: string) => {
+    setError('');
+    setForm((current) => ({
+      ...current, [field]: value,
+      ...(field === 'service' ? { appointmentDate: '', appointmentTime: '' } : {}),
+      ...(field === 'appointmentDate' ? { appointmentTime: '' } : {}),
+    }));
+  };
   useEffect(() => {
-    if (directLinkHandled.current || servicesLoading) return;
+    if (admin?.initialDay && !form.appointmentDate && availableDays.some((day) => toDayKey(day.date) === admin.initialDay)) {
+      setForm((current) => current.appointmentDate ? current : { ...current, appointmentDate: admin.initialDay! });
+      setCalendarMonth(new Date(`${admin.initialDay}T12:00:00`));
+    }
+  }, [admin?.initialDay, availableDays, form.appointmentDate]);
+  useEffect(() => {
+    if (admin || directLinkHandled.current || servicesLoading) return;
     directLinkHandled.current = true;
     const matched = services.find((service) => service.name === requestedService && service.isVisible);
     if (matched) {
       setForm((current) => ({ ...current, service: matched.name }));
       setStep(2);
     }
-  }, [requestedService, services, servicesLoading]);
+  }, [admin, requestedService, services, servicesLoading]);
   useEffect(() => {
     if (step !== 2 || !form.appointmentDate) return;
     const frame = window.requestAnimationFrame(() => {
@@ -246,21 +276,42 @@ function Book() {
     });
     return () => window.cancelAnimationFrame(frame);
   }, [form.appointmentDate, step]);
-  const submit = () => {
+  const submit = async () => {
     setError('');
+    if (!selectedDay?.times.includes(form.appointmentTime)) {
+      setError('Please choose an available date and time.');
+      return;
+    }
+    if (admin) {
+      try {
+        const result = await createAdminAppointment.mutateAsync({ data: { ...form, notes: form.notes.trim() || undefined } });
+        admin.onCreated(result.appointment.name, result.email.outcome, result.ownerEmail.outcome, result.email.error, result.ownerEmail.error);
+      } catch (cause) {
+        if (cause && typeof cause === 'object' && 'status' in cause && cause.status === 409) {
+          setForm((current) => ({ ...current, appointmentTime: '' }));
+          void bookingQueryClient.invalidateQueries({ queryKey: getGetAdminAvailabilityQueryKey({ service: form.service }) });
+        }
+        setError(cause instanceof Error ? cause.message : 'Could not confirm this appointment.');
+      }
+      return;
+    }
     createAppointment.mutate({ data: { ...form, notes: form.notes || undefined } }, { onSuccess: () => setSubmitted(true), onError: () => setError('We could not send that just now. Please try again or contact Rikki on Instagram.') });
   };
   if (submitted) return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki flex min-h-[75vh] items-center justify-center py-16"><div className="max-w-lg text-center reveal"><div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[hsl(var(--accent))]"><Check size={28} /></div><p className="eyebrow mt-8 text-[hsl(var(--primary))]">request received</p><h1 className="display-title mt-4 text-6xl">You are on the list.</h1><p className="mx-auto mt-6 max-w-md leading-7 text-[hsl(var(--muted-foreground))]">Thank you, {form.name.split(' ')[0] || 'lovely'}. Rikki will be in touch shortly to confirm your time and answer any questions.</p><Link href="/" className="btn-primary mt-9" data-testid="button-back-home">Back to Rikki Wigs <ArrowRight size={15} /></Link></div></main></div>;
-  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki grid gap-12 pb-20 pt-8 md:grid-cols-[.65fr_1.35fr] md:gap-20 md:pt-16">
-    <aside><p className="eyebrow text-[hsl(var(--primary))]">appointment request</p><h1 className="display-title mt-5 text-6xl md:text-7xl">Book with<br /><em>Rikki Wigs.</em></h1><p className="mt-7 max-w-xs leading-7 text-[hsl(var(--muted-foreground))]">Choose a service and request an available time. Rikki will contact you to confirm the appointment.</p><div className="mt-12 hidden space-y-5 md:block">{[['01', 'Choose a service'], ['02', 'Find a time'], ['03', 'Submit request']].map(([n, label], index) => <div key={n} className={`flex items-center gap-3 text-sm ${step === index + 1 ? 'font-semibold' : 'opacity-45'}`}><span className={`flex h-7 w-7 items-center justify-center rounded-full font-mono-ui text-[10px] ${step === index + 1 ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]' : 'border border-current'}`}>{n}</span>{label}</div>)}</div></aside>
+  return <div className={admin ? 'bg-[hsl(var(--background))]' : 'site-shell min-h-[100dvh] bg-[hsl(var(--background))]'}>{!admin && <SiteNav />}<main className={admin ? 'grid gap-8 pb-10 pt-2 md:grid-cols-[.65fr_1.35fr] md:gap-12' : 'container-rikki grid gap-12 pb-20 pt-8 md:grid-cols-[.65fr_1.35fr] md:gap-20 md:pt-16'}>
+    <aside><p className="eyebrow text-[hsl(var(--primary))]">{admin ? 'confirmed appointment' : 'appointment request'}</p><h1 className={admin ? 'display-title mt-5 text-5xl' : 'display-title mt-5 text-6xl md:text-7xl'}>Book with<br /><em>Rikki Wigs.</em></h1><p className="mt-7 max-w-xs leading-7 text-[hsl(var(--muted-foreground))]">{admin ? 'Choose a service and available time. This appointment will be confirmed immediately and the customer will receive a confirmation email.' : 'Choose a service and request an available time. Rikki will contact you to confirm the appointment.'}</p><div className="mt-12 hidden space-y-5 md:block">{[['01', 'Choose a service'], ['02', 'Find a time'], ['03', admin ? 'Confirm appointment' : 'Submit request']].map(([n, label], index) => <div key={n} className={`flex items-center gap-3 text-sm ${step === index + 1 ? 'font-semibold' : 'opacity-45'}`}><span className={`flex h-7 w-7 items-center justify-center rounded-full font-mono-ui text-[10px] ${step === index + 1 ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]' : 'border border-current'}`}>{n}</span>{label}</div>)}</div></aside>
     <section className="max-w-2xl md:pt-4"><div className="mb-8 flex items-center justify-between border-b border-[hsl(var(--border))] pb-4 md:hidden"><span className="eyebrow">step 0{step} of 03</span><span className="text-sm font-semibold">{step === 1 ? 'Service' : step === 2 ? 'Time' : 'Submit'}</span></div>
-      {step === 1 && <div className="reveal"><p className="eyebrow opacity-55">Step 01</p><h2 className="font-editorial mt-3 text-4xl">What would you like to request?</h2>{servicesLoading ? <div className="skeleton mt-8 h-64 w-full" /> : servicesError ? <div className="mt-8 rounded-xl border border-[hsl(var(--destructive))] p-5 text-sm text-[hsl(var(--destructive))]">Services could not be loaded. Please refresh and try again.</div> : services.length ? <div className="mt-8 grid gap-3">{services.map((service) => <button key={service.id} onClick={() => { directLinkHandled.current = true; update('service', service.name); }} className={`flex items-center justify-between rounded-xl border p-5 text-left transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--primary))] ${form.service === service.name ? 'border-[hsl(var(--primary))] bg-[hsl(var(--secondary))]' : 'border-[hsl(var(--border))] bg-[hsl(var(--card))]'}`} data-testid={`button-service-${service.name.toLowerCase().replaceAll(' ', '-')}`}><span className="font-semibold">{service.name}</span>{form.service === service.name && <CheckCircle2 className="text-[hsl(var(--primary))]" size={20} />}</button>)}</div> : <div className="mt-8 rounded-xl border border-dashed border-[hsl(var(--border))] p-8 text-sm text-[hsl(var(--muted-foreground))]">No services are currently accepting online appointment requests. Please contact Rikki directly.</div>}</div>}
-      {step === 2 && <div className="reveal"><p className="eyebrow opacity-55">Step 02</p><h2 className="font-editorial mt-3 text-4xl">When would you like to come in?</h2><p className="mt-3 text-sm text-[hsl(var(--muted-foreground))]">Choose an available date, then select a time.</p>{availabilityLoading ? <div className="skeleton mt-8 h-80 w-full" /> : availabilityError ? <div className="mt-8 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 text-sm text-[hsl(var(--muted-foreground))]">Availability could not be loaded. Please go back and try again.</div> : availableDays.length ? <div className="mt-10 w-full"><Calendar mode="single" month={calendarMonth} onMonthChange={setCalendarMonth} selected={selectedDate} onSelect={(date) => { if (!date) return; const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; setCalendarMonth(date); setForm((current) => ({ ...current, appointmentDate: key, appointmentTime: '' })); }} disabled={(date) => { const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; return !availableDateKeys.has(key); }} startMonth={new Date()} endMonth={bookingHorizon} className="w-full !bg-transparent !p-0 [--cell-size:clamp(2.7rem,11vw,4.5rem)]" classNames={{ root: 'w-full', months: 'w-full', month: 'w-full gap-6', month_caption: 'flex h-12 w-full items-center justify-center px-12 font-editorial text-2xl', nav: 'absolute inset-x-0 top-1 flex w-full items-center justify-between', month_grid: 'w-full border-collapse', weekdays: 'flex border-b border-[hsl(var(--border))] pb-3', weekday: 'flex-1 text-center font-mono-ui text-[10px] uppercase tracking-[.14em] text-[hsl(var(--muted-foreground))]', week: 'mt-3 flex w-full', day: 'relative aspect-square h-full flex-1 p-1 text-center', today: 'rounded-full border border-[hsl(var(--accent))]', disabled: 'text-[hsl(var(--muted-foreground))] opacity-25' }} /></div> : <div className="mt-8 rounded-xl border border-dashed border-[hsl(var(--border))] p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">No available dates are currently configured for this service.</div>}{form.appointmentDate && <div ref={timeSelectorRef} className="mt-9 scroll-mt-6 border-t border-[hsl(var(--border))] pt-7"><label className="field-label">{formatDay(form.appointmentDate, { weekday: 'long', month: 'long', day: 'numeric' })} · Available times</label>{selectedDay?.times?.length ? <div className="flex flex-wrap gap-2">{selectedDay.times.map((time) => <button key={time} onClick={() => update('appointmentTime', time)} className={`rounded-full border px-4 py-2 text-sm transition-colors ${form.appointmentTime === time ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]' : 'border-[hsl(var(--border))] bg-transparent hover:border-[hsl(var(--primary))]'}`} data-testid={`button-time-${time.replaceAll(':', '-')}`}>{time}</button>)}</div> : null}</div>}</div>}
-      {step === 3 && <div className="reveal"><p className="eyebrow opacity-55">Step 03</p><h2 className="font-editorial mt-3 text-4xl">Submit appointment request.</h2><div className="mt-8 grid gap-5 sm:grid-cols-2"><div><label className="field-label" htmlFor="name">Your name</label><input id="name" value={form.name} onChange={(e) => update('name', e.target.value)} className="field-input" placeholder="First and last" data-testid="input-name" /></div><div><label className="field-label" htmlFor="phone">Phone</label><input id="phone" value={form.phone} onChange={(e) => update('phone', e.target.value)} className="field-input" placeholder="(555) 000-0000" data-testid="input-phone" /></div><div className="sm:col-span-2"><label className="field-label" htmlFor="email">Email address</label><input id="email" type="email" value={form.email} onChange={(e) => update('email', e.target.value)} className="field-input" placeholder="you@example.com" data-testid="input-email" /></div><div className="sm:col-span-2"><label className="field-label" htmlFor="notes">Anything you want us to know <span className="font-normal opacity-50">(optional)</span></label><textarea id="notes" value={form.notes} onChange={(e) => update('notes', e.target.value)} className="field-input min-h-28 resize-y" placeholder="Tell us about your hair goals, timeline, or questions." data-testid="input-notes" /></div></div></div>}
+      {step === 1 && <div className="reveal"><p className="eyebrow opacity-55">Step 01</p><h2 className="font-editorial mt-3 text-4xl">{admin ? 'Which service is this for?' : 'What would you like to request?'}</h2>{servicesLoading ? <div className="skeleton mt-8 h-64 w-full" /> : servicesError ? <div className="mt-8 rounded-xl border border-[hsl(var(--destructive))] p-5 text-sm text-[hsl(var(--destructive))]">Services could not be loaded. Please refresh and try again.</div> : services.length ? <div className="mt-8 grid gap-3">{services.map((service) => <button key={service.id} onClick={() => { directLinkHandled.current = true; update('service', service.name); }} className={`flex items-center justify-between rounded-xl border p-5 text-left transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--primary))] ${form.service === service.name ? 'border-[hsl(var(--primary))] bg-[hsl(var(--secondary))]' : 'border-[hsl(var(--border))] bg-[hsl(var(--card))]'}`} data-testid={`button-service-${service.name.toLowerCase().replaceAll(' ', '-')}`}><span className="font-semibold">{service.name}</span>{form.service === service.name && <CheckCircle2 className="text-[hsl(var(--primary))]" size={20} />}</button>)}</div> : <div className="mt-8 rounded-xl border border-dashed border-[hsl(var(--border))] p-8 text-sm text-[hsl(var(--muted-foreground))]">No services are currently accepting online appointment requests. Please contact Rikki directly.</div>}</div>}
+      {step === 2 && <div className="reveal"><p className="eyebrow opacity-55">Step 02</p><h2 className="font-editorial mt-3 text-4xl">When would you like to come in?</h2><p className="mt-3 text-sm text-[hsl(var(--muted-foreground))]">Choose an available date, then select a time. Times are shown in New York time.</p>{loadingDays ? <div className="skeleton mt-8 h-80 w-full" /> : daysError ? <div className="mt-8 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 text-sm text-[hsl(var(--muted-foreground))]">Availability could not be loaded. Please go back and try again.</div> : availableDays.length ? <div className="mt-10 w-full"><Calendar mode="single" month={calendarMonth} onMonthChange={setCalendarMonth} selected={selectedDate} onSelect={(date) => { if (!date) return; const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; setCalendarMonth(date); setForm((current) => ({ ...current, appointmentDate: key, appointmentTime: '' })); }} disabled={(date) => { const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; return !availableDateKeys.has(key); }} startMonth={new Date()} endMonth={bookingHorizon} className="w-full !bg-transparent !p-0 [--cell-size:clamp(2.7rem,11vw,4.5rem)]" classNames={{ root: 'w-full', months: 'w-full', month: 'w-full gap-6', month_caption: 'flex h-12 w-full items-center justify-center px-12 font-editorial text-2xl', nav: 'absolute inset-x-0 top-1 flex w-full items-center justify-between', month_grid: 'w-full border-collapse', weekdays: 'flex border-b border-[hsl(var(--border))] pb-3', weekday: 'flex-1 text-center font-mono-ui text-[10px] uppercase tracking-[.14em] text-[hsl(var(--muted-foreground))]', week: 'mt-3 flex w-full', day: 'relative aspect-square h-full flex-1 p-1 text-center', today: 'rounded-full border border-[hsl(var(--accent))]', disabled: 'text-[hsl(var(--muted-foreground))] opacity-25' }} /></div> : <div className="mt-8 rounded-xl border border-dashed border-[hsl(var(--border))] p-8 text-center text-sm text-[hsl(var(--muted-foreground))]">No available dates are currently configured for this service.</div>}{form.appointmentDate && <div ref={timeSelectorRef} className="mt-9 scroll-mt-6 border-t border-[hsl(var(--border))] pt-7"><label className="field-label">{formatDay(form.appointmentDate, { weekday: 'long', month: 'long', day: 'numeric' })} · Available times</label>{selectedDay?.times?.length ? <div className="flex flex-wrap gap-2">{selectedDay.times.map((time) => <button key={time} onClick={() => update('appointmentTime', time)} className={`rounded-full border px-4 py-2 text-sm transition-colors ${form.appointmentTime === time ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]' : 'border-[hsl(var(--border))] bg-transparent hover:border-[hsl(var(--primary))]'}`} data-testid={`button-time-${time.replaceAll(':', '-')}`}>{time}</button>)}</div> : null}</div>}</div>}
+      {step === 3 && <div className="reveal"><p className="eyebrow opacity-55">Step 03</p><h2 className="font-editorial mt-3 text-4xl">{admin ? 'Confirm appointment.' : 'Submit appointment request.'}</h2>{admin?.emailStatus && (!admin.emailStatus.configured || admin.emailStatus.mode === 'test') && <p role="alert" className="mt-5 rounded-lg border border-[hsl(var(--destructive)/.35)] p-3 text-sm text-[hsl(var(--destructive))]">{admin.emailStatus.label}. You can still confirm the appointment, but no customer email will be sent until delivery is ready.</p>}<div className="mt-8 grid gap-5 sm:grid-cols-2"><div><label className="field-label" htmlFor="name">{admin ? 'Customer name' : 'Your name'}</label><input id="name" value={form.name} onChange={(e) => update('name', e.target.value)} className="field-input" placeholder="First and last" autoComplete="name" data-testid="input-name" /></div><div><label className="field-label" htmlFor="phone">Phone</label><input id="phone" value={form.phone} onChange={(e) => update('phone', e.target.value)} className="field-input" placeholder="(555) 000-0000" autoComplete="tel" data-testid="input-phone" /></div><div className="sm:col-span-2"><label className="field-label" htmlFor="email">{admin ? 'Email for confirmation' : 'Email address'}</label><input id="email" type="email" value={form.email} onChange={(e) => update('email', e.target.value)} className="field-input" placeholder="you@example.com" autoComplete="email" data-testid="input-email" /></div><div className="sm:col-span-2"><label className="field-label" htmlFor="notes">Anything you want us to know <span className="font-normal opacity-50">(optional)</span></label><textarea id="notes" value={form.notes} onChange={(e) => update('notes', e.target.value)} className="field-input min-h-28 resize-y" placeholder="Tell us about your hair goals, timeline, or questions." data-testid="input-notes" /></div></div></div>}
       {error && <div className="mt-6 flex items-start gap-2 rounded-lg border border-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/.08)] p-3 text-sm text-[hsl(var(--destructive))]" role="alert"><XCircle size={17} className="mt-0.5 shrink-0" />{error}</div>}
-      <div className="mt-10 flex items-center justify-between border-t border-[hsl(var(--border))] pt-6"><button className="editorial-link text-sm font-semibold disabled:opacity-30" onClick={() => setStep((current) => current - 1)} disabled={step === 1} data-testid="button-book-back">Back</button>{step < 3 ? <button className="btn-primary disabled:cursor-not-allowed disabled:opacity-40" onClick={() => setStep((current) => current + 1)} disabled={!canContinue} data-testid="button-book-next">Continue <ArrowRight size={15} /></button> : <button className="btn-primary disabled:cursor-not-allowed disabled:opacity-40" onClick={submit} disabled={!canContinue || createAppointment.isPending} data-testid="button-submit-appointment">{createAppointment.isPending ? 'Sending request…' : 'Send request'} <ArrowRight size={15} /></button>}</div>
+      <div className="mt-10 flex items-center justify-between border-t border-[hsl(var(--border))] pt-6"><button className="editorial-link text-sm font-semibold disabled:opacity-30" onClick={() => setStep((current) => current - 1)} disabled={step === 1 || createAdminAppointment.isPending} data-testid="button-book-back">Back</button>{step < 3 ? <button className="btn-primary disabled:cursor-not-allowed disabled:opacity-40" onClick={() => setStep((current) => current + 1)} disabled={!canContinue} data-testid="button-book-next">Continue <ArrowRight size={15} /></button> : <button className="btn-primary disabled:cursor-not-allowed disabled:opacity-40" onClick={() => void submit()} disabled={!canContinue || createAppointment.isPending || createAdminAppointment.isPending} data-testid="button-submit-appointment">{admin ? (createAdminAppointment.isPending ? 'Confirming…' : 'Confirm appointment') : (createAppointment.isPending ? 'Sending request…' : 'Send request')} <ArrowRight size={15} /></button>}</div>
     </section>
   </main></div>;
+}
+
+function PublicBook() {
+  return <Book />;
 }
 
 function ScheduleSettingsForm() {
@@ -321,10 +372,10 @@ function ScheduleSettingsForm() {
   </div>;
 }
 
-function SidePanel({ open, onOpenChange, title, description, children }: { open: boolean; onOpenChange: (open: boolean) => void; title: string; description: string; children: React.ReactNode }) {
+function SidePanel({ open, onOpenChange, title, description, children, wide = false }: { open: boolean; onOpenChange: (open: boolean) => void; title: string; description: string; children: React.ReactNode; wide?: boolean }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex h-[100dvh] !w-full !max-w-none flex-col bg-[hsl(var(--background))] p-0 sm:!max-w-md">
+      <SheetContent side="right" className={`flex h-[100dvh] !w-full !max-w-none flex-col bg-[hsl(var(--background))] p-0 ${wide ? 'sm:!max-w-5xl' : 'sm:!max-w-md'}`}>
         <SheetHeader className="border-b border-[hsl(var(--border))] p-6 pr-14 text-left">
           <SheetTitle className="font-editorial text-2xl">{title}</SheetTitle>
           <SheetDescription>{description}</SheetDescription>
@@ -397,6 +448,7 @@ function ScheduleDashboard() {
   const appointmentCreated = (name: string, outcome: string, ownerOutcome: string, emailError?: string, ownerError?: string) => {
     invalidate();
     queryClient.invalidateQueries({ queryKey: ['availability'] });
+    queryClient.invalidateQueries({ queryKey: getGetAdminAvailabilityQueryKey() });
     setIsCreateOpen(false);
     setFilter('all');
     setSelectedCalendarDay(undefined);
@@ -555,13 +607,13 @@ function ScheduleDashboard() {
         onOpenChange={setIsCreateOpen}
         title="New appointment"
         description="Choose an open time and confirm it for a customer."
+        wide
       >
-        {isCreateOpen && <AdminAppointmentForm
-          initialDay={selectedCalendarDay ? toDayKey(selectedCalendarDay) : undefined}
-          emailStatus={emailStatus}
-          onCancel={() => setIsCreateOpen(false)}
-          onCreated={appointmentCreated}
-        />}
+        {isCreateOpen && <Book admin={{
+          initialDay: selectedCalendarDay ? toDayKey(selectedCalendarDay) : undefined,
+          emailStatus,
+          onCreated: appointmentCreated,
+        }} />}
       </SidePanel>
 
       <SidePanel
@@ -641,7 +693,7 @@ function AppointmentRow({ appointment, onStatus, onDelete, onReschedule, busy }:
 
 function Router() {
   const [location] = useLocation();
-  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/book" component={Book} /><Route path="/login" component={LoginLanding} /><Route path="/sign-in/*?" component={SignInPage} /><Route path="/manage" component={AdminManageRoute} /><Route component={NotFound} /></Switch></ErrorBoundary>;
+  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/book" component={PublicBook} /><Route path="/login" component={LoginLanding} /><Route path="/sign-in/*?" component={SignInPage} /><Route path="/manage" component={AdminManageRoute} /><Route component={NotFound} /></Switch></ErrorBoundary>;
 }
 
 function App() {
