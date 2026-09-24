@@ -125,11 +125,16 @@ function ServiceEditor({ serviceId, initial, imageUrl, isArchived, onCancel, onS
   const isNew = serviceId === undefined;
   
   const update = (field: keyof ServiceInput, value: any) => {
+    setError('');
     setDraft(curr => ({ ...curr, [field]: value }));
   };
 
   const handleSave = async () => {
     setError('');
+    if (!draft.name.trim()) {
+      setError('Enter a service name before saving.');
+      return;
+    }
     try {
       if (isNew) {
         await createService.mutateAsync({ data: draft });
@@ -192,7 +197,7 @@ function ServiceEditor({ serviceId, initial, imageUrl, isArchived, onCancel, onS
        </div>
 
        {error && (
-         <div className="mb-6 flex items-start gap-2 rounded-lg border border-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/.08)] p-3 text-sm text-[hsl(var(--destructive))]">
+          <div role="alert" className="mb-6 flex items-start gap-2 rounded-lg border border-[hsl(var(--destructive))] bg-[hsl(var(--destructive)/.08)] p-3 text-sm text-[hsl(var(--destructive))]">
            <AlertCircle size={17} className="mt-0.5 shrink-0" /> {error}
          </div>
        )}
@@ -200,7 +205,7 @@ function ServiceEditor({ serviceId, initial, imageUrl, isArchived, onCancel, onS
        <div className="grid gap-8 md:grid-cols-[280px_1fr]">
          <div className="space-y-6">
             <div>
-              <label className="field-label">Service Image</label>
+               <label className="field-label">Service Image <span className="font-normal text-[hsl(var(--muted-foreground))]">(optional)</span></label>
               <div className="mt-2 flex flex-col gap-3">
                  <div className="aspect-[4/3] w-full overflow-hidden rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))] relative">
                    {previewUrl ? (
@@ -257,7 +262,7 @@ function ServiceEditor({ serviceId, initial, imageUrl, isArchived, onCancel, onS
 
          <div className="flex items-center gap-4">
            <button type="button" onClick={handleCancel} className="text-sm font-semibold hover:opacity-80">Cancel</button>
-           <button type="button" onClick={() => void handleSave()} disabled={createService.isPending || updateService.isPending || uploading || !draft.name || !draft.imagePath} className="btn-primary">
+            <button type="button" onClick={() => void handleSave()} disabled={createService.isPending || updateService.isPending || uploading} className="btn-primary">
              <Save size={15} /> {(createService.isPending || updateService.isPending) ? 'Saving...' : 'Save service'}
            </button>
          </div>
