@@ -30,6 +30,8 @@ export interface WigOrder {
   taxRateMilliPercent: number;
   amountPaidCents: number | null;
   taxCents: number | null;
+  /** @minimum 0 */
+  tariffCents: number;
   totalCents: number | null;
   amountDueCents: number | null;
   needsReview: boolean;

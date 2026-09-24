@@ -26,6 +26,7 @@ export const wigOrdersTable = pgTable("wig_orders", {
   taxRateMilliPercent: integer("tax_rate_milli_percent").notNull().default(6625),
   amountPaidCents: integer("amount_paid_cents"),
   taxCents: integer("tax_cents"),
+  tariffCents: integer("tariff_cents").notNull().default(0),
   totalCents: integer("total_cents"),
   amountDueCents: integer("amount_due_cents"),
   needsReview: boolean("needs_review").notNull().default(false),
@@ -47,7 +48,7 @@ export const wigReceiptsTable = pgTable("wig_receipts", {
 });
 
 export const insertWigOrderSchema = createInsertSchema(wigOrdersTable).omit({
-  id: true, taxCents: true, totalCents: true, amountDueCents: true, createdAt: true,
+  id: true, taxCents: true, tariffCents: true, totalCents: true, amountDueCents: true, createdAt: true,
   needsReview: true, reviewIssues: true, sourceSheet: true, sourceRowNumber: true, sourceValues: true,
 });
 export type WigOrder = typeof wigOrdersTable.$inferSelect;

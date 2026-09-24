@@ -11,6 +11,10 @@ import * as zod from 'zod';
 /**
  * @summary List private wig orders
  */
+export const listWigOrdersResponseTariffCentsMin = 0;
+
+
+
 export const ListWigOrdersResponseItem = zod.object({
   "id": zod.number().int(),
   "kind": zod.enum(['stock', 'custom']),
@@ -33,6 +37,7 @@ export const ListWigOrdersResponseItem = zod.object({
   "taxRateMilliPercent": zod.number().int(),
   "amountPaidCents": zod.number().int().nullable(),
   "taxCents": zod.number().int().nullable(),
+  "tariffCents": zod.number().int().min(listWigOrdersResponseTariffCentsMin),
   "totalCents": zod.number().int().nullable(),
   "amountDueCents": zod.number().int().nullable(),
   "needsReview": zod.boolean(),
@@ -108,6 +113,10 @@ export const CreateWigOrderBody = zod.object({
   "amountPaidCents": zod.number().int().min(createWigOrderBodyAmountPaidCentsMin)
 })
 
+export const createWigOrderResponseTariffCentsMin = 0;
+
+
+
 export const CreateWigOrderResponse = zod.object({
   "id": zod.number().int(),
   "kind": zod.enum(['stock', 'custom']),
@@ -130,6 +139,7 @@ export const CreateWigOrderResponse = zod.object({
   "taxRateMilliPercent": zod.number().int(),
   "amountPaidCents": zod.number().int().nullable(),
   "taxCents": zod.number().int().nullable(),
+  "tariffCents": zod.number().int().min(createWigOrderResponseTariffCentsMin),
   "totalCents": zod.number().int().nullable(),
   "amountDueCents": zod.number().int().nullable(),
   "needsReview": zod.boolean(),
@@ -208,6 +218,10 @@ export const UpdateWigOrderBody = zod.object({
   "amountPaidCents": zod.number().int().min(updateWigOrderBodyAmountPaidCentsMin)
 })
 
+export const updateWigOrderResponseTariffCentsMin = 0;
+
+
+
 export const UpdateWigOrderResponse = zod.object({
   "id": zod.number().int(),
   "kind": zod.enum(['stock', 'custom']),
@@ -230,6 +244,7 @@ export const UpdateWigOrderResponse = zod.object({
   "taxRateMilliPercent": zod.number().int(),
   "amountPaidCents": zod.number().int().nullable(),
   "taxCents": zod.number().int().nullable(),
+  "tariffCents": zod.number().int().min(updateWigOrderResponseTariffCentsMin),
   "totalCents": zod.number().int().nullable(),
   "amountDueCents": zod.number().int().nullable(),
   "needsReview": zod.boolean(),

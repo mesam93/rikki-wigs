@@ -146,11 +146,13 @@ export function sendReceiptPdf(res: Response, receipt: {
   }
   if (order.notes) row("Notes", order.notes);
 
-  section("PAYMENT SUMMARY", 126);
-  space(126);
+  const hasTariff = (order.tariffCents ?? 0) > 0;
+  const cardHeight = hasTariff ? 136 : 116;
+  section("PAYMENT SUMMARY", cardHeight + 10);
+  space(cardHeight + 10);
   const cardY = y;
-  pdf.rect(left, cardY, right - left, 116).fill(paperTint);
-  pdf.rect(left, cardY, 3, 116).fill(gold);
+  pdf.rect(left, cardY, right - left, cardHeight).fill(paperTint);
+  pdf.rect(left, cardY, 3, cardHeight).fill(gold);
   const amountRow = (label: string, amount: string, offset: number, emphasized = false) => {
     pdf.font(emphasized ? "Helvetica-Bold" : "Helvetica")
       .fontSize(emphasized ? 10 : 9.5).fillColor(emphasized ? ink : muted)
@@ -160,11 +162,12 @@ export function sendReceiptPdf(res: Response, receipt: {
   };
   amountRow("Price", dollars(order.priceCents), 9);
   amountRow(`Tax (${(order.taxRateMilliPercent / 1000).toFixed(3)}%)`, dollars(order.taxCents), 28);
-  amountRow("Total", dollars(order.totalCents), 48, true);
-  amountRow("Amount paid", dollars(order.amountPaidCents), 69);
-  pdf.moveTo(left + 20, cardY + 88).lineTo(right - 20, cardY + 88)
+  if (hasTariff) amountRow("Tariff", dollars(order.tariffCents), 48);
+  amountRow("Total", dollars(order.totalCents), hasTariff ? 68 : 48, true);
+  amountRow("Amount paid", dollars(order.amountPaidCents), hasTariff ? 89 : 69);
+  pdf.moveTo(left + 20, cardY + (hasTariff ? 108 : 88)).lineTo(right - 20, cardY + (hasTariff ? 108 : 88))
     .lineWidth(0.8).strokeColor(rule).stroke();
-  amountRow("Amount due", dollars(order.amountDueCents), 96, true);
+  amountRow("Amount due", dollars(order.amountDueCents), hasTariff ? 116 : 96, true);
 
   const pages = pdf.bufferedPageRange();
   for (let page = pages.start; page < pages.start + pages.count; page++) {

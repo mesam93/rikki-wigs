@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { PassThrough } from "node:stream";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 import type { Response } from "express";
 import type { WigOrder } from "@workspace/db";
 import { sendReceiptPdf } from "./wig-receipt-pdf";
@@ -48,6 +49,22 @@ test("download keeps the same descriptive filename as an attachment", async () =
   const { headers, done } = render(false);
   assert.equal(headers.get("Content-Disposition"), 'attachment; filename="Jane-Doe-WIG-42-RW-7.pdf"');
   await done;
+});
+
+test("new receipts list the $25 tariff after tax; issued legacy receipts stay unchanged", async () => {
+  const fresh = render(true, {
+    tariffCents: 2_500, totalCents: 13_163, amountDueCents: 8_163,
+  });
+  const freshBody = await fresh.done;
+  assert.equal(pageCount(freshBody), 1);
+  const freshText = execFileSync("pdftotext", ["-layout", "-", "-"], { input: freshBody, encoding: "utf8" });
+  assert.match(freshText, /Tax \(6\.625%\).*?\n\s*Tariff\s+\$25\.00\s*\n\s*Total\s+\$131\.63/s);
+  assert.match(freshText, /Amount due\s+\$81\.63/);
+
+  const oldBody = await render(true).done;
+  const oldText = execFileSync("pdftotext", ["-layout", "-", "-"], { input: oldBody, encoding: "utf8" });
+  assert.doesNotMatch(oldText, /Tariff/);
+  assert.match(oldText, /Total\s+\$106\.63/);
 });
 
 test("a reviewed order with complete details still renders", async () => {

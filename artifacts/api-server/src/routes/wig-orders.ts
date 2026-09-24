@@ -38,7 +38,7 @@ function receiptResponse(receipt: typeof wigReceiptsTable.$inferSelect) {
   };
 }
 
-function parseOrder(body: unknown) {
+function parseOrder(body: unknown, tariffCents: number) {
   const parsed = CreateWigOrderBody.safeParse(body);
   if (!parsed.success) return { ok: false, error: "Check the required order fields and their lengths" } as const;
   const data = parsed.data;
@@ -47,7 +47,7 @@ function parseOrder(body: unknown) {
     return { ok: false, error: "Item code and customer name are required" } as const;
   }
   try {
-    return { ok: true, value: normalizeOrder(data) } as const;
+    return { ok: true, value: normalizeOrder({ ...data, tariffCents }) } as const;
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Invalid order amounts" } as const;
   }
@@ -87,7 +87,7 @@ router.post("/admin/orders/historical-import", raw({ type: "application/octet-st
   });
 
 router.post("/admin/orders", async (req, res): Promise<void> => {
-  const parsed = parseOrder(req.body);
+  const parsed = parseOrder(req.body, 2_500);
   if (!parsed.ok) { res.status(400).json({ error: parsed.error }); return; }
   const created = await db.transaction(async (tx) => {
     const [order] = await tx.insert(wigOrdersTable).values(parsed.value).onConflictDoNothing().returning();
@@ -104,7 +104,10 @@ router.patch("/admin/orders/:id", async (req, res): Promise<void> => {
   if (!id) { res.status(400).json({ error: "Invalid order ID" }); return; }
   const parsed = UpdateWigOrderBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Check the required order fields" }); return; }
-  const order = parseOrder(parsed.data);
+  const [current] = await db.select({ tariffCents: wigOrdersTable.tariffCents })
+    .from(wigOrdersTable).where(eq(wigOrdersTable.id, id));
+  if (!current) { res.status(404).json({ error: "Order not found" }); return; }
+  const order = parseOrder(parsed.data, current.tariffCents);
   if (!order.ok) { res.status(400).json({ error: order.error }); return; }
   let updated: typeof wigOrdersTable.$inferSelect | undefined;
   try {

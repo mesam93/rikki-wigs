@@ -15,6 +15,16 @@ test("tax, total, balance and partial payment use integer cents", () => {
   assert.throws(() => calculateAmounts(-100, 6625, 0), /valid non-negative/);
 });
 
+test("new orders add a flat $25 tariff after tax; legacy orders do not", () => {
+  assert.deepEqual(calculateAmounts(10_000, 6625, 5_000, 2_500), {
+    taxCents: 663, totalCents: 13_163, amountDueCents: 8_163,
+  });
+  assert.deepEqual(calculateAmounts(10_000, 6625, 5_000, 0), {
+    taxCents: 663, totalCents: 10_663, amountDueCents: 5_663,
+  });
+  assert.throws(() => calculateAmounts(10_000, 6625, 13_164, 2_500), /cannot exceed/);
+});
+
 test("original workbook preserves every business-sheet row with source traceability", async () => {
   // The source ZIP contains Orders.xlsx; locate it without extracting private rows to disk.
   const unzipper = await import("node:child_process");

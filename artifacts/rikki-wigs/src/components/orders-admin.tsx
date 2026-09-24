@@ -145,8 +145,9 @@ function WigOrderForm({ initial, onSave, onCancel, busy }: { initial?: WigOrder;
   } : defaultOrder);
 
   const update = (field: keyof OrderFormValues, value: string | number | null) => setForm(f => ({ ...f, [field]: value }));
+  const tariffCents = initial?.tariffCents ?? 2_500;
   const taxCents = form.priceCents === null ? null : Math.round(form.priceCents * form.taxRateMilliPercent / 100000);
-  const totalCents = form.priceCents === null || taxCents === null ? null : form.priceCents + taxCents;
+  const totalCents = form.priceCents === null || taxCents === null ? null : form.priceCents + taxCents + tariffCents;
   const amountDueCents = totalCents === null || form.amountPaidCents === null ? null : totalCents - form.amountPaidCents;
   const invalidPayment = amountDueCents !== null && amountDueCents < 0;
   const ready = form.priceCents !== null && form.amountPaidCents !== null && !invalidPayment;
@@ -213,6 +214,7 @@ function WigOrderForm({ initial, onSave, onCancel, busy }: { initial?: WigOrder;
         <div className="md:col-span-2 rounded-xl bg-[hsl(var(--secondary))] p-4 text-sm" data-testid="summary-order-amounts">
           <span>Tax {formatMoney(taxCents)}</span>
           <span className="mx-3">·</span>
+          {tariffCents > 0 && <><span>Tariff {formatMoney(tariffCents)}</span><span className="mx-3">·</span></>}
           <strong>Total {formatMoney(totalCents)}</strong>
           <span className="mx-3">·</span>
           <span>Due {formatMoney(amountDueCents)}</span>
@@ -335,6 +337,10 @@ function OrderDetails({ order, onEdit }: { order: WigOrder; onEdit: () => void }
               <span className="text-right">{formatMoney(order.priceCents)}</span>
               <span className="text-[hsl(var(--muted-foreground))]">Tax ({(order.taxRateMilliPercent / 1000).toFixed(3)}%)</span>
               <span className="text-right">{formatMoney(order.taxCents)}</span>
+               {order.tariffCents > 0 && <>
+                 <span className="text-[hsl(var(--muted-foreground))]">Tariff</span>
+                 <span className="text-right">{formatMoney(order.tariffCents)}</span>
+               </>}
               <span className="text-[hsl(var(--muted-foreground))] font-semibold mt-1">Total</span>
               <span className="text-right font-semibold mt-1">{formatMoney(order.totalCents)}</span>
               <span className="text-[hsl(var(--muted-foreground))] mt-2 border-t border-[hsl(var(--border))] pt-2">Paid</span>

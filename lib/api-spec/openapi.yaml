@@ -672,7 +672,7 @@ components:
         amountPaidCents: { type: integer, minimum: 0 }
     WigOrder:
       type: object
-      required: [id, kind, itemCode, orderDate, customerName, phone, email, notes, style, capSize, lengthInch, hairType, part, layers, density, color, highlights, priceCents, taxRateMilliPercent, amountPaidCents, taxCents, totalCents, amountDueCents, needsReview, reviewIssues, sourceSheet, sourceRowNumber, sourceValues, createdAt]
+      required: [id, kind, itemCode, orderDate, customerName, phone, email, notes, style, capSize, lengthInch, hairType, part, layers, density, color, highlights, priceCents, taxRateMilliPercent, amountPaidCents, taxCents, tariffCents, totalCents, amountDueCents, needsReview, reviewIssues, sourceSheet, sourceRowNumber, sourceValues, createdAt]
       properties:
         id: { type: integer }
         kind: { type: string, enum: [stock, custom] }
@@ -695,6 +695,7 @@ components:
         taxRateMilliPercent: { type: integer }
         amountPaidCents: { type: integer, nullable: true }
         taxCents: { type: integer, nullable: true }
+        tariffCents: { type: integer, minimum: 0 }
         totalCents: { type: integer, nullable: true }
         amountDueCents: { type: integer, nullable: true }
         needsReview: { type: boolean }

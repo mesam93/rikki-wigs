@@ -8,3 +8,4 @@
 - [One-time importer bundling](one-time-importer-bundling.md) — bundle workspace and runtime dependencies together when running standalone TypeScript importers.
 - [Appointment email sender choice](appointment-email-sender.md) — use the connected mailbox for its own address; Resend requires an owner-verified domain.
 - [Exact-minute booking availability](exact-minute-booking.md) — represent arbitrary valid start minutes as compact ranges; keep a small suggested-time list for browsing.
+- [Order tariff scope](order-tariff-scope.md) — the flat $25 post-tax tariff applies to newly created orders, not older orders or issued receipt snapshots.
