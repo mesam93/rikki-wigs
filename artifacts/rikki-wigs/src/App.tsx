@@ -672,7 +672,7 @@ function Manage() {
   const [group, setGroup] = useState<AdminGroup>('schedule');
   const [siteTab, setSiteTab] = useState<SiteTab>('services');
 
-  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav manage /><main className="bg-[hsl(var(--background))]"><div className="container-rikki py-10 md:py-16"><div className="flex flex-col justify-between gap-6 md:flex-row md:items-end"><div><p className="eyebrow text-[hsl(var(--primary))]">Rikki Wigs / owner view</p><h1 className="display-title mt-4 text-6xl md:text-7xl">Good morning,<br /><em>Rikki.</em></h1></div><div className="flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))]"><span className="status-dot bg-[hsl(147_35%_45%)]" /> Your appointment book</div></div>
+  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav manage /><main className="bg-[hsl(var(--background))]"><div className="container-rikki py-10 md:py-16"><h1 className="display-title text-6xl md:text-7xl">Good morning,<br /><em>Rikki.</em></h1>
         <AdminTabs items={adminGroups} selected={group} onSelect={(value: AdminGroup) => setGroup(value)} label="Owner dashboard sections" idPrefix="admin-group" panelId="admin-group-panel" primary />
         <div id="admin-group-panel" role="tabpanel" aria-labelledby={`admin-group-${group}`}>
           {group === 'schedule' ? (
