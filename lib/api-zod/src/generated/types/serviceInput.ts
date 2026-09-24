@@ -17,7 +17,7 @@ export interface ServiceInput {
   isVisible: boolean;
   isBookable: boolean;
   /**
-     * @minimum 15
+     * @minimum 1
      * @maximum 480
      */
   durationMinutes: number;

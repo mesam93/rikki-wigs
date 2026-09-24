@@ -24,6 +24,7 @@ import {
 import { requireAdmin } from "../middlewares/requireAdmin";
 import { ensureServices, getBookableService, weekdays } from "../lib/services";
 import { trySyncAppointment } from "../lib/calendar-sync";
+import { availableStarts, toMinutes } from "../lib/availability-slots";
 
 const router: IRouter = Router();
 
@@ -101,25 +102,6 @@ async function getSettings() {
     return { ...settings, weeklyHours: migrated };
   }
   return settings;
-}
-
-function toMinutes(value: string): number {
-  const match = value.trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
-  if (!match) return 0;
-  let hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  const period = match[3]?.toUpperCase();
-  if (period === "PM" && hours !== 12) hours += 12;
-  if (period === "AM" && hours === 12) hours = 0;
-  return hours * 60 + minutes;
-}
-
-function toDisplayTime(minutes: number): string {
-  const hours24 = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  const period = hours24 >= 12 ? "PM" : "AM";
-  const hours = hours24 % 12 || 12;
-  return `${hours}:${String(mins).padStart(2, "0")} ${period}`;
 }
 
 function overlaps(startA: number, endA: number, startB: number, endB: number) {
@@ -459,25 +441,20 @@ async function sendAvailability(req: Request, res: Response, includeToday: boole
     if (date > end) break;
     const dayBookings = booked.filter((slot) => slot.date === date);
     const dayBlocks = settings.blockedSlots.filter((slot) => slot.date === date);
-    const times: string[] = [];
-    for (const window of windows) {
-      const open = toMinutes(window.start);
-      const close = toMinutes(window.end);
-      for (let startTime = open; startTime + requestedDuration <= close; startTime += 30) {
-        if (includeToday && date === now.date && startTime <= now.minutes) continue;
-        const endTime = startTime + requestedDuration;
-        const conflictsWithBooking = dayBookings.some((slot) => {
-          const bookedStart = toMinutes(slot.time);
-          return overlaps(startTime, endTime, bookedStart, bookedStart + slot.durationMinutes);
-        });
-        const conflictsWithBlock = dayBlocks.some((slot) =>
-          overlaps(startTime, endTime, toMinutes(slot.startTime), toMinutes(slot.endTime)),
-        );
-        const display = toDisplayTime(startTime);
-        if (!conflictsWithBooking && !conflictsWithBlock && !times.includes(display)) times.push(display);
-      }
-    }
-    if (times.length > 0) availability.push({ date, times });
+    const { times, availableStartRanges } = availableStarts(
+      windows,
+      requestedDuration,
+      dayBookings.map((slot) => ({
+        start: toMinutes(slot.time),
+        end: toMinutes(slot.time) + slot.durationMinutes,
+      })),
+      dayBlocks.map((slot) => ({
+        start: toMinutes(slot.startTime),
+        end: toMinutes(slot.endTime),
+      })),
+      includeToday && date === now.date ? now.minutes + 1 : 0,
+    );
+    if (availableStartRanges.length) availability.push({ date, times, availableStartRanges });
   }
 
   res.json((includeToday ? GetAdminAvailabilityResponse : GetAvailabilityResponse).parse(availability));

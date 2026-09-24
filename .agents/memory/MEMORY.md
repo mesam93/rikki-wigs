@@ -7,3 +7,4 @@
 - [Calendar sync date scope](calendar-sync-date-scope.md) — historical appointments should not be newly added to Google; sync today and future while preserving existing event links.
 - [One-time importer bundling](one-time-importer-bundling.md) — bundle workspace and runtime dependencies together when running standalone TypeScript importers.
 - [Appointment email sender choice](appointment-email-sender.md) — use the connected mailbox for its own address; Resend requires an owner-verified domain.
+- [Exact-minute booking availability](exact-minute-booking.md) — represent arbitrary valid start minutes as compact ranges; keep a small suggested-time list for browsing.

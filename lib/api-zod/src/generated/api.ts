@@ -537,9 +537,17 @@ export const GetAvailabilityQueryParams = zod.object({
   "service": zod.coerce.string()
 })
 
+export const getAvailabilityResponseAvailableStartRangesItemStartRegExp = new RegExp('^\\d{2}:\\d{2}$');
+export const getAvailabilityResponseAvailableStartRangesItemEndRegExp = new RegExp('^\\d{2}:\\d{2}$');
+
+
 export const GetAvailabilityResponseItem = zod.object({
   "date": zod.coerce.date(),
-  "times": zod.array(zod.string())
+  "times": zod.array(zod.string()),
+  "availableStartRanges": zod.array(zod.object({
+  "start": zod.string().regex(getAvailabilityResponseAvailableStartRangesItemStartRegExp),
+  "end": zod.string().regex(getAvailabilityResponseAvailableStartRangesItemEndRegExp)
+}))
 })
 export const GetAvailabilityResponse = zod.array(GetAvailabilityResponseItem)
 
@@ -551,9 +559,17 @@ export const GetAdminAvailabilityQueryParams = zod.object({
   "service": zod.coerce.string()
 })
 
+export const getAdminAvailabilityResponseAvailableStartRangesItemStartRegExp = new RegExp('^\\d{2}:\\d{2}$');
+export const getAdminAvailabilityResponseAvailableStartRangesItemEndRegExp = new RegExp('^\\d{2}:\\d{2}$');
+
+
 export const GetAdminAvailabilityResponseItem = zod.object({
   "date": zod.coerce.date(),
-  "times": zod.array(zod.string())
+  "times": zod.array(zod.string()),
+  "availableStartRanges": zod.array(zod.object({
+  "start": zod.string().regex(getAdminAvailabilityResponseAvailableStartRangesItemStartRegExp),
+  "end": zod.string().regex(getAdminAvailabilityResponseAvailableStartRangesItemEndRegExp)
+}))
 })
 export const GetAdminAvailabilityResponse = zod.array(GetAdminAvailabilityResponseItem)
 
@@ -688,7 +704,6 @@ export const ListAdminServicesResponse = zod.array(ListAdminServicesResponseItem
 
 export const createServiceBodySortOrderMin = 0;
 
-export const createServiceBodyDurationMinutesMin = 15;
 export const createServiceBodyDurationMinutesMax = 480;
 
 
@@ -700,7 +715,7 @@ export const CreateServiceBody = zod.object({
   "sortOrder": zod.number().int().min(createServiceBodySortOrderMin),
   "isVisible": zod.boolean(),
   "isBookable": zod.boolean(),
-  "durationMinutes": zod.number().int().min(createServiceBodyDurationMinutesMin).max(createServiceBodyDurationMinutesMax),
+  "durationMinutes": zod.number().int().min(1).max(createServiceBodyDurationMinutesMax),
   "weeklyHours": zod.object({
   "sunday": zod.array(zod.object({
   "id": zod.string(),
@@ -816,7 +831,6 @@ export const UpdateServiceParams = zod.object({
 
 export const updateServiceBodySortOrderMin = 0;
 
-export const updateServiceBodyDurationMinutesMin = 15;
 export const updateServiceBodyDurationMinutesMax = 480;
 
 
@@ -828,7 +842,7 @@ export const UpdateServiceBody = zod.object({
   "sortOrder": zod.number().int().min(updateServiceBodySortOrderMin),
   "isVisible": zod.boolean(),
   "isBookable": zod.boolean(),
-  "durationMinutes": zod.number().int().min(updateServiceBodyDurationMinutesMin).max(updateServiceBodyDurationMinutesMax),
+  "durationMinutes": zod.number().int().min(1).max(updateServiceBodyDurationMinutesMax),
   "weeklyHours": zod.object({
   "sunday": zod.array(zod.object({
   "id": zod.string(),

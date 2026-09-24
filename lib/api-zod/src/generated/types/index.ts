@@ -16,6 +16,7 @@ export * from './appointmentStatus';
 export * from './appointmentSummary';
 export * from './appointmentUpdate';
 export * from './availabilityDay';
+export * from './availableStartRange';
 export * from './calendarSyncResult';
 export * from './calendarSyncSelection';
 export * from './calendarSyncStatus';

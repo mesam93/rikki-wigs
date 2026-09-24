@@ -5,8 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AvailableStartRange } from './availableStartRange';
 
 export interface AvailabilityDay {
   date: Date;
   times: string[];
+  availableStartRanges: AvailableStartRange[];
 }

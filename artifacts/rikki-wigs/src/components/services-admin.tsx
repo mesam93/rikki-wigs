@@ -236,7 +236,7 @@ function ServiceEditor({ serviceId, initial, imageUrl, isArchived, onCancel, onS
               </div>
               <div>
                 <label className="field-label">Duration (minutes)</label>
-                <input type="number" min={15} step={15} value={draft.durationMinutes} onChange={e => update('durationMinutes', Number(e.target.value))} className="field-input" />
+                <input type="number" min={1} max={480} step={1} value={draft.durationMinutes} onChange={e => update('durationMinutes', Number(e.target.value))} className="field-input" />
               </div>
               <div>
                 <label className="field-label">Alt Text (Accessibility)</label>
