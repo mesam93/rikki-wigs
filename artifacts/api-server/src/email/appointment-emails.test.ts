@@ -35,6 +35,8 @@ test("renders a safe request-received message with appointment details", () => {
 
   assert.equal(message.to, "ana@example.com");
   assert.equal(message.subject, "We received your appointment request");
+  assert.match(message.text, /Rikki will be in touch shortly to confirm your appointment/);
+  assert.doesNotMatch(message.text, /Your appointment is confirmed\./);
   assert.match(message.text, /Custom color & styling/);
   assert.match(message.text, /Thursday, October 15, 2026 at 1:30 PM/);
   assert.match(message.html, /Custom color &amp; styling/);
@@ -122,9 +124,10 @@ test("alerts the sender with contact details for pending and confirmed bookings"
   );
 });
 
-test("never emails clients when they first request a booking", () => {
-  assert.equal(canSendNotification("request_received", "gmail"), false);
-  assert.equal(canSendNotification("request_received", "smtp"), false);
+test("emails clients when they request a booking and still sends the later confirmation", () => {
+  assert.equal(canSendNotification("request_received", "gmail"), true);
+  assert.equal(canSendNotification("request_received", "smtp"), true);
+  assert.equal(canSendNotification("request_received", "disabled"), false);
   assert.equal(canSendNotification("owner_new_appointment", "gmail"), true);
   assert.equal(canSendNotification("confirmed", "gmail"), true);
   assert.equal(canSendNotification("cancelled", "gmail"), false);

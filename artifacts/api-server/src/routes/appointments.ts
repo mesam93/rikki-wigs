@@ -238,6 +238,7 @@ router.post("/appointments", async (req, res): Promise<void> => {
     return;
   }
   const { appointment } = result;
+  await deliverAppointmentEmail(req, "request_received", appointment);
   await deliverAppointmentEmail(req, "owner_new_appointment", appointment);
   await trySyncAppointment(appointment.id);
 

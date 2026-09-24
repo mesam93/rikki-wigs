@@ -103,7 +103,7 @@ export function getEmailDeliveryStatus(): EmailDeliveryStatus {
       mode: config.mode,
       configured,
       label: configured
-        ? "Gmail is selected for customer confirmations and owner alerts"
+        ? "Gmail is selected for request receipts, confirmations, and owner alerts"
         : "Gmail needs EMAIL_FROM set to the connected account address",
     };
   }
@@ -156,9 +156,9 @@ function templateCopy(event: AppointmentEmailEvent): {
       return {
         subject: "We received your appointment request",
         eyebrow: "Request received",
-        heading: "You are on the list.",
+        heading: "We received your request.",
         message:
-          "Thank you for reaching out. Rikki will review your request and contact you when your appointment is confirmed.",
+          "Thank you for requesting an appointment. Rikki will be in touch shortly to confirm your appointment.",
       };
     case "confirmed":
       return {
@@ -494,8 +494,7 @@ export async function sendAppointmentNotification(
 
 export function canSendNotification(event: NotificationEvent, mode: EmailDeliveryMode): boolean {
   return mode !== "disabled"
-    && event !== "request_received"
-    && (mode !== "gmail" || event === "confirmed" || event === "owner_new_appointment");
+    && (mode !== "gmail" || event === "request_received" || event === "confirmed" || event === "owner_new_appointment");
 }
 
 export function notificationEventForUpdate(
