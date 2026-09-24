@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Redirect, Route, Switch, useLocation } from 'wouter';
-import { ArrowRight, CalendarDays, Check, CheckCircle2, ChevronDown, Clock3, Instagram, LockKeyhole, Mail, Menu, Phone, Trash2, UserRound, X, XCircle } from 'lucide-react';
+import { ArrowRight, CalendarDays, Check, CheckCircle2, ChevronDown, Clock3, Instagram, Mail, Menu, Phone, Trash2, UserRound, X, XCircle } from 'lucide-react';
 import {
   getGetAdminAvailabilityQueryKey,
   getGetAppointmentSummaryQueryKey,
@@ -65,49 +65,21 @@ function formatDay(value: string | Date, options: Intl.DateTimeFormatOptions): s
 
 
 function LoginLanding() {
-  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki py-16 md:py-24"><div className="mx-auto grid max-w-4xl gap-5 md:grid-cols-2"><section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-7 md:p-9"><UserRound size={28} strokeWidth={1.5} /><p className="eyebrow mt-7 opacity-55">Client</p><h2 className="mt-3 font-editorial text-4xl">Client account</h2><p className="mt-4 min-h-12 text-sm leading-6 text-[hsl(var(--muted-foreground))]">See your upcoming appointments and download your receipts. First time here? Verify your email to set up access.</p><Link href="/client/sign-in" className="mt-8 flex w-full items-center justify-center rounded-full border border-[hsl(var(--primary))] bg-[hsl(var(--primary))] px-5 py-3 text-sm font-semibold !text-[hsl(var(--primary-foreground))] transition-colors hover:bg-black hover:!text-[hsl(var(--primary-foreground))]">Client log in</Link></section><section className="rounded-2xl bg-black p-7 text-white md:p-9"><LockKeyhole size={28} strokeWidth={1.5} /><p className="eyebrow mt-7 text-white/55">Admin</p><h2 className="mt-3 font-editorial text-4xl">Rikki’s dashboard</h2><p className="mt-4 min-h-12 text-sm leading-6 text-white/65">Private access for the approved Rikki Wigs administrator only.</p><Link href="/sign-in" className="mt-8 flex w-full items-center justify-center rounded-full border border-white bg-white px-5 py-3 text-sm font-semibold !text-black transition-colors hover:bg-black hover:!text-white">Admin log in</Link></section></div></main></div>;
-}
-
-function SignInPage() {
-  const [, setLocation] = useLocation();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setSubmitting(true);
-    setError('');
-    try {
-      await apiJson<{ role: 'admin' }>('/api/admin-login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      });
-      queryClient.clear();
-      setLocation('/manage');
-    } catch (loginError) {
-      setError(loginError instanceof Error ? loginError.message : 'Login failed');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki flex justify-center py-12 md:py-20"><form onSubmit={(event) => void submit(event)} className="w-full max-w-md rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-7 shadow-sm md:p-10"><img src="/brand/rikki-logo-official.svg" alt="Rikki Wigs" className="mx-auto h-20 w-20" /><p className="eyebrow mt-7 text-center opacity-55">Admin access</p><h1 className="mt-3 text-center font-editorial text-4xl">Welcome back</h1><p className="mt-3 text-center text-sm text-[hsl(var(--muted-foreground))]">Enter the admin email and password.</p><label className="field-label mt-8">Email address<input type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} className="field-input" /></label><label className="field-label mt-5">Password<input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} className="field-input" /></label>{error && <p role="alert" className="mt-5 rounded-lg bg-[hsl(var(--destructive)/.08)] p-3 text-sm text-[hsl(var(--destructive))]">{error}</p>}<button type="submit" disabled={submitting} className="btn-primary mt-7 w-full">{submitting ? 'Logging in…' : 'Log in'}</button></form></main></div>;
+  return <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]"><SiteNav /><main className="container-rikki flex justify-center py-16 md:py-24"><section className="w-full max-w-md rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-7 md:p-9"><UserRound size={28} strokeWidth={1.5} /><p className="eyebrow mt-7 opacity-55">Rikki Wigs</p><h1 className="mt-3 font-editorial text-4xl">Client Portal</h1><p className="mt-4 text-sm leading-6 text-[hsl(var(--muted-foreground))]">Sign in to see your appointments and receipts. First time here? You can set up your account after continuing.</p><Link href="/client/sign-in" className="mt-8 flex w-full items-center justify-center rounded-full border border-[hsl(var(--primary))] bg-[hsl(var(--primary))] px-5 py-3 text-sm font-semibold !text-[hsl(var(--primary-foreground))] transition-colors hover:bg-black hover:!text-[hsl(var(--primary-foreground))]">Log in</Link></section></main></div>;
 }
 
 function AdminManageRoute() {
-  const [accessState, setAccessState] = useState<'checking' | 'allowed' | 'denied'>('checking');
+  const [accessState, setAccessState] = useState<'checking' | 'allowed' | 'signed-out' | 'client' | 'error'>('checking');
 
   useEffect(() => {
     const controller = new AbortController();
     fetch('/api/admin-session', { signal: controller.signal })
       .then((response) => {
-        setAccessState(response.ok ? 'allowed' : 'denied');
+        setAccessState(response.ok ? 'allowed' : response.status === 401 ? 'signed-out' : response.status === 403 ? 'client' : 'error');
       })
       .catch((error: unknown) => {
         if (!(error instanceof DOMException && error.name === 'AbortError')) {
-          setAccessState('denied');
+          setAccessState('error');
         }
       });
 
@@ -117,7 +89,9 @@ function AdminManageRoute() {
   if (accessState === 'checking') {
     return <div className="site-shell flex min-h-[100dvh] items-center justify-center bg-[hsl(var(--background))]"><div className="text-center"><div className="skeleton mx-auto h-12 w-12 rounded-full" /><p className="mt-4 text-sm text-[hsl(var(--muted-foreground))]">Checking access…</p></div></div>;
   }
-  if (accessState === 'denied') return <Redirect to="/sign-in" />;
+  if (accessState === 'signed-out') return <Redirect to="/client/sign-in" />;
+  if (accessState === 'client') return <Redirect to="/client/account" />;
+  if (accessState === 'error') return <div role="alert" className="container-rikki py-16">Unable to check admin access. Please reload and try again.</div>;
   return <Manage />;
 }
 
@@ -663,7 +637,7 @@ function AppointmentRow({ appointment, onStatus, onDelete, onReschedule, busy }:
 
 function Router() {
   const [location] = useLocation();
-  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/book" component={PublicBook} /><Route path="/login" component={LoginLanding} /><Route path="/client/*?" component={ClientApp} /><Route path="/account"><Redirect to="/client/account" /></Route><Route path="/sign-in/*?" component={SignInPage} /><Route path="/manage" component={AdminManageRoute} /><Route component={NotFound} /></Switch></ErrorBoundary>;
+  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/book" component={PublicBook} /><Route path="/login" component={LoginLanding} /><Route path="/client/*?" component={ClientApp} /><Route path="/account"><Redirect to="/client/account" /></Route><Route path="/sign-in/*?"><Redirect to="/client/sign-in" /></Route><Route path="/manage" component={AdminManageRoute} /><Route component={NotFound} /></Switch></ErrorBoundary>;
 }
 
 function App() {

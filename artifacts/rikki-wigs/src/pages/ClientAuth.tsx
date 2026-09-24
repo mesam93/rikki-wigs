@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ClerkProvider, SignIn, Show, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
@@ -116,16 +116,56 @@ function ClientAccountPage() {
   return (
     <>
       <Show when="signed-in">
-        <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]">
-          <SiteNav isClientAccount />
-          <ClientAccount />
-        </div>
+        <AccountDestination />
       </Show>
       <Show when="signed-out">
         <Redirect to="/sign-in" />
       </Show>
     </>
   );
+}
+
+function AccountDestination() {
+  const [destination, setDestination] = useState<"checking" | "client" | "error">("checking");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/admin-session", { signal: controller.signal, cache: "no-store" })
+      .then((response) => {
+        if (response.ok) {
+          window.location.replace("/manage");
+        } else {
+          setDestination(response.status === 403 ? "client" : "error");
+        }
+      })
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === "AbortError")) setDestination("error");
+      });
+    return () => controller.abort();
+  }, []);
+
+  if (destination === "checking") return <div role="status" className="container-rikki py-16 text-center">Checking your account…</div>;
+  if (destination === "error") return <div role="alert" className="container-rikki py-16 text-center">Unable to check your account. Please reload and try again.</div>;
+  return (
+    <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]">
+      <SiteNav isClientAccount />
+      <ClientAccount />
+    </div>
+  );
+}
+
+function ClientSignOut() {
+  const { signOut } = useClerk();
+  const started = useRef(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    void signOut({ redirectUrl: "/" }).catch(() => setError(true));
+  }, [signOut]);
+
+  return <div className="container-rikki py-16 text-center" role="status">{error ? <p>Could not sign out. Please reload and try again.</p> : "Signing out…"}</div>;
 }
 
 function ClerkQueryClientCacheInvalidator() {
@@ -182,6 +222,7 @@ function ClientRoutes() {
           <Route path="/sign-in/*?" component={SignInPage} />
           <Route path="/sign-up/*?" component={SignUpPage} />
           <Route path="/account" component={ClientAccountPage} />
+          <Route path="/sign-out" component={ClientSignOut} />
         </Switch>
       </ClerkProvider>
   );

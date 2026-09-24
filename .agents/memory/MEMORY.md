@@ -10,3 +10,4 @@
 - [Exact-minute booking availability](exact-minute-booking.md) — represent arbitrary valid start minutes as compact ranges; keep a small suggested-time list for browsing.
 - [Order tariff scope](order-tariff-scope.md) — the flat $25 post-tax tariff applies to newly created orders, not older orders or issued receipt snapshots.
 - [Clerk CAPTCHA testing](clerk-captcha-testing.md) — an automated browser blocked by the human challenge cannot establish whether real sign-up succeeds.
+- [Unified portal admin policy](unified-portal-admin-policy.md) — keep owner access on a verified Google-linked identity, not a hidden password fallback.

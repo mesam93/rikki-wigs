@@ -1,18 +1,10 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Menu } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
 import { useClerk } from '@clerk/react';
 
 function AdminLogoutButton() {
-  const [, setLocation] = useLocation();
-  const queryClient = useQueryClient();
-  const logout = async () => {
-    await fetch('/api/admin-logout', { method: 'POST' });
-    queryClient.clear();
-    setLocation('~/');
-  };
-  return <button type="button" onClick={() => void logout()} className="rounded-full border border-white/35 px-4 py-2 text-sm font-semibold text-white hover:bg-white hover:text-black">Log out</button>;
+  return <a href="/client/sign-out" className="rounded-full border border-white/35 px-4 py-2 text-sm font-semibold text-white hover:bg-white hover:text-black">Log out</a>;
 }
 
 function ClientLogoutButton() {
