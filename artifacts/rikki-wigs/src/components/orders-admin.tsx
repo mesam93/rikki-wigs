@@ -30,7 +30,10 @@ function formatMoney(cents: number | null) {
 
 const MoneyInput = ({ valueCents, onChange, label, id }: { valueCents: number | null, onChange: (cents: number | null) => void, label: string, id: string }) => {
   const [val, setVal] = useState(valueCents === null ? '' : (valueCents / 100).toFixed(2));
-  React.useEffect(() => { setVal(valueCents === null ? '' : (valueCents / 100).toFixed(2)); }, [valueCents]);
+  const [editing, setEditing] = useState(false);
+  React.useEffect(() => {
+    if (!editing) setVal(valueCents === null ? '' : (valueCents / 100).toFixed(2));
+  }, [valueCents, editing]);
   return (
     <label className="field-label" htmlFor={id}>
       {label}
@@ -43,10 +46,17 @@ const MoneyInput = ({ valueCents, onChange, label, id }: { valueCents: number | 
           min="0"
           className="field-input !pl-7"
           value={val}
-          onChange={(e) => setVal(e.target.value)}
+          onFocus={() => setEditing(true)}
+          onChange={(e) => {
+            const entered = e.target.value;
+            setVal(entered);
+            const parsed = Number(entered);
+            onChange(entered !== '' && Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed * 100) : null);
+          }}
           onBlur={() => {
-            const parsed = parseFloat(val);
-            if (!isNaN(parsed)) {
+            setEditing(false);
+            const parsed = Number(val);
+            if (val !== '' && Number.isFinite(parsed) && parsed >= 0) {
               const cents = Math.round(parsed * 100);
               onChange(cents);
               setVal((cents / 100).toFixed(2));
@@ -94,7 +104,12 @@ const PercentInput = ({ valueMilli, onChange, label, id }: { valueMilli: number,
   );
 };
 
-const defaultOrder: WigOrderInput = {
+type OrderFormValues = Omit<WigOrderInput, 'priceCents' | 'amountPaidCents'> & {
+  priceCents: number | null;
+  amountPaidCents: number | null;
+};
+
+const defaultOrder: OrderFormValues = {
   kind: 'custom',
   itemCode: '',
   orderDate: new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().split('T')[0],
@@ -111,14 +126,9 @@ const defaultOrder: WigOrderInput = {
   density: '',
   color: '',
   highlights: '',
-  priceCents: 0,
+  priceCents: null,
   taxRateMilliPercent: 6625,
-  amountPaidCents: 0
-};
-
-type OrderFormValues = Omit<WigOrderInput, 'priceCents' | 'amountPaidCents'> & {
-  priceCents: number | null;
-  amountPaidCents: number | null;
+  amountPaidCents: null
 };
 
 function WigOrderForm({ initial, onSave, onCancel, busy }: { initial?: WigOrder; onSave: (data: WigOrderInput) => void; onCancel: () => void; busy: boolean }) {
