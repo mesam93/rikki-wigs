@@ -11,3 +11,4 @@
 - [Order tariff scope](order-tariff-scope.md) — the flat $25 post-tax tariff applies to newly created orders, not older orders or issued receipt snapshots.
 - [Clerk CAPTCHA testing](clerk-captcha-testing.md) — an automated browser blocked by the human challenge cannot establish whether real sign-up succeeds.
 - [Unified portal admin policy](unified-portal-admin-policy.md) — keep owner access on a verified Google-linked identity, not a hidden password fallback.
+- [GitHub connector authentication](github-connector-auth.md) — connector access does not repair terminal Git credentials; use authenticated API access without extracting tokens.
