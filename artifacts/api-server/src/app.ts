@@ -6,6 +6,8 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
+import { fileURLToPath } from "node:url";
+import { mountFrontend } from "./lib/serve-frontend";
 import {
   CLERK_PROXY_PATH,
   clerkProxyMiddleware,
@@ -54,5 +56,10 @@ if (!sessionSecret) {
 app.use(cookieParser(sessionSecret));
 
 app.use("/api", router);
+
+// Opt-in for a single Railway service. Replit keeps its separate web/API services.
+if (process.env.SERVE_FRONTEND === "true") {
+  mountFrontend(app, fileURLToPath(new URL("./public/", import.meta.url)));
+}
 
 export default app;

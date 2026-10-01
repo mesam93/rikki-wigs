@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
-import { copyFile, mkdir, rm } from "node:fs/promises";
+import { access, copyFile, cp, mkdir, rm } from "node:fs/promises";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
@@ -131,6 +131,11 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     path.resolve(artifactDir, "assets/rikki-logo-official.png"),
     path.resolve(distDir, "assets/rikki-logo-official.png"),
   );
+  if (process.argv.includes("--with-frontend")) {
+    const frontendDir = path.resolve(artifactDir, "../rikki-wigs/dist/public");
+    await access(path.join(frontendDir, "index.html"));
+    await cp(frontendDir, path.join(distDir, "public"), { recursive: true });
+  }
 }
 
 buildAll().catch((err) => {

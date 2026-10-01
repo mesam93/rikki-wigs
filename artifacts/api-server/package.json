@@ -11,6 +11,7 @@
     "import:wig-orders": "esbuild src/scripts/import-wig-orders-once.ts --bundle --platform=node --format=cjs --outfile=dist/import-wig-orders-once.cjs && node dist/import-wig-orders-once.cjs",
     "test:email": "esbuild src/email/appointment-emails.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/rikki-appointment-emails.test.cjs && node --test /tmp/rikki-appointment-emails.test.cjs",
     "test:receipt": "node ./build.mjs --receipt-test && node --test ./dist/wig-receipt-pdf.test.mjs",
+    "test:frontend": "esbuild src/lib/serve-frontend.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/rikki-serve-frontend.test.cjs && node --test /tmp/rikki-serve-frontend.test.cjs",
     "test:client": "esbuild src/lib/client-identity.test.ts --bundle --platform=node --format=cjs --outfile=dist/client-identity.test.cjs && node --test dist/client-identity.test.cjs"
   },
   "dependencies": {
