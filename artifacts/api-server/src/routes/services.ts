@@ -109,7 +109,7 @@ router.post("/admin/services/upload-url", requireAdmin, async (req, res) => {
     res.status(400).json({ error: "Choose an image file" });
     return;
   }
-  res.json(RequestServiceUploadUrlResponse.parse(await createServiceUploadUrl()));
+  res.json(RequestServiceUploadUrlResponse.parse(await createServiceUploadUrl(parsed.data.contentType)));
 });
 
 router.get("/services/images/:id", async (req, res) => {

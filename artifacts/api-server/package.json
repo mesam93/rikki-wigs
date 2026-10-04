@@ -12,9 +12,12 @@
     "test:email": "esbuild src/email/appointment-emails.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/rikki-appointment-emails.test.cjs && node --test /tmp/rikki-appointment-emails.test.cjs",
     "test:receipt": "node ./build.mjs --receipt-test && node --test ./dist/wig-receipt-pdf.test.mjs",
     "test:frontend": "esbuild src/lib/serve-frontend.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/rikki-serve-frontend.test.cjs && node --test /tmp/rikki-serve-frontend.test.cjs",
-    "test:client": "esbuild src/lib/client-identity.test.ts --bundle --platform=node --format=cjs --outfile=dist/client-identity.test.cjs && node --test dist/client-identity.test.cjs"
+    "test:client": "esbuild src/lib/client-identity.test.ts --bundle --platform=node --format=cjs --outfile=dist/client-identity.test.cjs && node --test dist/client-identity.test.cjs",
+    "test:storage": "esbuild src/lib/galleryStorage.test.ts --bundle --packages=external --platform=node --format=cjs --outfile=dist/gallery-storage.test.cjs && node --test dist/gallery-storage.test.cjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1146.0",
+    "@aws-sdk/s3-request-presigner": "^3.1146.0",
     "@clerk/express": "^2.1.69",
     "@clerk/shared": "^4.33.0",
     "@google-cloud/storage": "^8.1.0",

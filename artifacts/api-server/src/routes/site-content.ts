@@ -61,7 +61,7 @@ router.get("/admin/gallery", requireAdmin, async (_req, res) => {
 router.post("/admin/gallery/upload-url", requireAdmin, async (req, res) => {
   const contentType = typeof req.body?.contentType === "string" ? req.body.contentType : "";
   if (!contentType.startsWith("image/")) { res.status(400).json({ error: "Choose an image file" }); return; }
-  res.json(await createGalleryUploadUrl());
+  res.json(await createGalleryUploadUrl(contentType));
 });
 router.post("/admin/gallery", requireAdmin, async (req, res) => {
   const objectPath = typeof req.body?.objectPath === "string" ? req.body.objectPath : "";
