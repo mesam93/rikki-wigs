@@ -9,6 +9,8 @@ import {
 } from "@workspace/db";
 import { logger } from "./logger";
 import { eventForAppointment, eventIdForAppointment } from "./calendar-time";
+import { calendarConfig } from "./calendar-config";
+import { directCalendarRequest } from "./direct-calendar";
 
 const timezone = "America/New_York";
 const batchSize = 20;
@@ -16,6 +18,12 @@ const connectors = new ReplitConnectors();
 type Calendar = { id: string; summary: string; primary?: boolean; accessRole: string };
 
 async function calendarRequest(path: string, init?: { method?: string; body?: string }) {
+  const config = calendarConfig();
+  if (!config.transport) throw new Error(config.disabledReason ?? "Invalid Calendar transport");
+  if (init?.method && init.method !== "GET" && !config.enabled) {
+    throw new Error(config.disabledReason ?? "Calendar synchronization is disabled");
+  }
+  if (config.transport === "direct") return directCalendarRequest(path, init);
   const response = await connectors.proxy("google-calendar", `/calendar/v3${path}`, {
     ...init,
     headers: init?.body ? { "Content-Type": "application/json" } : undefined,
@@ -71,6 +79,8 @@ export function retryDelayMs(attempts: number) {
 // A fixed Google event ID makes creation safe even if Google accepts the request but
 // the response or subsequent database write fails.
 export async function syncAppointment(appointmentId: number) {
+  const config = calendarConfig();
+  if (!config.enabled) return;
   const client = await pool.connect();
   try {
     await client.query("SELECT pg_advisory_lock($1, $2)", [57311, appointmentId]);
@@ -85,7 +95,7 @@ export async function syncAppointment(appointmentId: number) {
     if (!record) {
       [record] = await db.insert(appointmentCalendarSyncTable).values({
         appointmentId, calendarId: destination,
-        eventId: eventIdForAppointment(appointmentId, process.env.REPLIT_DEPLOYMENT === "1"),
+        eventId: eventIdForAppointment(appointmentId, config.namespace === "railway" ? "railway" : config.namespace === "published"),
       }).onConflictDoNothing().returning();
       if (!record) [record] = await db.select().from(appointmentCalendarSyncTable)
         .where(eq(appointmentCalendarSyncTable.appointmentId, appointmentId));
@@ -158,6 +168,7 @@ export async function trySyncAppointment(appointmentId: number) {
 }
 
 export async function calendarSyncHealth() {
+  const config = calendarConfig();
   const destination = await selectedCalendar();
   const rows = await db.select({
     sync: appointmentCalendarSyncTable,
@@ -178,14 +189,14 @@ export async function calendarSyncHealth() {
   try {
     const calendars = await writableCalendars();
     return {
-      connected: true, calendarId: destination, calendars, failed, queued,
+      connected: true, enabled: config.enabled, disabledReason: config.disabledReason, calendarId: destination, calendars, failed, queued,
       unsynced: unsynced.length,
       error: calendars.some((item) => item.id === destination || (destination === "primary" && item.primary))
         ? null : "Selected calendar is no longer writable.",
     };
   } catch (error) {
     return {
-      connected: false, calendarId: destination, calendars: [], failed, queued,
+      connected: false, enabled: config.enabled, disabledReason: config.disabledReason, calendarId: destination, calendars: [], failed, queued,
       unsynced: unsynced.length, error: error instanceof Error ? error.message : "Calendar connection unavailable",
     };
   }
@@ -222,6 +233,7 @@ async function reconciliationIds(force: boolean) {
 }
 
 export async function retryCalendarSync(force = true) {
+  if (!calendarConfig().enabled) return { processed: 0, failed: 0 };
   const ids = await reconciliationIds(force);
   let failed = 0;
   for (const id of ids) {
@@ -232,6 +244,7 @@ export async function retryCalendarSync(force = true) {
 
 // One worker per database, including when multiple API processes are running.
 export async function reconcileCalendarInBackground() {
+  if (!calendarConfig().enabled) return;
   const client = await pool.connect();
   let locked = false;
   try {

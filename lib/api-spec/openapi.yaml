@@ -367,6 +367,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CalendarSyncResult"
+        "409":
+          description: Calendar synchronization is disabled
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                properties:
+                  error: { type: string }
   /availability:
     get:
       operationId: getAvailability
@@ -819,9 +828,11 @@ components:
         accessRole: { type: string }
     CalendarSyncStatus:
       type: object
-      required: [connected, calendarId, calendars, failed, queued, unsynced, error]
+      required: [connected, enabled, disabledReason, calendarId, calendars, failed, queued, unsynced, error]
       properties:
         connected: { type: boolean }
+        enabled: { type: boolean }
+        disabledReason: { type: ["string", "null"] }
         calendarId: { type: string }
         calendars:
           type: array

@@ -539,6 +539,8 @@ export const GetEmailStatusResponse = zod.object({
  */
 export const GetCalendarSyncStatusResponse = zod.object({
   "connected": zod.boolean(),
+  "enabled": zod.boolean(),
+  "disabledReason": zod.string().nullable(),
   "calendarId": zod.string(),
   "calendars": zod.array(zod.object({
   "id": zod.string(),
@@ -565,6 +567,8 @@ export const SelectCalendarSyncDestinationBody = zod.object({
 
 export const SelectCalendarSyncDestinationResponse = zod.object({
   "connected": zod.boolean(),
+  "enabled": zod.boolean(),
+  "disabledReason": zod.string().nullable(),
   "calendarId": zod.string(),
   "calendars": zod.array(zod.object({
   "id": zod.string(),

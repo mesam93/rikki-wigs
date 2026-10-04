@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { SelectCalendarSyncDestinationBody } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/requireAdmin";
 import { calendarSyncHealth, retryCalendarSync, setCalendar } from "../lib/calendar-sync";
+import { calendarConfig } from "../lib/calendar-config";
 
 const router: IRouter = Router();
 router.use("/calendar-sync", requireAdmin);
@@ -25,6 +26,11 @@ router.put("/calendar-sync", async (req, res): Promise<void> => {
 });
 
 router.post("/calendar-sync/retry", async (req, res): Promise<void> => {
+  const config = calendarConfig();
+  if (!config.enabled) {
+    res.status(409).json({ error: config.disabledReason });
+    return;
+  }
   const result = await retryCalendarSync();
   req.log.info(result, "Calendar sync retry completed");
   res.json(result);

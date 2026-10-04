@@ -168,6 +168,9 @@ export interface WritableCalendar {
 
 export interface CalendarSyncStatus {
   connected: boolean;
+  enabled: boolean;
+  /** @nullable */
+  disabledReason: string | null;
   calendarId: string;
   calendars: WritableCalendar[];
   failed: number;
@@ -371,6 +374,10 @@ export interface GalleryUploadRequest {
 
 export type ListAppointmentsParams = {
 status?: AppointmentStatus;
+};
+
+export type RetryCalendarSync409 = {
+  error: string;
 };
 
 export type GetAvailabilityParams = {

@@ -18,6 +18,7 @@ import {
 import type { Appointment, AvailabilityDay } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Calendar } from '@/components/ui/calendar';
+import { CalendarSyncStatus } from '@/components/calendar-sync-status';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -472,6 +473,7 @@ function ScheduleDashboard() {
         </aside>
 
         <div className="flex flex-col gap-6">
+          <CalendarSyncStatus />
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
               <h2 className="font-editorial text-3xl">Appointments</h2>

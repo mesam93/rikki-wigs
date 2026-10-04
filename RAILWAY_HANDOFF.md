@@ -47,7 +47,7 @@ This step does not migrate storage or authentication, configure email/calendar,
 alter the database, or transfer account ownership. Uploaded images and connected
 services remain separate handoff steps.
 
-**Caution:** The existing API starts calendar reconciliation on boot. Do not run
+**Caution:** The API starts calendar reconciliation on boot when enabled. Do not run
 a second copy against a live database/calendar just to test static serving.
 Use the isolated `test:frontend` checks for routing verification.
 
@@ -281,6 +281,12 @@ email tests and the API server type check passed. HTTP requests in these tests
 use injected fake clients and credentials; they do not prove live Gmail
 authorization or delivery. No real emails or database writes were performed.
 
+The prepared support deployed successfully to Railway. Runtime startup was
+clean, `/api/healthz` returned 200, and anonymous `/api/email-status` access
+remained blocked with 401. No email settings or mailbox credentials were added;
+Railway still defaults to disabled delivery. The public development homepage
+also loaded cleanly after the server restart.
+
 The transport refreshes and briefly caches Google access tokens, shares
 concurrent refreshes, reports revoked authorization without exposing secrets,
 and never retries ambiguous message sends. No new dependencies were needed.
@@ -332,3 +338,130 @@ Railway documentation restricts outbound SMTP to Pro plans and above. Do not
 assume Gmail SMTP is available on the current plan or require a plan change
 without the owner's approval. The Google sign-in branding configuration and
 Google Calendar handoff remain separate from mailbox authorization.
+
+## Step 7 — Google Calendar handoff (not complete)
+
+The initial owner-approved audit was read-only. No app code or settings were
+changed by that audit, no server was restarted, and no calendar event was created,
+updated, or deleted. It used metadata inspection, existing runtime logs, public health
+and anonymous access checks, pure tests, and a read-only calendar-list request.
+
+### Initial audit findings, before preparation
+
+- The existing Replit Calendar connection answered successfully and has one
+  writable primary calendar. This verifies the Replit connection, not Railway
+  authorization or the current Railway-selected calendar.
+- Railway still uses the Replit Connectors Calendar transport. Its app and
+  shared configuration have no Replit connector runtime identity settings.
+  There is no prepared direct Calendar transport equivalent to the new Gmail
+  adapter. Railway calendar authorization and real sync remain unverified.
+- Calendar reconciliation runs automatically on boot and every minute; there
+  is currently no explicit calendar delivery-off switch. Adding a working
+  calendar connection could immediately start processing stored appointments.
+- Event creation, updates/rescheduling, cancellation and deleted-appointment
+  removal are supported in the code. New historical appointments are excluded;
+  already linked events retain their stored IDs and may still be updated.
+- Fixed event IDs and PostgreSQL advisory locks protect retries and workers
+  sharing one database. They do not coordinate separate Replit and Railway
+  databases against the same Google Calendar.
+- The migration preserved seven calendar sync records and their Google event
+  links. Both production copies could therefore modify the same existing
+  events if both are enabled. Changing only future event ID generation would
+  not isolate these copied links.
+- New IDs currently distinguish only development from published Replit via
+  `REPLIT_DEPLOYMENT`. That setting is absent from Railway's configured
+  variables, and the Railway start command does not set it. Railway would use
+  the development ID namespace for newly linked appointments. Simply setting
+  the marker to published would instead reuse Replit production's namespace;
+  independent new bookings could collide there too.
+- All three pure calendar tests passed: stable development/published IDs,
+  New York daylight-saving offsets, and service duration/privacy in payloads.
+  These tests do not cover a separate Railway namespace or live delivery.
+- Railway health returned 200 and anonymous calendar status access returned
+  401. The sampled deployment logs contained no calendar entries; absence of
+  logged failures is not proof of successful syncing.
+
+### Approved disabled preparation
+
+The owner approved preparing Railway support while keeping its syncing disabled.
+A direct Google Calendar API transport is implemented, with separate Calendar
+OAuth credentials, shared refresh caching, fixed HTTPS endpoints, timeouts,
+sanitized errors, and no automatic transport write retries. Replit retains its
+connector transport and existing sync behavior by default.
+
+The gate stops boot/background reconciliation, booking-triggered synchronization,
+and retries before worker database access or event writes. The protected manual
+retry endpoint rejects disabled syncing with 409. Read-only status/calendar
+listing remains available for checking authorization without enabling writes.
+The owner Schedule panel displays enabled/disabled state and connection errors;
+its retry button is disabled when syncing is off or the connection is unavailable.
+No customer sign-in scopes, destination settings, or stored event IDs are changed.
+
+Fourteen Calendar tests passed, including fully mocked database/HTTP worker tests
+for zero operations while disabled, recovery after an uncertain creation response,
+preservation of migrated links, rescheduling, and idempotent cancellation/removal.
+The eighteen email tests, workspace type checks, and combined Railway build also
+passed. Development API startup, health, and unsigned Calendar rejection passed.
+All worker test records and Google responses were synthetic; no live test events,
+customer records, or emails were created or modified.
+
+The real status component was checked in a browser-only harness with synthetic
+responses: disabled state and the blocked retry control passed. A connected
+fixture rendered correctly, but its retry mock did not intercept the request;
+the real protected endpoint rejected it with 401. Live owner sign-in and
+successful retry/result feedback therefore remain unverified. No authentication
+bypass was added.
+
+The following non-secret settings were saved on Railway's app service with
+`skipDeploys=true`, without changing credentials or deploying:
+
+| Setting | Purpose |
+| --- | --- |
+| `CALENDAR_TRANSPORT=direct` | Select the prepared independent Google API connection. |
+| `CALENDAR_SYNC_ENABLED=false` | Keep event synchronization explicitly off. |
+| `CALENDAR_EVENT_NAMESPACE=railway` | Give new bookings a third stable event-ID namespace. |
+
+On October 4, 2026, the owner approved publishing these safeguards to Railway
+with syncing still disabled. Release verification is pending until the new
+deployment succeeds. Startup logs report only the non-secret enabled state,
+transport, and event namespace so the actual running configuration can be checked.
+Saving settings without deploying does not stop an older worker. Verify the
+deployed guard before authorizing any Railway Calendar connection; do not
+interpret saved variables alone as proof that the live build honors the switch.
+
+Direct mode also defaults to disabled if its flag is absent; invalid flags,
+transport/namespace settings, or incomplete authorization fail closed. It refuses
+to reuse either Replit namespace. Existing linked IDs remain unchanged.
+
+### Pending secure authorization and production-writer cutover
+
+Only after deploying the guard, securely add `CALENDAR_CLIENT_ID`,
+`CALENDAR_CLIENT_SECRET`, and `CALENDAR_REFRESH_TOKEN` to Railway, never chat or
+Git. Authorize the owner's intended Calendar separately from Gmail and customer
+Google/Clerk sign-in, with offline access and the Calendar event and calendar-list
+permissions required by this adapter. Do not extract Replit connector credentials,
+add Calendar scopes to customer sign-in, or reuse Gmail variables implicitly.
+Verify Google's current consent/publishing rules and refresh-token lifetime.
+
+Preserve Replit's existing connection and stored Google event IDs. Establish one
+active production writer for migrated events before enabling Railway syncing:
+separate database locks and distinct new IDs do not isolate copied links. Verify
+the former production writer actually honors its disable switch; an older build
+must be updated or stopped using an owner-approved method. Do not revoke a shared
+connector merely to stop production, since that could break Replit development.
+Do not replay past unlinked appointments or select another destination automatically.
+
+- [x] Prepare direct Calendar support and an explicit disabled reconciliation gate.
+- [x] Verify distinct new-booking IDs across development, Replit production,
+  and Railway, while preserving existing stored event links.
+- [ ] Publish the prepared safeguards to Railway with syncing disabled and verify
+  the deployed build, including protected owner status.
+- [ ] Confirm the intended destination and authorize the owner's Calendar
+  connection securely, separate from customer sign-in.
+- [ ] Approve the production-writer cutover plan before enabling automatic sync.
+- [ ] With explicit approval, verify a synthetic event's creation, update,
+  cancellation/removal and duplicate protection without using customer bookings.
+
+The protected Railway status and current database selection/backlog were not
+read through an authenticated owner session. Do not treat the original
+migration counts as current operational counts or declare Calendar ready.

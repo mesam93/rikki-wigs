@@ -40,6 +40,7 @@ import type {
   ListAppointmentsParams,
   RequestGalleryUploadUrl200,
   RequestServiceUploadUrl200,
+  RetryCalendarSync409,
   Service,
   ServiceInput,
   ServiceUploadRequest,
@@ -1725,7 +1726,7 @@ export const retryCalendarSync = async ( options?: Parameters<typeof customFetch
 
 export const getRetryCalendarSyncMutationKey = () => ['retryCalendarSync'] as const;
 
-export const getRetryCalendarSyncMutationOptions = <TError = ErrorType<unknown>,
+export const getRetryCalendarSyncMutationOptions = <TError = ErrorType<RetryCalendarSync409>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryCalendarSync>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof retryCalendarSync>>, TError,void, TContext> => {
 
@@ -1754,13 +1755,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type RetryCalendarSyncMutationResult = NonNullable<Awaited<ReturnType<typeof retryCalendarSync>>>
 
-    export type RetryCalendarSyncMutationError = ErrorType<unknown>
+    export type RetryCalendarSyncMutationError = ErrorType<RetryCalendarSync409>
 
 
     /**
  * @summary Backfill upcoming appointments and retry failed syncs
  */
-export const useRetryCalendarSync = <TError = ErrorType<unknown>,
+export const useRetryCalendarSync = <TError = ErrorType<RetryCalendarSync409>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryCalendarSync>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof retryCalendarSync>>,

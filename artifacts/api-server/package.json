@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "import:wig-orders": "esbuild src/scripts/import-wig-orders-once.ts --bundle --platform=node --format=cjs --outfile=dist/import-wig-orders-once.cjs && node dist/import-wig-orders-once.cjs",
     "test:email": "esbuild src/email/appointment-emails.test.ts src/email/direct-gmail.test.ts --bundle --platform=node --format=cjs --outdir=/tmp/rikki-email-tests --out-extension:.js=.cjs && node --test /tmp/rikki-email-tests/appointment-emails.test.cjs /tmp/rikki-email-tests/direct-gmail.test.cjs",
+    "test:calendar": "esbuild src/lib/calendar-time.test.ts src/lib/calendar-config.test.ts src/lib/direct-calendar.test.ts src/lib/calendar-safety.test.ts --bundle --platform=node --format=cjs --outdir=/tmp/rikki-calendar-tests --out-extension:.js=.cjs && NODE_ENV=production node --test /tmp/rikki-calendar-tests/calendar-time.test.cjs /tmp/rikki-calendar-tests/calendar-config.test.cjs /tmp/rikki-calendar-tests/direct-calendar.test.cjs /tmp/rikki-calendar-tests/calendar-safety.test.cjs",
     "test:receipt": "node ./build.mjs --receipt-test && node --test ./dist/wig-receipt-pdf.test.mjs",
     "test:frontend": "esbuild src/lib/serve-frontend.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/rikki-serve-frontend.test.cjs && node --test /tmp/rikki-serve-frontend.test.cjs",
     "test:client": "esbuild src/lib/client-identity.test.ts --bundle --platform=node --format=cjs --outfile=dist/client-identity.test.cjs && node --test dist/client-identity.test.cjs",

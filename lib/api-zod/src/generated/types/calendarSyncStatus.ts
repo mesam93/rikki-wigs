@@ -9,6 +9,9 @@ import type { WritableCalendar } from './writableCalendar';
 
 export interface CalendarSyncStatus {
   connected: boolean;
+  enabled: boolean;
+  /** @nullable */
+  disabledReason: string | null;
   calendarId: string;
   calendars: WritableCalendar[];
   failed: number;

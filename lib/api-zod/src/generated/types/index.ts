@@ -33,6 +33,7 @@ export * from './healthStatus';
 export * from './listAppointmentsParams';
 export * from './requestGalleryUploadUrl200';
 export * from './requestServiceUploadUrl200';
+export * from './retryCalendarSync409';
 export * from './service';
 export * from './serviceInput';
 export * from './serviceUploadRequest';
