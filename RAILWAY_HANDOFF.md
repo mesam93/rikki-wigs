@@ -207,3 +207,128 @@ pnpm --filter @workspace/api-server run test:storage
 
 Authentication migration, appointment email/Google Calendar handoff, custom
 domains, and ownership transfer remain separate steps.
+
+## Step 5 — authentication handoff (not complete)
+
+### Independent access checks
+
+Read-only Railway checks confirmed that unsigned requests to the admin session,
+orders, appointments, services, gallery, testimonials, scheduling, calendar
+status, client history, and receipt endpoints return 401. A forged session cookie
+combined with a supplied email was also rejected. The public homepage, sign-in,
+sign-up, and health routes remain available.
+
+Code inspection confirms that client ownership comes from the authenticated
+user's verified primary email, not a supplied email or client ID. Appointments
+are scoped to that email, and receipt access uses the email in the issued receipt
+snapshot. These are code-level checks, not completed signed-in browser tests.
+
+**Owner-email configuration:** The owner added and applied `ADMIN_EMAIL` directly
+in Railway. Its presence in the app's variables was confirmed without reading or
+displaying the value. The previous missing-setting blocker is resolved at the
+configuration level; the email's correctness and authenticated owner access
+still require the signed-in checks below.
+
+The deployment applying this setting succeeded. The new server's health check
+passed, and unsigned admin-session requests remained blocked with 401.
+
+- [x] Set `ADMIN_EMAIL` directly in Railway's app variables to the owner's Google
+  account email, without sharing it in chat or committing it.
+- [ ] After Railway deploys the setting, verify owner authorization and ordinary
+  client rejection through the real sign-in flow.
+
+No access policy, authentication credentials, or customer records were changed
+by this audit.
+
+### Deferred: RIKKI WIGS branding on Google sign-in
+
+The owner approved deferring this configuration until access to the Auth settings
+is available. An existing Google sign-in app is available; do not create another
+by default.
+
+- [ ] Confirm Google app branding is **RIKKI WIGS**.
+- [ ] Configure custom Google credentials in **Auth → Configure → SSO providers
+  → Production → Google**. Enter credentials directly in provider settings,
+  never in chat or Git.
+- [ ] Add the provider checklist's exact callback URLs and origins to the existing
+  Google OAuth client without removing existing authorized URLs.
+- [ ] Verify Railway uses the intended production authentication configuration.
+- [ ] Verify the actual Google account-selection/consent window shows RIKKI WIGS
+  for both admins and clients, and verify their respective access after sign-in.
+
+Independent Railway configuration checks can continue while this is pending.
+Do not declare authentication complete or the Railway handoff ready for final
+cutover until these checks pass. Preserve Replit development, existing accounts,
+and the shared Google sign-in flow with server-side owner authorization.
+
+## Step 6 — appointment email handoff (not complete)
+
+Read-only inspection found no email delivery or SMTP settings in the Railway
+app or its shared environment variables. Without `EMAIL_DELIVERY_MODE`, the
+current app disables email delivery. All seven email rendering and notification
+logic tests passed; this does not establish live delivery. No test messages were
+sent and no appointments or notification records were created by the audit.
+
+The existing Gmail transport uses Replit Connectors and its Replit runtime
+authentication. Enabling Gmail mode alone on the current Railway service does
+not provide that authentication. Preserve the owner's existing Gmail sender
+unless they approve a change; a connected Resend account does not establish a
+verified sender domain.
+
+Prepared with the owner's approval: a direct Gmail API transport for Railway,
+while retaining Replit's existing connector transport as the default. All 18
+email tests and the API server type check passed. HTTP requests in these tests
+use injected fake clients and credentials; they do not prove live Gmail
+authorization or delivery. No real emails or database writes were performed.
+
+The transport refreshes and briefly caches Google access tokens, shares
+concurrent refreshes, reports revoked authorization without exposing secrets,
+and never retries ambiguous message sends. No new dependencies were needed.
+The notification scope is unchanged: request receipts, confirmations, and owner
+booking alerts. Cancellation, rescheduling, and completion emails remain off
+in Gmail mode.
+
+### Pending secure authorization and activation
+
+Keep Railway `EMAIL_DELIVERY_MODE` absent or explicitly `disabled` until the
+owner approves authorization and an isolated delivery test. Do not copy
+Replit identity tokens or extract credentials from the connected integration.
+Replit's environment settings do not need to change.
+
+The following settings belong only in Railway's app variables:
+
+| Setting | Purpose |
+| --- | --- |
+| `GMAIL_TRANSPORT=direct` | Select the prepared direct Gmail API transport. |
+| `GMAIL_CLIENT_ID` | Owner-controlled Google OAuth client for mailbox authorization. |
+| `GMAIL_CLIENT_SECRET` | Private OAuth client credential; enter directly in Railway, never chat or Git. |
+| `GMAIL_REFRESH_TOKEN` | Offline authorization for the existing sender mailbox; enter directly in Railway, never chat or Git. |
+| `EMAIL_FROM` | The same existing authorized Gmail sender, optionally with the Rikki Wigs display name. |
+| `EMAIL_REPLY_TO` | Optional reply-to address; preserve the intended existing address. |
+| `EMAIL_TIMEZONE=America/New_York` | Preserve appointment email dates in the business timezone. |
+| `EMAIL_DELIVERY_MODE=gmail` | Activation switch, only after approval to send and test. |
+
+Authorize only the owner's sender mailbox with the Gmail sending permission
+(`https://www.googleapis.com/auth/gmail.send`) and offline access. This is not
+customer sign-in: do not add Gmail permissions to Clerk or customer Google
+login. Preserve existing Google OAuth clients and callback URLs. Check Google's
+current consent/publishing rules and refresh-token lifetime before cutover;
+a temporary testing grant is not a verified durable production connection.
+
+- [x] Prepare direct Gmail support while preserving Replit delivery behavior.
+- [x] Verify disabled mode, notification scope, token refresh, concurrency,
+  sanitized failures, and no send retries using mocked requests.
+- [ ] Authorize the existing sender mailbox and add credentials securely.
+- [ ] With explicit approval, verify an isolated email to an approved recipient,
+  including its sender address, then verify customer receipts and owner alerts.
+- [ ] Confirm the protected email-status page and real delivery after activation.
+
+The admin status reports configuration presence, not proof that Google has
+accepted the credentials. Never claim delivery works from that status alone.
+Do not automatically replay historical or disabled notification records when
+enabling sending.
+
+Railway documentation restricts outbound SMTP to Pro plans and above. Do not
+assume Gmail SMTP is available on the current plan or require a plan change
+without the owner's approval. The Google sign-in branding configuration and
+Google Calendar handoff remain separate from mailbox authorization.

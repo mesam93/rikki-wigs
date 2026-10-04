@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import nodemailer from "nodemailer";
 import { ReplitConnectors } from "@replit/connectors-sdk";
+import { directGmailConfigured, gmailTransport, sendDirectGmail } from "./direct-gmail";
 import {
   appointmentEmailNotificationsTable,
   db,
@@ -98,12 +99,23 @@ export function getEmailDeliveryStatus(): EmailDeliveryStatus {
     };
   }
   if (config.mode === "gmail") {
+    const transport = gmailTransport();
+    if (!transport) {
+      return { mode: config.mode, configured: false, label: "GMAIL_TRANSPORT must be replit or direct" };
+    }
+    if (transport === "direct" && !directGmailConfigured()) {
+      return {
+        mode: config.mode,
+        configured: false,
+        label: "Direct Gmail needs mailbox authorization: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, and GMAIL_REFRESH_TOKEN",
+      };
+    }
     const configured = Boolean(process.env.EMAIL_FROM?.trim());
     return {
       mode: config.mode,
       configured,
       label: configured
-        ? "Gmail is selected for request receipts, confirmations, and owner alerts"
+        ? `${transport === "direct" ? "Direct Gmail" : "Gmail"} is selected for request receipts, confirmations, and owner alerts`
         : "Gmail needs EMAIL_FROM set to the connected account address",
     };
   }
@@ -363,10 +375,14 @@ export function buildGmailRaw(from: string, message: EmailMessage, replyTo?: str
 
 async function sendWithGmail(config: EmailConfig, message: EmailMessage) {
   if (!process.env.EMAIL_FROM?.trim()) throw new Error("Gmail needs EMAIL_FROM set to the connected account address");
+  const transport = gmailTransport();
+  if (!transport) throw new Error("GMAIL_TRANSPORT must be replit or direct");
+  const raw = buildGmailRaw(config.from, message, config.replyTo);
+  if (transport === "direct") return sendDirectGmail(raw);
   const response = await new ReplitConnectors().proxy("google-mail", "/gmail/v1/users/me/messages/send", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ raw: buildGmailRaw(config.from, message, config.replyTo) }),
+    body: JSON.stringify({ raw }),
   });
   if (!response.ok) {
     const error = await response.json().catch(() => null) as { error?: { message?: string }; message?: string } | null;

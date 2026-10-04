@@ -131,4 +131,43 @@ test("emails clients when they request a booking and still sends the later confi
   assert.equal(canSendNotification("owner_new_appointment", "gmail"), true);
   assert.equal(canSendNotification("confirmed", "gmail"), true);
   assert.equal(canSendNotification("cancelled", "gmail"), false);
+  assert.equal(canSendNotification("rescheduled", "gmail"), false);
+  assert.equal(canSendNotification("completed", "gmail"), false);
+});
+
+test("direct Gmail reports incomplete authorization and preserves the disabled switch", () => {
+  const keys = ["EMAIL_DELIVERY_MODE", "EMAIL_FROM", "GMAIL_TRANSPORT",
+    "GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN"] as const;
+  const original = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+  try {
+    for (const key of keys) delete process.env[key];
+    process.env.GMAIL_TRANSPORT = "direct";
+    assert.equal(getEmailDeliveryStatus().mode, "disabled");
+    assert.equal(getEmailDeliveryStatus().configured, false);
+    process.env.EMAIL_DELIVERY_MODE = "gmail";
+    assert.match(getEmailDeliveryStatus().label, /mailbox authorization/);
+    assert.equal(getEmailDeliveryStatus().configured, false);
+    process.env.GMAIL_CLIENT_ID = "test-client";
+    process.env.GMAIL_CLIENT_SECRET = "test-secret";
+    process.env.GMAIL_REFRESH_TOKEN = "test-refresh";
+    assert.equal(getEmailDeliveryStatus().configured, false);
+    process.env.EMAIL_FROM = "Rikki Wigs <sender@example.com>";
+    assert.deepEqual(getEmailDeliveryStatus(), {
+      mode: "gmail", configured: true,
+      label: "Direct Gmail is selected for request receipts, confirmations, and owner alerts",
+    });
+    process.env.GMAIL_TRANSPORT = "invalid";
+    assert.equal(getEmailDeliveryStatus().configured, false);
+    assert.match(getEmailDeliveryStatus().label, /must be replit or direct/);
+    delete process.env.GMAIL_TRANSPORT;
+    assert.deepEqual(getEmailDeliveryStatus(), {
+      mode: "gmail", configured: true,
+      label: "Gmail is selected for request receipts, confirmations, and owner alerts",
+    });
+  } finally {
+    for (const key of keys) {
+      if (original[key] === undefined) delete process.env[key];
+      else process.env[key] = original[key];
+    }
+  }
 });
