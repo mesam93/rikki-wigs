@@ -7,10 +7,12 @@ import wigOrdersRouter from "./wig-orders";
 import { requireAdmin } from "../middlewares/requireAdmin";
 import calendarSyncRouter from "./calendar-sync";
 import clientRouter from "./client";
+import googleAuthRouter from "./google-auth";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(googleAuthRouter);
 router.get("/admin-session", requireAdmin, (_req, res) => {
   res.setHeader("Cache-Control", "private, no-store");
   res.json({ role: "admin" });

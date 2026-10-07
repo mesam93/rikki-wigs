@@ -36,6 +36,7 @@ import type {
   GalleryUploadRequest,
   GetAdminAvailabilityParams,
   GetAvailabilityParams,
+  GoogleSession,
   HealthStatus,
   ListAppointmentsParams,
   RequestGalleryUploadUrl200,
@@ -77,6 +78,311 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetAuthSessionUrl = () => {
+
+
+
+
+  return `/api/auth/session`
+}
+
+/**
+ * @summary Current direct Google login session
+ */
+export const getAuthSession = async ( options?: Parameters<typeof customFetch>[1]): Promise<GoogleSession> => {
+
+  return customFetch<GoogleSession>(getGetAuthSessionUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAuthSessionQueryKey = () => {
+    return [
+    `/api/auth/session`
+    ] as const;
+    }
+
+
+export const getGetAuthSessionQueryOptions = <TData = Awaited<ReturnType<typeof getAuthSession>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAuthSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAuthSessionQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAuthSession>>> = ({ signal }) => getAuthSession({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAuthSession>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAuthSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getAuthSession>>>
+export type GetAuthSessionQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Current direct Google login session
+ */
+
+export function useGetAuthSession<TData = Awaited<ReturnType<typeof getAuthSession>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAuthSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAuthSessionQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getStartGoogleSignInUrl = () => {
+
+
+
+
+  return `/api/auth/google/start`
+}
+
+/**
+ * @summary Start Google sign-in using state, nonce and PKCE
+ */
+export const startGoogleSignIn = async ( options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
+
+  return customFetch<unknown>(getStartGoogleSignInUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getStartGoogleSignInQueryKey = () => {
+    return [
+    `/api/auth/google/start`
+    ] as const;
+    }
+
+
+export const getStartGoogleSignInQueryOptions = <TData = Awaited<ReturnType<typeof startGoogleSignIn>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof startGoogleSignIn>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStartGoogleSignInQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof startGoogleSignIn>>> = ({ signal }) => startGoogleSignIn({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof startGoogleSignIn>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type StartGoogleSignInQueryResult = NonNullable<Awaited<ReturnType<typeof startGoogleSignIn>>>
+export type StartGoogleSignInQueryError = ErrorType<void>
+
+
+/**
+ * @summary Start Google sign-in using state, nonce and PKCE
+ */
+
+export function useStartGoogleSignIn<TData = Awaited<ReturnType<typeof startGoogleSignIn>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof startGoogleSignIn>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getStartGoogleSignInQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCompleteGoogleSignInUrl = () => {
+
+
+
+
+  return `/api/auth/google/callback`
+}
+
+/**
+ * @summary Validate Google callback and establish a new session
+ */
+export const completeGoogleSignIn = async ( options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
+
+  return customFetch<unknown>(getCompleteGoogleSignInUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getCompleteGoogleSignInQueryKey = () => {
+    return [
+    `/api/auth/google/callback`
+    ] as const;
+    }
+
+
+export const getCompleteGoogleSignInQueryOptions = <TData = Awaited<ReturnType<typeof completeGoogleSignIn>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof completeGoogleSignIn>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCompleteGoogleSignInQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof completeGoogleSignIn>>> = ({ signal }) => completeGoogleSignIn({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof completeGoogleSignIn>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type CompleteGoogleSignInQueryResult = NonNullable<Awaited<ReturnType<typeof completeGoogleSignIn>>>
+export type CompleteGoogleSignInQueryError = ErrorType<void>
+
+
+/**
+ * @summary Validate Google callback and establish a new session
+ */
+
+export function useCompleteGoogleSignIn<TData = Awaited<ReturnType<typeof completeGoogleSignIn>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof completeGoogleSignIn>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getCompleteGoogleSignInQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getLogoutGoogleSessionUrl = () => {
+
+
+
+
+  return `/api/auth/logout`
+}
+
+/**
+ * @summary Destroy the current session, requiring a same-origin request
+ */
+export const logoutGoogleSession = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getLogoutGoogleSessionUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getLogoutGoogleSessionMutationKey = () => ['logoutGoogleSession'] as const;
+
+export const getLogoutGoogleSessionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logoutGoogleSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof logoutGoogleSession>>, TError,void, TContext> => {
+
+const mutationKey = getLogoutGoogleSessionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof logoutGoogleSession>>, void> = () => {
+
+
+          return  logoutGoogleSession(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LogoutGoogleSessionMutationResult = NonNullable<Awaited<ReturnType<typeof logoutGoogleSession>>>
+
+    export type LogoutGoogleSessionMutationError = ErrorType<void>
+
+
+    /**
+ * @summary Destroy the current session, requiring a same-origin request
+ */
+export const useLogoutGoogleSession = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logoutGoogleSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof logoutGoogleSession>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getLogoutGoogleSessionMutationOptions(options));
+    }
 
 export const getGetClientHistoryUrl = () => {
 

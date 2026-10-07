@@ -1,157 +1,128 @@
 import { useEffect, useRef, useState } from "react";
-import { ClerkProvider, SignIn, Show, useClerk } from "@clerk/react";
-import { publishableKeyFromHost } from "@clerk/react/internal";
-import { shadcn } from "@clerk/themes";
-import { Switch, Route, useLocation, Router as WouterRouter, Redirect } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { ClientAccount } from "./ClientAccount";
 import { ClientSignUp } from "./ClientSignUp";
 import { SiteNav } from "@/components/SiteNav";
+import {
+  OAUTH_ERRORS,
+  apiUrl,
+  googleStartUrl,
+  siteUrl,
+  useClientSession,
+  useIdentityCacheReset,
+} from "@/hooks/use-client-auth";
 
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
-
-// Replit injects this value into published builds and leaves it empty in dev.
-// Keep the canonical env-backed proxyUrl; hardcoding /api/__clerk breaks managed Clerk.
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "") + "/client";
 
-function stripBase(path: string): string {
-  return basePath && path.startsWith(basePath)
-    ? path.slice(basePath.length) || "/"
-    : path;
-}
-
-if (!clerkPubKey) {
-  throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY in .env file");
-}
-
-const clerkAppearance = {
-  theme: shadcn,
-  cssLayerName: "clerk",
-  options: {
-    logoPlacement: "inside" as const,
-    logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, "")}/brand/rikki-logo-official.svg`,
-  },
-  variables: {
-    colorPrimary: "hsl(20 10% 8%)",
-    colorForeground: "hsl(20 10% 8%)",
-    colorMutedForeground: "hsl(25 8% 35%)",
-    colorDanger: "hsl(3 57% 42%)",
-    colorBackground: "hsl(35 40% 98%)",
-    colorInput: "hsl(35 40% 98%)",
-    colorInputForeground: "hsl(20 10% 8%)",
-    colorNeutral: "hsl(31 19% 78%)",
-    fontFamily: "var(--app-font-sans)",
-    borderRadius: "0.65rem",
-  },
-  elements: {
-    rootBox: "w-full flex justify-center",
-    cardBox: "bg-[hsl(35_40%_98%)] border border-[hsl(36_13%_82%)] rounded-2xl w-[440px] max-w-full overflow-hidden shadow-sm",
-    card: "!shadow-none !border-0 !bg-transparent !rounded-none",
-    footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
-    headerTitle: "font-editorial text-3xl",
-    headerSubtitle: "text-[hsl(25_8%_35%)] text-sm",
-    socialButtonsBlockButtonText: "font-semibold text-sm",
-    formFieldLabel: "text-[hsl(20_10%_8%)] text-xs font-semibold mb-1.5",
-    footerActionLink: "text-[hsl(32_42%_49%)] font-semibold hover:text-[hsl(20_10%_8%)]",
-    footerActionText: "text-[hsl(25_8%_35%)]",
-    dividerText: "text-[hsl(25_8%_35%)] font-mono-ui uppercase text-[10px] tracking-wider",
-    identityPreviewEditButton: "text-[hsl(32_42%_49%)]",
-    formFieldSuccessText: "text-[hsl(150_35%_28%)]",
-    alertText: "text-[hsl(3_57%_42%)]",
-    logoBox: "mx-auto h-32 w-32 mb-4",
-    logoImage: "w-full h-full object-contain",
-    socialButtonsBlockButton: "border border-[hsl(31_19%_78%)] rounded-xl py-3 hover:bg-[hsl(31_28%_87%)]",
-    formButtonPrimary: "bg-[hsl(20_10%_8%)] text-white hover:bg-black rounded-full py-3 font-semibold transition-transform hover:-translate-y-0.5",
-    formFieldInput: "border border-[hsl(31_19%_78%)] bg-[hsl(35_40%_98%)] rounded-lg py-2.5 px-3 focus:border-[hsl(32_42%_49%)] focus:ring focus:ring-[hsl(32_42%_49%)/.2]",
-    footerAction: "",
-    dividerLine: "bg-[hsl(31_19%_78%)]",
-    alert: "border border-[hsl(3_57%_42%)] bg-[hsl(3_57%_42%)/.05] rounded-xl p-3",
-    otpCodeFieldInput: "border border-[hsl(31_19%_78%)] bg-[hsl(35_40%_98%)] rounded-lg",
-    formFieldRow: "mb-4",
-    main: "p-8",
-  },
-};
-
-function SignInPage() {
+function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]">
       <SiteNav />
-      <main className="container-rikki flex justify-center py-12 md:py-20">
-        <SignIn
-          routing="path"
-          path={`${basePath}/sign-in`}
-          signUpUrl={`${basePath}/sign-up`}
-          fallbackRedirectUrl={`${basePath}/account`}
-          appearance={{ elements: { logoBox: "translate-y-8" } }}
-        />
-      </main>
+      <main className="container-rikki flex justify-center py-12 md:py-20">{children}</main>
     </div>
   );
+}
+
+function SignInCard() {
+  const session = useClientSession();
+  const [starting, setStarting] = useState(false);
+  const code = new URLSearchParams(window.location.search).get("error");
+  const oauthError = code && Object.prototype.hasOwnProperty.call(OAUTH_ERRORS, code) ? OAUTH_ERRORS[code] : code ? OAUTH_ERRORS.google_failed : null;
+
+  if (session.user) return <Redirect to="/account" replace />;
+
+  const unconfigured = !session.isLoading && !session.isError && !session.configured;
+  const disabled = session.isLoading || session.isError || unconfigured || starting;
+
+  return (
+    <div className="w-full max-w-[440px] rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-8 py-10 shadow-sm">
+      <div className="text-center">
+        <img className="mx-auto mb-6 h-28 w-28 object-contain" src={siteUrl("/brand/rikki-logo-official.svg")} alt="Rikki Wigs" />
+        <h1 className="font-editorial text-3xl">Sign in to Rikki Wigs</h1>
+        <p className="mt-3 text-sm text-[hsl(var(--muted-foreground))]">
+          Use the Google account with the same email you gave us. Your existing appointments and receipts appear automatically, and new clients get an account on first sign-in.
+        </p>
+      </div>
+
+      <div className="mt-8 space-y-4">
+        {oauthError && (
+          <p role="alert" data-testid="text-auth-error" className="rounded-xl border border-[hsl(var(--destructive)/.3)] bg-[hsl(var(--destructive)/.05)] p-3 text-sm text-[hsl(var(--destructive))]">
+            {oauthError}
+          </p>
+        )}
+        {session.isError && (
+          <div role="alert" className="rounded-xl border border-[hsl(var(--destructive)/.3)] bg-[hsl(var(--destructive)/.05)] p-3 text-sm text-[hsl(var(--destructive))]">
+            We could not check your sign-in status.{" "}
+            <button type="button" className="underline" data-testid="button-retry-session" onClick={() => void session.refetch()}>Try again</button>
+          </div>
+        )}
+        {unconfigured && (
+          <p role="status" data-testid="text-auth-unavailable" className="rounded-xl border border-[hsl(var(--border))] p-3 text-sm text-[hsl(var(--muted-foreground))]">
+            Google sign-in is currently unavailable. Please try again later or contact the studio.
+          </p>
+        )}
+        {session.isLoading ? (
+          <div className="skeleton h-12 w-full rounded-full" role="status" aria-label="Checking sign-in status" />
+        ) : (
+          <button
+            type="button"
+            disabled={disabled}
+            data-testid="button-google-sign-in"
+            onClick={() => {
+              setStarting(true);
+              window.location.assign(googleStartUrl());
+            }}
+            className="w-full rounded-full bg-[hsl(var(--primary))] px-5 py-3 text-sm font-semibold text-[hsl(var(--primary-foreground))] transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50"
+          >
+            {starting ? "Opening Google..." : "Continue with Google"}
+          </button>
+        )}
+        <p className="text-center text-xs text-[hsl(var(--muted-foreground))]">
+          Read our <a href={siteUrl("/privacy")} className="underline underline-offset-4">Privacy Policy</a>.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SignInPage() {
+  return <Shell><SignInCard /></Shell>;
 }
 
 function SignUpPage() {
-  return (
-    <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]">
-      <SiteNav />
-      <main className="container-rikki flex justify-center py-12 md:py-20">
-        <ClientSignUp />
-      </main>
-    </div>
-  );
+  return <ClientSignUp />;
 }
 
 function HomeRedirect() {
-  return (
-    <>
-      <Show when="signed-in">
-        <Redirect to="/account" />
-      </Show>
-      <Show when="signed-out">
-        <Redirect to="/sign-in" />
-      </Show>
-    </>
-  );
+  const { user, isLoading } = useClientSession();
+  if (isLoading) return <Loading text="Loading..." />;
+  return <Redirect to={user ? "/account" : "/sign-in"} replace />;
+}
+
+function Loading({ text }: { text: string }) {
+  return <div role="status" className="container-rikki py-16 text-center text-sm">{text}</div>;
 }
 
 function ClientAccountPage() {
-  return (
-    <>
-      <Show when="signed-in">
-        <AccountDestination />
-      </Show>
-      <Show when="signed-out">
-        <Redirect to="/sign-in" />
-      </Show>
-    </>
-  );
-}
-
-function AccountDestination() {
-  const [destination, setDestination] = useState<"checking" | "client" | "error">("checking");
+  const { user, isLoading, isError, refetch } = useClientSession();
+  const admin = Boolean(user?.isAdmin);
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetch("/api/admin-session", { signal: controller.signal, cache: "no-store" })
-      .then((response) => {
-        if (response.ok) {
-          window.location.replace("/manage");
-        } else {
-          setDestination(response.status === 403 ? "client" : "error");
-        }
-      })
-      .catch((error: unknown) => {
-        if (!(error instanceof DOMException && error.name === "AbortError")) setDestination("error");
-      });
-    return () => controller.abort();
-  }, []);
+    if (admin) window.location.replace(siteUrl("/manage"));
+  }, [admin]);
 
-  if (destination === "checking") return <div role="status" className="container-rikki py-16 text-center">Checking your account…</div>;
-  if (destination === "error") return <div role="alert" className="container-rikki py-16 text-center">Unable to check your account. Please reload and try again.</div>;
+  if (isLoading) return <Loading text="Checking your account..." />;
+  if (isError) {
+    return (
+      <div role="alert" className="container-rikki py-16 text-center text-sm">
+        Unable to check your account.{" "}
+        <button type="button" className="underline" onClick={() => void refetch()}>Try again</button>
+      </div>
+    );
+  }
+  if (!user) return <Redirect to="/sign-in" replace />;
+  if (admin) return <Loading text="Opening the studio..." />;
   return (
     <div className="site-shell min-h-[100dvh] bg-[hsl(var(--background))]">
       <SiteNav isClientAccount />
@@ -161,76 +132,49 @@ function AccountDestination() {
 }
 
 function ClientSignOut() {
-  const { signOut } = useClerk();
+  const queryClient = useQueryClient();
   const started = useRef(false);
   const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    void signOut({ redirectUrl: "/" }).catch(() => setError(true));
-  }, [signOut]);
-
-  return <div className="container-rikki py-16 text-center" role="status">{error ? <p>Could not sign out. Please reload and try again.</p> : "Signing out…"}</div>;
-}
-
-function ClerkQueryClientCacheInvalidator() {
-  const { addListener } = useClerk();
-  const queryClient = useQueryClient();
-  const prevUserIdRef = useRef<string | null | undefined>(undefined);
-
-  useEffect(() => {
-    const unsubscribe = addListener((emission: any) => {
-      const userId = emission.user?.id ?? null;
-      if (
-        prevUserIdRef.current !== undefined &&
-        prevUserIdRef.current !== userId
-      ) {
+    setError(false);
+    fetch(apiUrl("/auth/logout"), { method: "POST", credentials: "same-origin" })
+      .then((res) => {
+        if (!res.ok) throw new Error("logout failed");
         queryClient.clear();
-      }
-      prevUserIdRef.current = userId;
-    });
-    return unsubscribe;
-  }, [addListener, queryClient]);
+        window.location.replace(siteUrl("/"));
+      })
+      .catch(() => {
+        started.current = false;
+        setError(true);
+      });
+  }, [attempt, queryClient]);
 
-  return null;
+  return (
+    <div className="container-rikki py-16 text-center" role="status">
+      {error ? (
+        <div role="alert">
+          <p>We could not sign you out. Check your connection and try again.</p>
+          <button type="button" className="mt-3 underline" onClick={() => setAttempt((n) => n + 1)}>Try again</button>
+        </div>
+      ) : "Signing out..."}
+    </div>
+  );
 }
 
 function ClientRoutes() {
-  const [, setLocation] = useLocation();
+  useIdentityCacheReset();
   return (
-      <ClerkProvider
-        publishableKey={clerkPubKey}
-        proxyUrl={clerkProxyUrl}
-        appearance={clerkAppearance}
-        signInUrl={`${basePath}/sign-in`}
-        signUpUrl={`${basePath}/sign-up`}
-        localization={{
-          signIn: {
-            start: {
-              title: "",
-              subtitle: "",
-            },
-          },
-          signUp: {
-            start: {
-              title: "Create Client Account",
-              subtitle: "Register to manage your Rikki Wigs history",
-            },
-          },
-        }}
-        routerPush={(to: string) => setLocation(stripBase(to))}
-        routerReplace={(to: string) => setLocation(stripBase(to), { replace: true })}
-      >
-        <ClerkQueryClientCacheInvalidator />
-        <Switch>
-          <Route path="/" component={HomeRedirect} />
-          <Route path="/sign-in/*?" component={SignInPage} />
-          <Route path="/sign-up/*?" component={SignUpPage} />
-          <Route path="/account" component={ClientAccountPage} />
-          <Route path="/sign-out" component={ClientSignOut} />
-        </Switch>
-      </ClerkProvider>
+    <Switch>
+      <Route path="/" component={HomeRedirect} />
+      <Route path="/sign-in/*?" component={SignInPage} />
+      <Route path="/sign-up/*?" component={SignUpPage} />
+      <Route path="/account" component={ClientAccountPage} />
+      <Route path="/sign-out" component={ClientSignOut} />
+    </Switch>
   );
 }
 

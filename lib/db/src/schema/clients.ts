@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 // A form email reserves a single pending identity, but does not grant access.
-// Clerk owns credentials; only a verified Clerk email can claim this record.
+// Google verifies identity; only the server's verified email can claim this record.
 export const clientsTable = pgTable("clients", {
   email: text("email").primaryKey(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

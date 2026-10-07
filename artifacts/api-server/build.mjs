@@ -41,6 +41,9 @@ async function buildAll() {
       // PDFKit resolves its standard fonts through package-private #standard-fonts imports.
       // Bundling moves those imports outside PDFKit's package scope, breaking receipts.
       "pdfkit",
+      // This store loads its table.sql relative to its own package.
+      "connect-pg-simple",
+      "google-auth-library",
       "bcrypt",
       "argon2",
       "fsevents",

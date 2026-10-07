@@ -19,6 +19,45 @@ tags:
   - name: orders
     description: Private wig orders and receipts
 paths:
+  /auth/session:
+    get:
+      operationId: getAuthSession
+      tags: [authentication]
+      summary: Current direct Google login session
+      responses:
+        "200":
+          description: Session and login configuration status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GoogleSession" }
+  /auth/google/start:
+    get:
+      operationId: startGoogleSignIn
+      tags: [authentication]
+      summary: Start Google sign-in using state, nonce and PKCE
+      responses:
+        "302":
+          description: Redirect to Google
+        "503":
+          description: Google sign-in is not configured
+  /auth/google/callback:
+    get:
+      operationId: completeGoogleSignIn
+      tags: [authentication]
+      summary: Validate Google callback and establish a new session
+      responses:
+        "302":
+          description: Redirect to the account or a safe sign-in error
+  /auth/logout:
+    post:
+      operationId: logoutGoogleSession
+      tags: [authentication]
+      summary: Destroy the current session, requiring a same-origin request
+      responses:
+        "204":
+          description: Signed out
+        "403":
+          description: Cross-origin logout rejected
   /client/history:
     get:
       operationId: getClientHistory
@@ -704,6 +743,24 @@ paths:
           description: Gallery photo removed
 components:
   schemas:
+    GoogleSession:
+      type: object
+      required: [configured, user]
+      properties:
+        configured: { type: boolean }
+        user:
+          anyOf:
+            - { $ref: "#/components/schemas/GoogleSessionUser" }
+            - { type: "null" }
+    GoogleSessionUser:
+      type: object
+      required: [id, email, name, firstName, isAdmin]
+      properties:
+        id: { type: string }
+        email: { type: string }
+        name: { type: string }
+        firstName: { type: string }
+        isAdmin: { type: boolean }
     ClientHistory:
       type: object
       required: [email, appointments, receipts]

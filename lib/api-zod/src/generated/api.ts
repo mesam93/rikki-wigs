@@ -9,6 +9,39 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Current direct Google login session
+ */
+export const GetAuthSessionResponse = zod.object({
+  "configured": zod.boolean(),
+  "user": zod.union([zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "name": zod.string(),
+  "firstName": zod.string(),
+  "isAdmin": zod.boolean()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Start Google sign-in using state, nonce and PKCE
+ */
+export const StartGoogleSignInResponse = zod.void()
+
+
+/**
+ * @summary Validate Google callback and establish a new session
+ */
+export const CompleteGoogleSignInResponse = zod.void()
+
+
+/**
+ * @summary Destroy the current session, requiring a same-origin request
+ */
+export const LogoutGoogleSessionResponse = zod.void()
+
+
+/**
  * @summary Upcoming appointments and issued receipts belonging to the verified client
  */
 export const GetClientHistoryResponse = zod.object({

@@ -5,6 +5,19 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface GoogleSessionUser {
+  id: string;
+  email: string;
+  name: string;
+  firstName: string;
+  isAdmin: boolean;
+}
+
+export interface GoogleSession {
+  configured: boolean;
+  user: GoogleSessionUser | null;
+}
+
 export type AppointmentStatus = typeof AppointmentStatus[keyof typeof AppointmentStatus];
 
 

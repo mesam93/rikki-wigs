@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Menu } from 'lucide-react';
-import { useClerk } from '@clerk/react';
 
 function AdminLogoutButton() {
   return <a href="/client/sign-out" className="rounded-full border border-white/35 px-4 py-2 text-sm font-semibold text-white hover:bg-white hover:text-black">Log out</a>;
 }
 
 function ClientLogoutButton() {
-  const { signOut } = useClerk();
-  return <button type="button" onClick={() => void signOut({ redirectUrl: '/' })} className="rounded-full border border-white/35 px-4 py-2 text-sm font-semibold text-white hover:bg-white hover:text-black">Log out</button>;
+  return <a href="/client/sign-out" className="rounded-full border border-white/35 px-4 py-2 text-sm font-semibold text-white hover:bg-white hover:text-black">Log out</a>;
 }
 
 export function SiteNav({ manage = false, isClientAccount = false }: { manage?: boolean; isClientAccount?: boolean }) {

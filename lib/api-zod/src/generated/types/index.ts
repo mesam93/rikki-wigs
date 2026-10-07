@@ -29,6 +29,8 @@ export * from './galleryPhotoInput';
 export * from './galleryUploadRequest';
 export * from './getAdminAvailabilityParams';
 export * from './getAvailabilityParams';
+export * from './googleSession';
+export * from './googleSessionUser';
 export * from './healthStatus';
 export * from './listAppointmentsParams';
 export * from './requestGalleryUploadUrl200';

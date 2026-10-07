@@ -1,4 +1,4 @@
-import { clerkClient, getAuth } from "@clerk/express";
+import { currentGoogleIdentity } from "../auth/google-policy";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { and, asc, desc, eq, gt, gte, inArray, or, sql } from "drizzle-orm";
 import { appointmentsTable, clientsTable, db, wigReceiptsTable } from "@workspace/db";
@@ -8,15 +8,12 @@ import { sendReceiptPdf } from "../lib/wig-receipt-pdf";
 
 const router: IRouter = Router();
 
-// Never accept an email from a query or body here. Even a signed-in Clerk user
-// can have unverified addresses; ownership requires their verified primary email.
+// Never accept an email from a query or body here.
+// Ownership requires the server's Google-verified email, never a form-supplied address.
 async function verifiedClient(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const { userId } = getAuth(req);
-  if (!userId) { res.status(401).json({ error: "Sign in required" }); return; }
-  const user = await clerkClient.users.getUser(userId);
-  const primary = user.emailAddresses.find((address) => address.id === user.primaryEmailAddressId);
-  const email = primary?.verification?.status === "verified"
-    ? validClientEmail(primary.emailAddress) : null;
+  const user = currentGoogleIdentity(req.session?.googleUser);
+  if (!user) { res.status(401).json({ error: "Sign in required" }); return; }
+  const email = validClientEmail(user.email);
   if (!email) { res.status(403).json({ error: "Verify your email to access your account" }); return; }
   res.locals.clientEmail = email;
   next();

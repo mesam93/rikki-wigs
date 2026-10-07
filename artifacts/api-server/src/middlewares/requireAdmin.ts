@@ -1,9 +1,9 @@
-import { clerkClient, getAuth } from "@clerk/express";
 import type { RequestHandler } from "express";
+import { currentGoogleIdentity, googleConfig, isGoogleAdmin } from "../auth/google-policy";
 
 export const requireAdmin: RequestHandler = async (req, res, next) => {
-  const { userId } = getAuth(req);
-  if (!userId) {
+  const user = currentGoogleIdentity(req.session?.googleUser);
+  if (!user) {
     res.status(401).json({ error: "Sign in required" });
     return;
   }
@@ -15,15 +15,14 @@ export const requireAdmin: RequestHandler = async (req, res, next) => {
     return;
   }
 
-  const user = await clerkClient.users.getUser(userId);
-  const primary = user.emailAddresses.find((address) => address.id === user.primaryEmailAddressId);
-  const verifiedAdminEmail = primary?.verification?.status === "verified"
-    && primary.emailAddress.trim().toLowerCase() === adminEmail;
-  const linkedGoogleAccount = user.externalAccounts.some((account) =>
-    account.provider === "oauth_google" && account.emailAddress?.trim().toLowerCase() === adminEmail
-  );
-  if (!verifiedAdminEmail || !linkedGoogleAccount) {
+  if (!isGoogleAdmin(user, adminEmail)) {
     res.status(403).json({ error: "Admin access required" });
+    return;
+  }
+  const origin = googleConfig()?.origin;
+  if (!["GET", "HEAD", "OPTIONS"].includes(req.method)
+    && (!origin || req.get("origin") !== origin)) {
+    res.status(403).json({ error: "A same-origin request is required." });
     return;
   }
 

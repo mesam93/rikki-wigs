@@ -1,14 +1,6 @@
 import { clientsTable, type db } from "@workspace/db";
-
-export function normalizedEmail(value: string): string {
-  return value.trim().toLowerCase();
-}
-
-export function validClientEmail(value: string): string | null {
-  const normalized = normalizedEmail(value);
-  return normalized.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)
-    ? normalized : null;
-}
+import { validClientEmail } from "./verified-email";
+export { normalizedEmail, validClientEmail } from "./verified-email";
 
 type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 

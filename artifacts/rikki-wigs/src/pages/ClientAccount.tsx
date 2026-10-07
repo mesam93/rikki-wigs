@@ -1,5 +1,5 @@
-import { useUser } from "@clerk/react";
 import { Link } from "wouter";
+import { useClientSession, apiUrl } from "@/hooks/use-client-auth";
 import { FileText, Calendar as CalendarIcon, Clock, Download, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
@@ -11,13 +11,14 @@ type ClientHistory = {
 };
 
 export function ClientAccount() {
-  const { user, isLoaded } = useUser();
+  const { user, isLoading } = useClientSession();
+  const isLoaded = !isLoading;
   const { data: history, isPending, error, refetch } = useQuery<ClientHistory>({
     queryKey: ["client-history", user?.id],
     enabled: Boolean(isLoaded && user?.id),
     staleTime: 30_000,
     queryFn: async () => {
-      const res = await fetch("/api/client/history", { credentials: "same-origin", cache: "no-store" });
+      const res = await fetch(apiUrl("/client/history"), { credentials: "same-origin", cache: "no-store" });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error || "Your account could not be loaded. Please try again.");
@@ -26,7 +27,7 @@ export function ClientAccount() {
     },
   });
 
-  if (!isLoaded || isPending) {
+  if (!isLoaded || !user || isPending) {
     return (
       <div className="container-rikki py-16 text-center text-sm text-[hsl(var(--muted-foreground))]">
         <div className="skeleton mx-auto h-12 w-12 rounded-full mb-4" />
@@ -41,7 +42,7 @@ export function ClientAccount() {
         <div>
           <p className="eyebrow opacity-55">Client Account</p>
           <h1 className="display-title mt-3 text-4xl">Hello, {user?.firstName || "Lovely"}</h1>
-          <p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">{user?.primaryEmailAddress?.emailAddress}</p>
+          <p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">{user?.email}</p>
         </div>
       </div>
 

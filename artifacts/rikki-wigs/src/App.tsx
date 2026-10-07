@@ -31,6 +31,8 @@ import NotFound from '@/pages/not-found';
 
 import { SiteNav } from '@/components/SiteNav';
 import { ClientApp } from '@/pages/ClientAuth';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
+import { siteUrl } from '@/hooks/use-client-auth';
 
 const queryClient = new QueryClient();
 const statuses = ['pending', 'confirmed', 'completed', 'cancelled'] as const;
@@ -133,7 +135,7 @@ function Home() {
       <GallerySection />
       <TestimonialsSection />
     </main>
-    <footer id="contact" className="scroll-mt-24 border-t border-[hsl(var(--border))] py-10"><div className="container-rikki flex flex-col justify-between gap-8 md:flex-row md:items-end"><div className="flex items-center gap-4"><img src="/brand/rikki-logo-official.svg" alt="" className="h-16 w-16 rounded-full object-contain" /><div><p className="font-editorial text-2xl tracking-[.12em]">RIKKI WIGS</p><p className="mt-2 max-w-[220px] text-sm leading-6 text-[hsl(var(--muted-foreground))]">Luxury wig salon in New Jersey. By appointment.</p></div></div><div className="flex flex-wrap items-center gap-6 text-sm"><a href={phoneUrl} className="editorial-link" data-testid="link-footer-phone">{phoneDisplay}</a><a href={instagramUrl} target="_blank" rel="noreferrer" className="editorial-link" data-testid="link-footer-instagram">Follow @rikki_wigs</a><a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="rounded-full border border-[hsl(var(--border))] p-2 transition-colors hover:border-[hsl(var(--primary))] hover:text-[hsl(var(--primary))]" aria-label="Contact Rikki Wigs on WhatsApp" data-testid="link-whatsapp"><WhatsAppIcon /></a><a href={instagramUrl} target="_blank" rel="noreferrer" className="rounded-full border border-[hsl(var(--border))] p-2" aria-label="Instagram" data-testid="link-instagram"><Instagram size={16} /></a></div></div></footer>
+    <footer id="contact" className="scroll-mt-24 border-t border-[hsl(var(--border))] py-10"><div className="container-rikki flex flex-col justify-between gap-8 md:flex-row md:items-end"><div className="flex items-center gap-4"><img src="/brand/rikki-logo-official.svg" alt="" className="h-16 w-16 rounded-full object-contain" /><div><p className="font-editorial text-2xl tracking-[.12em]">RIKKI WIGS</p><p className="mt-2 max-w-[220px] text-sm leading-6 text-[hsl(var(--muted-foreground))]">Luxury wig salon in New Jersey. By appointment.</p></div></div><div className="flex flex-wrap items-center gap-6 text-sm"><a href={siteUrl("/privacy")} className="editorial-link" data-testid="link-footer-privacy">Privacy Policy</a><a href={phoneUrl} className="editorial-link" data-testid="link-footer-phone">{phoneDisplay}</a><a href={instagramUrl} target="_blank" rel="noreferrer" className="editorial-link" data-testid="link-footer-instagram">Follow @rikki_wigs</a><a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="rounded-full border border-[hsl(var(--border))] p-2 transition-colors hover:border-[hsl(var(--primary))] hover:text-[hsl(var(--primary))]" aria-label="Contact Rikki Wigs on WhatsApp" data-testid="link-whatsapp"><WhatsAppIcon /></a><a href={instagramUrl} target="_blank" rel="noreferrer" className="rounded-full border border-[hsl(var(--border))] p-2" aria-label="Instagram" data-testid="link-instagram"><Instagram size={16} /></a></div></div></footer>
   </div>;
 }
 
@@ -635,7 +637,7 @@ function AppointmentRow({ appointment, onStatus, onDelete, onReschedule, busy }:
 
 function Router() {
   const [location] = useLocation();
-  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/book" component={PublicBook} /><Route path="/login"><Redirect to="/client/sign-in" /></Route><Route path="/client/*?" component={ClientApp} /><Route path="/account"><Redirect to="/client/account" /></Route><Route path="/sign-in/*?"><Redirect to="/client/sign-in" /></Route><Route path="/manage" component={AdminManageRoute} /><Route component={NotFound} /></Switch></ErrorBoundary>;
+  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/privacy" component={PrivacyPolicy} /><Route path="/book" component={PublicBook} /><Route path="/login"><Redirect to="/client/sign-in" /></Route><Route path="/client/*?" component={ClientApp} /><Route path="/account"><Redirect to="/client/account" /></Route><Route path="/sign-in/*?"><Redirect to="/client/sign-in" /></Route><Route path="/manage" component={AdminManageRoute} /><Route component={NotFound} /></Switch></ErrorBoundary>;
 }
 
 function App() {
